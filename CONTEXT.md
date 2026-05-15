@@ -79,6 +79,18 @@ The Household's chosen currency for net-worth aggregation (default IDR). Non-nat
 **Net Worth**:
 For a given Household and month, `Σ(Asset, Receivable, Investment snapshots) − Σ(Liability snapshots)`, all converted to the Household's reporting currency. Net worth can be reported per-Household (the total) or broken down by User via each Position's Ownership — SoleOwner Positions contribute fully to their User's column; Joint Positions are split equally across the Household's Users (or shown in a separate "Joint" column).
 
+### Income and cashflow
+
+**Income**:
+A flow event recording earned cash entering the Household from outside — salary, business income, rental income, gifts, refunds, payouts. Distinct from Investment cash events (Coupon / Dividend / Distribution / Maturity), which are returns from positions the Household already holds.
+
+Each Income event has: `date`, `amount`, `currency`, `category` (closed enum), `description` (free text, optional), and `ownership` (`SoleOwner` or `Joint`). Categories: **Salary**, **BusinessIncome**, **RentalIncome**, **Gift**, **TaxRefund**, **InsurancePayout**, **Other**. The `description` field provides sub-categorisation within a category — e.g., base monthly pay and travel per-diem are both `Salary`, distinguished by description in drill-downs but rolled up at the category level for top-line reporting.
+
+Like Investment cash events (ADR-0003), Income events do **not** auto-update bank-account snapshots. The cash arrives via the next bank statement; the Income event exists to support the income-statement view and cashflow approximation, not to maintain net worth (which the snapshot tables already capture).
+
+**Comprehensive income identity**:
+`ΔNet Worth = Earned Income + Investment Return − Living Expenses`. Earned Income is tracked explicitly. Investment Return is derived per-instrument per-month as `ΔSnapshot_value + cash_paid_out_to_bank − cash_paid_in_from_bank` (covering unrealised price movement, realised gains from Sells, and yield from Coupons / Dividends / Distributions / Maturities; net of Fees). Living Expenses are derived as the residual — itemised expense tracking remains a non-feature per ADR-0001.
+
 ## Relationships
 
 - A **Household** has 1..N **Users**.
@@ -87,6 +99,7 @@ For a given Household and month, `Σ(Asset, Receivable, Investment snapshots) �
 - An **Asset / Liability / Receivable / Investment** has zero or more **Snapshots** — typically one per month.
 - An **Investment** instrument additionally has zero or more **Transactions** — independent of its Snapshots.
 - A **TimeDeposit** auto-renewal terminates the old instrument and creates a new one; the chain is implicit, not modelled as a parent-child link.
+- Every **Income** event belongs to exactly one **Household** and carries an **Ownership** mode. Income events stand alone — they don't link to any Position or Snapshot.
 
 ## Example dialogue
 
@@ -101,6 +114,12 @@ For a given Household and month, `Σ(Asset, Receivable, Investment snapshots) �
 
 > **Q:** "Our house is registered in my name only — should I record it as SoleOwner?"
 > **A:** Use whatever the Household *intends* for net-worth attribution. If both spouses consider the home shared, mark it Joint regardless of the deed. Ownership in this app captures intent, not legal title.
+
+> **Q:** "I get a base salary each month plus per-diem when I travel for work — both from the same employer."
+> **A:** Two separate Income events, both with category `Salary`, distinguished by description ("Base salary", "Per diem — Jakarta trip"). They roll up under the Salary line in the income statement; descriptions surface in drill-downs.
+
+> **Q:** "How do I know what I spent last month if I don't track expenses?"
+> **A:** Living expenses are derived: `Earned Income + Investment Return − ΔNet Worth`. The app shows one residual number — itemised spending categories are not tracked.
 
 ## Flagged ambiguities
 

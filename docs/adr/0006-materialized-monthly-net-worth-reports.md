@@ -4,7 +4,7 @@ The dashboard's primary view — net worth over time with headline breakdowns �
 
 Drill-downs into a specific category, position, or sub-period are computed on-the-fly from the underlying snapshot and transaction tables. Materialization exists for the one query that aggregates across every Position in a Household — finer queries are inherently filtered and cheap.
 
-Generation is **lazy with a staleness flag**. On read, the report row's `generated_at` is compared against `max(updated_at)` of the inputs that feed that month: Snapshots, Transactions, FX rates, Ownership changes, and Position metadata. If any input is newer, the row is recomputed, written, and served. Otherwise the cached row is returned directly. Deletes are detectable because all domain tables use soft-delete (see ADR-0007), so a delete still bumps the row's `updated_at`.
+Generation is **lazy with a staleness flag**. On read, the report row's `generated_at` is compared against `max(updated_at)` of the inputs that feed that month: Snapshots, Transactions, FX rates, Ownership changes, Position metadata, and Income events (added by ADR-0008). If any input is newer, the row is recomputed, written, and served. Otherwise the cached row is returned directly. Deletes are detectable because all domain tables use soft-delete (see ADR-0007), so a delete still bumps the row's `updated_at`.
 
 The `fx_rates_used` column captures the rates applied at generation time — frozen on the row, separate from the authoritative FX rate table. This answers "what rates did *this* report use?" without joining back to a possibly-edited rate table, and lets us diff before / after a manual rebuild.
 
