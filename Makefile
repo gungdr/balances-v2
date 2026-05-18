@@ -1,4 +1,4 @@
-.PHONY: up down logs ps backend-run backend-build backend-migrate-up backend-migrate-down backend-migrate-status backend-tidy
+.PHONY: up down logs ps backend-run backend-build backend-migrate-up backend-migrate-down backend-migrate-status backend-tidy frontend-install frontend-dev frontend-build
 
 -include .env
 export
@@ -32,3 +32,12 @@ backend-migrate-status:
 
 backend-tidy:
 	cd backend && go mod tidy
+
+frontend-install:
+	cd frontend && npm install
+
+frontend-dev:
+	cd frontend && npm run dev
+
+frontend-build:
+	cd frontend && npm run build

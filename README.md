@@ -10,9 +10,11 @@ Prerequisites: Docker (OrbStack recommended on macOS), Go 1.22+, Node 20+.
 
 ```sh
 cp .env.example .env
-make up                # starts Postgres + Mailpit
+make up                       # starts Postgres + Mailpit
+make backend-migrate-up       # applies pending migrations
+make backend-run              # http://localhost:8080  (terminal 1)
+make frontend-install         # first time only
+make frontend-dev             # http://localhost:5173  (terminal 2)
 ```
 
-Mailpit's web UI is at <http://localhost:8025> for inspecting dev emails.
-
-Backend and frontend run instructions land as milestones M1.2 and M1.4 of the roadmap.
+Mailpit's web UI is at <http://localhost:8025> for inspecting dev emails. The Vite dev server proxies `/healthz` and `/api/*` to the backend at `:8080`.
