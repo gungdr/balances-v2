@@ -67,11 +67,11 @@ Reactivation (a closed bank account reopened, a sold property bought back) creat
 ### Identity and ownership
 
 **Household**:
-The unit of access and aggregation — the people sharing economic life and tracking net worth together. Every Position, Snapshot, and Transaction belongs to exactly one Household.
+The unit of access and aggregation — the people sharing economic life and tracking net worth together. Every Position, Snapshot, Transaction, and Income event belongs to exactly one Household. A Household carries a `display_name` and a `reporting_currency` (the currency in which net-worth aggregates are computed).
 _Avoid_: Family, Team, Tenant.
 
 **User**:
-An individual member of a Household. A User belongs to exactly one Household (v1; multi-household membership is deferred). All Users in a Household have full read/write access to all data in that Household.
+An individual member of a Household. A User belongs to exactly one Household (v1; multi-household membership is deferred). All Users in a Household have full read/write access to all data in that Household. Users carry a `display_name`, `email`, `locale` (UI language, default `id-ID`), and `time_zone` (for "current month" interpretation, default `Asia/Jakarta`).
 
 **Ownership** (Position attribute):
 Each Position carries an Ownership mode:
