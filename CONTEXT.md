@@ -49,7 +49,20 @@ An event in an Investment instrument's ledger. Types: **Buy**, **Sell**, **Coupo
 - **Buy / Sell** — a trade; quantity changes hands, with a price per unit and a cash impact.
 - **Coupon / Dividend / Distribution** — periodic income payments. The cash impact is *not* propagated to any bank-account snapshot; the user reads the resulting cash off their bank statement at the next month-end.
 - **Fee** — a manager-imposed charge against the instrument. Records `fee_cash_amount`, `currency`, optional `fee_quantity_deducted` (for instruments where settlement is in units, e.g. gold or some mutual-fund classes), and optional `price_per_unit` used for the conversion. NAV-embedded fees (typical for mutual funds) are not recorded — they're already reflected in the price snapshot.
-- **Maturity** — an instrument's terminal event (Bond redemption, TimeDeposit completion). For TimeDeposits that auto-renew, the old instrument receives a Maturity transaction and a new TimeDeposit instrument is created with `principal = old_principal + accrued_interest`.
+- **Maturity** — an instrument's terminal event (Bond redemption, TimeDeposit completion). The transaction carries `principal_amount`, `interest_amount`, and a disposition for each (`rolled_to_new` or `cash_out`), expressing whether the piece was reinvested into a new instrument or paid out. For TimeDeposit auto-rollovers the bank policies are: principal + interest both rolled (`auto_renew_with_interest`), principal rolled with interest paid out (`auto_renew_principal`), or both paid out (`no_rollover`). `cash_out` portions do not auto-update bank balances (ADR-0003) — they appear in the next bank statement. When principal or interest is rolled, a fresh TimeDeposit Position is created with its `principal` set to the rolled-over amount.
+
+### Position lifecycle
+
+Every Position carries a **status** (default `active`) and an optional `terminated_at` date marking when it left the Household's portfolio, plus an optional free-text `termination_note`. Status values vary per group:
+
+- **Asset**: `active`, `closed` (bank account), `sold` (vehicle, property), `disposed`
+- **Liability**: `active`, `paid_off`, `forgiven`, `written_off`
+- **Receivable**: `active`, `collected`, `written_off`
+- **Investment**: `active`, `sold` (fully exited), `matured` (Bond, TimeDeposit)
+
+A non-active Position contributes to net worth only for months ending on or before `terminated_at`. Its historical Snapshots and Transactions remain intact and queryable; only its forward contribution is suppressed. Snapshot carry-forward does not extend a Position past its `terminated_at`.
+
+Reactivation (a closed bank account reopened, a sold property bought back) creates a new Position row rather than flipping `terminated_at` back to NULL — keeping termination periods unambiguous in the historical record. This applies uniformly, including to TimeDeposit auto-rollovers: each rollover creates a fresh TimeDeposit Position with a new `placement_date`.
 
 ### Identity and ownership
 
