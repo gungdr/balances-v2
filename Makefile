@@ -1,4 +1,7 @@
-.PHONY: up down logs ps
+.PHONY: up down logs ps backend-run backend-build backend-migrate-up backend-migrate-down backend-migrate-status backend-tidy
+
+-include .env
+export
 
 up:
 	docker compose up -d
@@ -11,3 +14,21 @@ logs:
 
 ps:
 	docker compose ps
+
+backend-run:
+	cd backend && go run ./cmd/balances serve
+
+backend-build:
+	cd backend && go build -o bin/balances ./cmd/balances
+
+backend-migrate-up:
+	cd backend && go run ./cmd/balances migrate up
+
+backend-migrate-down:
+	cd backend && go run ./cmd/balances migrate down
+
+backend-migrate-status:
+	cd backend && go run ./cmd/balances migrate status
+
+backend-tidy:
+	cd backend && go mod tidy
