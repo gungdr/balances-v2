@@ -81,6 +81,67 @@ func (h *Handlers) handleListSnapshots(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, snaps)
 }
 
+type updateSnapshotReq struct {
+	Amount      *decimal.Decimal `json:"amount"      validate:"required"`
+	Currency    string           `json:"currency"    validate:"required,iso4217"`
+	AsOfDate    *string          `json:"as_of_date"`
+	Description *string          `json:"description"`
+}
+
+func (h *Handlers) handleUpdateSnapshot(w http.ResponseWriter, r *http.Request) {
+	snapshotID, err := parseIDParam(r, "snapshotID")
+	if err != nil {
+		http.Error(w, "invalid snapshot id", http.StatusBadRequest)
+		return
+	}
+
+	var req updateSnapshotReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json body", http.StatusBadRequest)
+		return
+	}
+	if err := h.validate.Struct(&req); err != nil {
+		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var asOf *time.Time
+	if req.AsOfDate != nil && *req.AsOfDate != "" {
+		t, err := time.Parse("2006-01-02", *req.AsOfDate)
+		if err != nil {
+			http.Error(w, "invalid as_of_date: expected YYYY-MM-DD", http.StatusBadRequest)
+			return
+		}
+		asOf = &t
+	}
+
+	snap, err := h.repo.UpdateAssetSnapshot(r.Context(), repo.UpdateAssetSnapshotParams{
+		SnapshotID:  snapshotID,
+		Amount:      *req.Amount,
+		Currency:    req.Currency,
+		AsOfDate:    asOf,
+		Description: req.Description,
+	})
+	if err != nil {
+		writeRepoError(w, "update asset snapshot", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, snap)
+}
+
+func (h *Handlers) handleDeleteSnapshot(w http.ResponseWriter, r *http.Request) {
+	snapshotID, err := parseIDParam(r, "snapshotID")
+	if err != nil {
+		http.Error(w, "invalid snapshot id", http.StatusBadRequest)
+		return
+	}
+	if err := h.repo.DeleteAssetSnapshot(r.Context(), snapshotID); err != nil {
+		writeRepoError(w, "delete asset snapshot", err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func parseYearMonth(s string) (time.Time, error) {
 	if len(s) == 7 {
 		return time.Parse("2006-01", s)

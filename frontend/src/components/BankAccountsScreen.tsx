@@ -1,4 +1,3 @@
-import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -9,14 +8,13 @@ import {
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
 import { useBankAccounts } from '@/hooks/useBankAccounts'
 import { CreateBankAccountDialog } from '@/components/CreateBankAccountDialog'
-import { formatCurrency, formatYearMonth } from '@/lib/format'
+import { BankAccountListRow } from '@/components/BankAccountListRow'
 
 type Props = {
   onSelect: (id: string) => void
@@ -71,55 +69,18 @@ export function BankAccountsScreen({ onSelect }: Props) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Bank</TableHead>
                   <TableHead>Ownership</TableHead>
                   <TableHead>Latest balance</TableHead>
-                  <TableHead>As of</TableHead>
-                  <TableHead></TableHead>
+                  <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.map((item) => (
-                  <TableRow
+                  <BankAccountListRow
                     key={item.asset.id}
-                    className="cursor-pointer"
-                    onClick={() => onSelect(item.asset.id)}
-                  >
-                    <TableCell className="font-medium">
-                      {item.asset.display_name}
-                    </TableCell>
-                    <TableCell>{item.details.bank_name}</TableCell>
-                    <TableCell className="capitalize">
-                      {item.asset.ownership_type}
-                    </TableCell>
-                    <TableCell>
-                      {item.latest_snapshot ? (
-                        formatCurrency(
-                          item.latest_snapshot.amount,
-                          item.latest_snapshot.currency,
-                        )
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {item.latest_snapshot
-                        ? formatYearMonth(item.latest_snapshot.year_month)
-                        : '—'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onSelect(item.asset.id)
-                        }}
-                      >
-                        Open →
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                    item={item}
+                    onSelect={onSelect}
+                  />
                 ))}
               </TableBody>
             </Table>

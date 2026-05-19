@@ -46,6 +46,8 @@ func (h *Handlers) Mount(r chi.Router) {
 			r.Delete("/", h.handleDeleteBankAccount)
 			r.Post("/snapshots", h.handleCreateSnapshot)
 			r.Get("/snapshots", h.handleListSnapshots)
+			r.Patch("/snapshots/{snapshotID}", h.handleUpdateSnapshot)
+			r.Delete("/snapshots/{snapshotID}", h.handleDeleteSnapshot)
 		})
 	})
 }

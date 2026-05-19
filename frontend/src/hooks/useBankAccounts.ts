@@ -117,3 +117,42 @@ export function useCreateSnapshot(assetId: string) {
     },
   })
 }
+
+export type UpdateSnapshotPayload = {
+  amount: string
+  currency: string
+  as_of_date: string | null
+  description: string | null
+}
+
+export function useUpdateSnapshot(assetId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (args: { snapshotId: string; payload: UpdateSnapshotPayload }) =>
+      api<AssetSnapshot>(
+        `/api/bank-accounts/${assetId}/snapshots/${args.snapshotId}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify(args.payload),
+        },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['snapshots', assetId] })
+      qc.invalidateQueries({ queryKey: ['bank-accounts'] })
+    },
+  })
+}
+
+export function useDeleteSnapshot(assetId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (snapshotId: string) =>
+      api(`/api/bank-accounts/${assetId}/snapshots/${snapshotId}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['snapshots', assetId] })
+      qc.invalidateQueries({ queryKey: ['bank-accounts'] })
+    },
+  })
+}

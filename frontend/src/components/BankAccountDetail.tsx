@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -9,34 +10,64 @@ import {
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination'
 import {
   useBankAccount,
   useDeleteBankAccount,
   useSnapshots,
 } from '@/hooks/useBankAccounts'
 import { CreateSnapshotDialog } from '@/components/CreateSnapshotDialog'
-import { formatCurrency, formatYearMonth, formatDate } from '@/lib/format'
+import { EditBankAccountDialog } from '@/components/EditBankAccountDialog'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { SnapshotRow } from '@/components/SnapshotRow'
+import { BankAccountChart } from '@/components/BankAccountChart'
 
 type Props = {
   assetId: string
   onBack: () => void
 }
 
+const PAGE_SIZE = 12
+
 export function BankAccountDetail({ assetId, onBack }: Props) {
   const { data: account, isPending, error } = useBankAccount(assetId)
   const { data: snapshots } = useSnapshots(assetId)
   const deleteMutation = useDeleteBankAccount()
 
-  function handleDelete() {
-    if (!window.confirm('Delete this bank account? Snapshots will be hidden.')) {
-      return
-    }
-    deleteMutation.mutate(assetId, { onSuccess: onBack })
+  const [editOpen, setEditOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [page, setPage] = useState(1)
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil((snapshots?.length ?? 0) / PAGE_SIZE),
+  )
+
+  // After a delete, if our current page is now beyond the new last page,
+  // fall back to the last existing page. This is the only edge case for
+  // the "stay on current page" pagination rule (per the M3.7 design).
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages)
+  }, [page, totalPages])
+
+  function handleConfirmDelete() {
+    deleteMutation.mutate(assetId, {
+      onSuccess: () => {
+        setDeleteOpen(false)
+        onBack()
+      },
+    })
   }
 
   if (isPending) {
@@ -52,30 +83,42 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
   if (!account) return null
 
   const { asset, details } = account
+  const pageSnapshots = (snapshots ?? []).slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE,
+  )
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <Button variant="ghost" size="sm" onClick={onBack} className="-ml-2 mb-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onBack}
+            className="-ml-2 mb-1"
+          >
             ← Back
           </Button>
           <h1 className="text-2xl font-semibold tracking-tight">
             {asset.display_name}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {details.bank_name} · {details.account_number} · {details.account_type}
+            {details.bank_name} · {details.account_number} ·{' '}
+            {details.account_type}
           </p>
         </div>
         <div className="flex gap-2">
           <CreateSnapshotDialog assetId={asset.id} currency={asset.native_currency} />
+          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+            Edit
+          </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={handleDelete}
-            disabled={deleteMutation.isPending}
+            onClick={() => setDeleteOpen(true)}
           >
-            {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+            Delete
           </Button>
         </div>
       </div>
@@ -95,6 +138,23 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
         )}
       </Card>
 
+      {snapshots && snapshots.length >= 2 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Balance over time</CardTitle>
+            <CardDescription>
+              Monthly balance progression in {asset.native_currency}.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BankAccountChart
+              snapshots={snapshots}
+              currency={asset.native_currency}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Snapshots</CardTitle>
@@ -103,40 +163,114 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          {(!snapshots || snapshots.length === 0) ? (
+          {!snapshots || snapshots.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
-              No snapshots yet. Click "New snapshot" to record this month's balance.
+              No snapshots yet. Click "New snapshot" to record this month's
+              balance.
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Month</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Statement date</TableHead>
-                  <TableHead>Notes</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {snapshots.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell className="font-medium">
-                      {formatYearMonth(s.year_month)}
-                    </TableCell>
-                    <TableCell>{formatCurrency(s.amount, s.currency)}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {s.as_of_date ? formatDate(s.as_of_date) : '—'}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {s.description ?? '—'}
-                    </TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Month</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Notes</TableHead>
+                    <TableHead className="w-12"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {pageSnapshots.map((s) => (
+                    <SnapshotRow key={s.id} snapshot={s} assetId={assetId} />
+                  ))}
+                </TableBody>
+              </Table>
+              {totalPages > 1 && (
+                <div className="px-6 py-3 border-t">
+                  <PaginationControls
+                    page={page}
+                    totalPages={totalPages}
+                    onPageChange={setPage}
+                  />
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
+
+      <EditBankAccountDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        account={account}
+      />
+      <ConfirmDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete this bank account?"
+        description="Snapshots and history will be hidden. This can be undone via the database, not yet via the UI."
+        confirmLabel="Delete"
+        destructive
+        pending={deleteMutation.isPending}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
+  )
+}
+
+function PaginationControls({
+  page,
+  totalPages,
+  onPageChange,
+}: {
+  page: number
+  totalPages: number
+  onPageChange: (p: number) => void
+}) {
+  return (
+    <Pagination>
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious
+            href="#"
+            onClick={(e) => {
+              e.preventDefault()
+              if (page > 1) onPageChange(page - 1)
+            }}
+            aria-disabled={page === 1}
+            className={
+              page === 1 ? 'pointer-events-none opacity-50' : undefined
+            }
+          />
+        </PaginationItem>
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+          <PaginationItem key={p}>
+            <PaginationLink
+              href="#"
+              isActive={p === page}
+              onClick={(e) => {
+                e.preventDefault()
+                onPageChange(p)
+              }}
+            >
+              {p}
+            </PaginationLink>
+          </PaginationItem>
+        ))}
+        <PaginationItem>
+          <PaginationNext
+            href="#"
+            onClick={(e) => {
+              e.preventDefault()
+              if (page < totalPages) onPageChange(page + 1)
+            }}
+            aria-disabled={page === totalPages}
+            className={
+              page === totalPages ? 'pointer-events-none opacity-50' : undefined
+            }
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
   )
 }
