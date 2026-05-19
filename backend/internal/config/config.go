@@ -16,6 +16,7 @@ type Config struct {
 	GoogleClientSecret string        `env:"GOOGLE_CLIENT_SECRET"`
 	OAuthRedirectURL   string        `env:"OAUTH_REDIRECT_URL" envDefault:"http://localhost:8080/api/auth/google/callback"`
 	FrontendURL        string        `env:"FRONTEND_URL" envDefault:"http://localhost:5173"`
+	BackendURL         string        `env:"BACKEND_URL" envDefault:"http://localhost:8080"`
 	SessionTTL         time.Duration `env:"SESSION_TTL" envDefault:"720h"`
 	CookieSecure       bool          `env:"COOKIE_SECURE" envDefault:"false"`
 

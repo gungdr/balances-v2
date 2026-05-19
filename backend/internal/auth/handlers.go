@@ -9,28 +9,41 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/kerti/balances-v2/backend/internal/db"
+	"github.com/kerti/balances-v2/backend/internal/email"
 )
 
-const oauthStateCookieName = "oauth_state"
+const (
+	oauthStateCookieName  = "oauth_state"
+	oauthInviteCookieName = "oauth_invite"
+	invitationTTL         = 72 * time.Hour
+)
 
 type Config struct {
 	Google       GoogleConfig
 	SessionTTL   time.Duration
 	CookieSecure bool
 	FrontendURL  string
+	BackendURL   string
+	EmailFrom    string
+	Mailer       email.Mailer
 }
 
 type Handlers struct {
 	q            *db.Queries
 	googleOAuth  *googleOAuth
+	mailer       email.Mailer
+	validate     *validator.Validate
 	sessionTTL   time.Duration
 	cookieSecure bool
 	frontendURL  string
+	backendURL   string
+	emailFrom    string
 }
 
 func New(ctx context.Context, q *db.Queries, cfg Config) (*Handlers, error) {
@@ -38,12 +51,22 @@ func New(ctx context.Context, q *db.Queries, cfg Config) (*Handlers, error) {
 	if err != nil {
 		return nil, err
 	}
+	if cfg.Mailer == nil {
+		return nil, errors.New("auth: mailer is required")
+	}
+	if cfg.BackendURL == "" {
+		return nil, errors.New("auth: backend url is required")
+	}
 	return &Handlers{
 		q:            q,
 		googleOAuth:  g,
+		mailer:       cfg.Mailer,
+		validate:     validator.New(validator.WithRequiredStructEnabled()),
 		sessionTTL:   cfg.SessionTTL,
 		cookieSecure: cfg.CookieSecure,
 		frontendURL:  cfg.FrontendURL,
+		backendURL:   cfg.BackendURL,
+		emailFrom:    cfg.EmailFrom,
 	}, nil
 }
 
@@ -54,6 +77,7 @@ func (h *Handlers) Mount(r chi.Router) {
 	r.Get("/auth/google/callback", h.handleCallback)
 	r.Post("/auth/logout", h.handleLogout)
 	r.With(RequireAuth).Get("/me", h.handleMe)
+	r.With(RequireAuth).Post("/invitations", h.handleCreateInvitation)
 }
 
 func (h *Handlers) handleStart(w http.ResponseWriter, r *http.Request) {
@@ -72,6 +96,19 @@ func (h *Handlers) handleStart(w http.ResponseWriter, r *http.Request) {
 		Secure:   h.cookieSecure,
 		SameSite: http.SameSiteLaxMode,
 	})
+
+	if invite := r.URL.Query().Get("invite"); invite != "" {
+		http.SetCookie(w, &http.Cookie{
+			Name:     oauthInviteCookieName,
+			Value:    invite,
+			Path:     "/",
+			MaxAge:   300,
+			HttpOnly: true,
+			Secure:   h.cookieSecure,
+			SameSite: http.SameSiteLaxMode,
+		})
+	}
+
 	http.Redirect(w, r, h.googleOAuth.cfg.AuthCodeURL(state), http.StatusFound)
 }
 
@@ -93,16 +130,14 @@ func (h *Handlers) handleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// State has served its purpose; clear it.
-	http.SetCookie(w, &http.Cookie{
-		Name:     oauthStateCookieName,
-		Value:    "",
-		Path:     "/",
-		MaxAge:   -1,
-		HttpOnly: true,
-		Secure:   h.cookieSecure,
-		SameSite: http.SameSiteLaxMode,
-	})
+	// State has served its purpose; clear it (and the invite cookie if any —
+	// we'll read its value before clearing).
+	var inviteToken string
+	if inviteCookie, err := r.Cookie(oauthInviteCookieName); err == nil {
+		inviteToken = inviteCookie.Value
+	}
+	h.clearShortCookie(w, oauthStateCookieName)
+	h.clearShortCookie(w, oauthInviteCookieName)
 
 	claims, err := h.googleOAuth.exchange(ctx, code)
 	if err != nil {
@@ -112,18 +147,20 @@ func (h *Handlers) handleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := h.q.GetUserByGoogleSub(ctx, claims.Sub)
-	if err != nil {
-		if !errors.Is(err, pgx.ErrNoRows) {
-			slog.Error("lookup user by google_sub", "err", err)
-			http.Error(w, "internal error", http.StatusInternalServerError)
-			return
-		}
-		user, err = h.createFounder(ctx, claims)
+	switch {
+	case err == nil:
+		// existing user — just sign them in
+	case errors.Is(err, pgx.ErrNoRows):
+		user, err = h.bootstrapNewUser(ctx, claims, inviteToken)
 		if err != nil {
-			slog.Error("create founder", "err", err)
-			http.Error(w, "internal error", http.StatusInternalServerError)
+			slog.Error("bootstrap new user", "err", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+	default:
+		slog.Error("lookup user by google_sub", "err", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
 	}
 
 	sessionID, err := randomSessionID()
@@ -152,6 +189,51 @@ func (h *Handlers) handleCallback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, h.frontendURL, http.StatusFound)
 }
 
+// bootstrapNewUser creates either a founder (new household + user, no
+// invitation) or a household member (existing household referenced by a valid
+// invitation). The invitation path verifies the Google-supplied email matches
+// the invitation's invited_email (per ADR-0017) so a forwarded link can't be
+// used by an unintended account.
+func (h *Handlers) bootstrapNewUser(ctx context.Context, c *googleClaims, inviteToken string) (db.User, error) {
+	if inviteToken == "" {
+		return h.createFounder(ctx, c)
+	}
+
+	invite, err := h.q.GetInvitationByToken(ctx, inviteToken)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return db.User{}, errors.New("invitation not found")
+		}
+		return db.User{}, err
+	}
+	if invite.UsedAt.Valid {
+		return db.User{}, errors.New("invitation already used")
+	}
+	if !invite.ExpiresAt.Valid || invite.ExpiresAt.Time.Before(time.Now()) {
+		return db.User{}, errors.New("invitation expired")
+	}
+	if c.Email != invite.InvitedEmail {
+		return db.User{}, errors.New("invitation email does not match google account")
+	}
+
+	user, err := h.q.CreateUser(ctx, db.CreateUserParams{
+		HouseholdID: invite.HouseholdID,
+		DisplayName: c.Name,
+		Email:       c.Email,
+		GoogleSub:   c.Sub,
+		Locale:      "id-ID",
+		TimeZone:    "Asia/Jakarta",
+		CreatedBy:   &invite.CreatedBy,
+	})
+	if err != nil {
+		return db.User{}, err
+	}
+	if err := h.q.MarkInvitationUsed(ctx, invite.ID); err != nil {
+		return db.User{}, err
+	}
+	return user, nil
+}
+
 func (h *Handlers) createFounder(ctx context.Context, c *googleClaims) (db.User, error) {
 	household, err := h.q.CreateHousehold(ctx, db.CreateHouseholdParams{
 		DisplayName:       c.Name + "'s Household",
@@ -168,6 +250,18 @@ func (h *Handlers) createFounder(ctx context.Context, c *googleClaims) (db.User,
 		Locale:      "id-ID",
 		TimeZone:    "Asia/Jakarta",
 		CreatedBy:   nil,
+	})
+}
+
+func (h *Handlers) clearShortCookie(w http.ResponseWriter, name string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   h.cookieSecure,
+		SameSite: http.SameSiteLaxMode,
 	})
 }
 

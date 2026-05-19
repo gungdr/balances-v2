@@ -19,6 +19,7 @@ import (
 	"github.com/kerti/balances-v2/backend/internal/auth"
 	"github.com/kerti/balances-v2/backend/internal/config"
 	"github.com/kerti/balances-v2/backend/internal/db"
+	"github.com/kerti/balances-v2/backend/internal/email"
 	"github.com/kerti/balances-v2/backend/internal/httpserver"
 	"github.com/kerti/balances-v2/backend/internal/migrations"
 )
@@ -77,6 +78,17 @@ func serveCmd() error {
 
 	queries := db.New(pool)
 
+	mailer, err := email.NewSMTPMailer(email.SMTPConfig{
+		Host:     cfg.SMTPHost,
+		Port:     cfg.SMTPPort,
+		Username: cfg.SMTPUsername,
+		Password: cfg.SMTPPassword,
+		From:     cfg.EmailFromAddress,
+	})
+	if err != nil {
+		return fmt.Errorf("mailer: %w", err)
+	}
+
 	authH, err := auth.New(ctx, queries, auth.Config{
 		Google: auth.GoogleConfig{
 			ClientID:     cfg.GoogleClientID,
@@ -86,6 +98,9 @@ func serveCmd() error {
 		SessionTTL:   cfg.SessionTTL,
 		CookieSecure: cfg.CookieSecure,
 		FrontendURL:  cfg.FrontendURL,
+		BackendURL:   cfg.BackendURL,
+		EmailFrom:    cfg.EmailFromAddress,
+		Mailer:       mailer,
 	})
 	if err != nil {
 		return fmt.Errorf("auth: %w", err)
