@@ -5,9 +5,53 @@
 package db
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/shopspring/decimal"
 )
+
+type Asset struct {
+	ID              uuid.UUID          `json:"id"`
+	HouseholdID     uuid.UUID          `json:"household_id"`
+	DisplayName     string             `json:"display_name"`
+	Description     *string            `json:"description"`
+	Subtype         string             `json:"subtype"`
+	OwnershipType   string             `json:"ownership_type"`
+	SoleOwnerUserID *uuid.UUID         `json:"sole_owner_user_id"`
+	NativeCurrency  string             `json:"native_currency"`
+	Status          string             `json:"status"`
+	TerminatedAt    *time.Time         `json:"terminated_at"`
+	TerminationNote *string            `json:"termination_note"`
+	CreatedBy       *uuid.UUID         `json:"created_by"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedBy       *uuid.UUID         `json:"updated_by"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type AssetSnapshot struct {
+	ID          uuid.UUID          `json:"id"`
+	AssetID     uuid.UUID          `json:"asset_id"`
+	YearMonth   time.Time          `json:"year_month"`
+	Amount      decimal.Decimal    `json:"amount"`
+	Currency    string             `json:"currency"`
+	AsOfDate    *time.Time         `json:"as_of_date"`
+	Description *string            `json:"description"`
+	CreatedBy   *uuid.UUID         `json:"created_by"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedBy   *uuid.UUID         `json:"updated_by"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type BankAccountDetail struct {
+	AssetID       uuid.UUID `json:"asset_id"`
+	BankName      string    `json:"bank_name"`
+	AccountNumber string    `json:"account_number"`
+	AccountType   string    `json:"account_type"`
+}
 
 type Household struct {
 	ID                uuid.UUID          `json:"id"`
