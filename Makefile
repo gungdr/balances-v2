@@ -1,4 +1,4 @@
-.PHONY: up down logs ps backend-run backend-build backend-migrate-up backend-migrate-down backend-migrate-status backend-tidy backend-sqlc frontend-install frontend-dev frontend-build
+.PHONY: up down logs ps backend-run backend-build backend-test backend-migrate-up backend-migrate-down backend-migrate-status backend-tidy backend-sqlc frontend-install frontend-dev frontend-build
 
 -include .env
 export
@@ -20,6 +20,9 @@ backend-run:
 
 backend-build:
 	cd backend && go build -o bin/balances ./cmd/balances
+
+backend-test:
+	cd backend && go test ./...
 
 backend-migrate-up:
 	cd backend && go run ./cmd/balances migrate up

@@ -60,7 +60,10 @@ func UserFromContext(ctx context.Context) (db.User, bool) {
 	return u, ok
 }
 
-func withUser(ctx context.Context, u db.User) context.Context {
+// WithUser returns a child context with the given User attached. Production
+// code goes through SessionMiddleware; tests use this directly to simulate an
+// authenticated request without exercising the OAuth and session machinery.
+func WithUser(ctx context.Context, u db.User) context.Context {
 	return context.WithValue(ctx, userContextKey, u)
 }
 
@@ -100,7 +103,7 @@ func (h *Handlers) SessionMiddleware(next http.Handler) http.Handler {
 		})
 		h.setSessionCookie(w, session.ID, newExpiresAt)
 
-		next.ServeHTTP(w, r.WithContext(withUser(ctx, user)))
+		next.ServeHTTP(w, r.WithContext(WithUser(ctx, user)))
 	})
 }
 
