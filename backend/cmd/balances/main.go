@@ -16,12 +16,14 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 
+	"github.com/kerti/balances-v2/backend/internal/assets"
 	"github.com/kerti/balances-v2/backend/internal/auth"
 	"github.com/kerti/balances-v2/backend/internal/config"
 	"github.com/kerti/balances-v2/backend/internal/db"
 	"github.com/kerti/balances-v2/backend/internal/email"
 	"github.com/kerti/balances-v2/backend/internal/httpserver"
 	"github.com/kerti/balances-v2/backend/internal/migrations"
+	"github.com/kerti/balances-v2/backend/internal/repo"
 )
 
 func main() {
@@ -106,7 +108,10 @@ func serveCmd() error {
 		return fmt.Errorf("auth: %w", err)
 	}
 
-	srv := httpserver.New(pool, cfg, authH)
+	assetRepo := repo.NewAssetRepo(pool)
+	assetsH := assets.New(assetRepo)
+
+	srv := httpserver.New(pool, cfg, authH, assetsH)
 
 	httpSrv := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),
