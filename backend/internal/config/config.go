@@ -18,6 +18,12 @@ type Config struct {
 	FrontendURL        string        `env:"FRONTEND_URL" envDefault:"http://localhost:5173"`
 	SessionTTL         time.Duration `env:"SESSION_TTL" envDefault:"720h"`
 	CookieSecure       bool          `env:"COOKIE_SECURE" envDefault:"false"`
+
+	SMTPHost         string `env:"SMTP_HOST" envDefault:"localhost"`
+	SMTPPort         int    `env:"SMTP_PORT" envDefault:"1025"`
+	SMTPUsername     string `env:"SMTP_USERNAME"`
+	SMTPPassword     string `env:"SMTP_PASSWORD"`
+	EmailFromAddress string `env:"EMAIL_FROM_ADDRESS" envDefault:"noreply@balances.local"`
 }
 
 func Load() (*Config, error) {
