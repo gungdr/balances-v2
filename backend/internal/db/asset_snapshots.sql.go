@@ -157,6 +157,49 @@ func (q *Queries) ListAssetSnapshotsForAsset(ctx context.Context, arg ListAssetS
 	return items, nil
 }
 
+const listLatestSnapshotsByAssetIDs = `-- name: ListLatestSnapshotsByAssetIDs :many
+SELECT DISTINCT ON (asset_id) id, asset_id, year_month, amount, currency, as_of_date, description, created_by, created_at, updated_by, updated_at, deleted_at
+FROM asset_snapshots
+WHERE asset_id = ANY($1::uuid[]) AND deleted_at IS NULL
+ORDER BY asset_id, year_month DESC
+`
+
+// Batch fetch of the most-recent snapshot per asset, for list views.
+// Postgres DISTINCT ON keeps the first row per asset_id given the ORDER BY,
+// which is asset_id then year_month DESC, so we get the latest valid snapshot.
+func (q *Queries) ListLatestSnapshotsByAssetIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]AssetSnapshot, error) {
+	rows, err := q.db.Query(ctx, listLatestSnapshotsByAssetIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []AssetSnapshot
+	for rows.Next() {
+		var i AssetSnapshot
+		if err := rows.Scan(
+			&i.ID,
+			&i.AssetID,
+			&i.YearMonth,
+			&i.Amount,
+			&i.Currency,
+			&i.AsOfDate,
+			&i.Description,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.UpdatedBy,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const softDeleteAssetSnapshot = `-- name: SoftDeleteAssetSnapshot :execrows
 UPDATE asset_snapshots s
 SET deleted_at = now(),

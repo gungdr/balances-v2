@@ -52,6 +52,15 @@ WHERE s.id = $1
   AND s.deleted_at IS NULL
 RETURNING s.*;
 
+-- Batch fetch of the most-recent snapshot per asset, for list views.
+-- Postgres DISTINCT ON keeps the first row per asset_id given the ORDER BY,
+-- which is asset_id then year_month DESC, so we get the latest valid snapshot.
+-- name: ListLatestSnapshotsByAssetIDs :many
+SELECT DISTINCT ON (asset_id) *
+FROM asset_snapshots
+WHERE asset_id = ANY($1::uuid[]) AND deleted_at IS NULL
+ORDER BY asset_id, year_month DESC;
+
 -- name: SoftDeleteAssetSnapshot :execrows
 UPDATE asset_snapshots s
 SET deleted_at = now(),
