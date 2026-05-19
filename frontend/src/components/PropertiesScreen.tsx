@@ -12,29 +12,27 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useBankAccounts } from '@/hooks/useBankAccounts'
-import { CreateBankAccountDialog } from '@/components/CreateBankAccountDialog'
-import { BankAccountListRow } from '@/components/BankAccountListRow'
+import { useProperties } from '@/hooks/useProperties'
+import { CreatePropertyDialog } from '@/components/CreatePropertyDialog'
+import { PropertyListRow } from '@/components/PropertyListRow'
 
 type Props = {
   onSelect: (id: string) => void
 }
 
-export function BankAccountsScreen({ onSelect }: Props) {
-  const { data, isPending, error } = useBankAccounts()
+export function PropertiesScreen({ onSelect }: Props) {
+  const { data, isPending, error } = useProperties()
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Bank Accounts
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Properties</h1>
           <p className="text-sm text-muted-foreground">
-            Track monthly balances across your household's bank accounts.
+            Track monthly valuations across the household's properties.
           </p>
         </div>
-        <CreateBankAccountDialog />
+        <CreatePropertyDialog />
       </div>
 
       {isPending && (
@@ -50,14 +48,14 @@ export function BankAccountsScreen({ onSelect }: Props) {
       {data && data.length === 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>No bank accounts yet</CardTitle>
+            <CardTitle>No properties yet</CardTitle>
             <CardDescription>
-              Create your first bank account to start tracking month-end
-              balances.
+              Create your first property to start tracking month-end
+              valuations.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CreateBankAccountDialog />
+            <CreatePropertyDialog />
           </CardContent>
         </Card>
       )}
@@ -70,13 +68,13 @@ export function BankAccountsScreen({ onSelect }: Props) {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Ownership</TableHead>
-                  <TableHead>Latest balance</TableHead>
+                  <TableHead>Latest valuation</TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.map((item) => (
-                  <BankAccountListRow
+                  <PropertyListRow
                     key={item.asset.id}
                     item={item}
                     onSelect={onSelect}

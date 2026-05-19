@@ -1,0 +1,200 @@
+import { useEffect, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useUpdateVehicle } from '@/hooks/useVehicles'
+import { ApiError } from '@/api/client'
+import type { Vehicle } from '@/api/types'
+
+type Props = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  vehicle: Vehicle
+}
+
+export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
+  const mutation = useUpdateVehicle(vehicle.asset.id)
+
+  const initial = {
+    display_name: vehicle.asset.display_name,
+    description: vehicle.asset.description ?? '',
+    vehicle_type: vehicle.details.vehicle_type,
+    make: vehicle.details.make ?? '',
+    model: vehicle.details.model ?? '',
+    year: vehicle.details.year ? String(vehicle.details.year) : '',
+    plate_number: vehicle.details.plate_number ?? '',
+    annual_depreciation_rate: vehicle.details.annual_depreciation_rate ?? '',
+  }
+  const [form, setForm] = useState(initial)
+
+  useEffect(() => {
+    if (open) setForm(initial)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, vehicle])
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault()
+    mutation.mutate(
+      {
+        display_name: form.display_name,
+        description: form.description || null,
+        vehicle_type: form.vehicle_type,
+        make: form.make || null,
+        model: form.model || null,
+        year: form.year ? Number(form.year) : null,
+        plate_number: form.plate_number || null,
+        annual_depreciation_rate: form.annual_depreciation_rate || null,
+      },
+      { onSuccess: () => onOpenChange(false) },
+    )
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit vehicle</DialogTitle>
+          <DialogDescription>
+            Update the vehicle's details. Currency and ownership are not
+            editable yet.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-3">
+          <div className="grid gap-2">
+            <Label htmlFor="ev_display_name">Display name</Label>
+            <Input
+              id="ev_display_name"
+              required
+              value={form.display_name}
+              onChange={(e) =>
+                setForm({ ...form, display_name: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="ev_type">Type</Label>
+            <select
+              id="ev_type"
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              value={form.vehicle_type}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  vehicle_type: e.target.value as typeof form.vehicle_type,
+                })
+              }
+            >
+              <option value="car">Car</option>
+              <option value="motorcycle">Motorcycle</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-2">
+              <Label htmlFor="ev_make">Make</Label>
+              <Input
+                id="ev_make"
+                value={form.make}
+                onChange={(e) => setForm({ ...form, make: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ev_model">Model</Label>
+              <Input
+                id="ev_model"
+                value={form.model}
+                onChange={(e) => setForm({ ...form, model: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-2">
+              <Label htmlFor="ev_year">Year</Label>
+              <Input
+                id="ev_year"
+                type="number"
+                value={form.year}
+                onChange={(e) => setForm({ ...form, year: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ev_plate">Plate number</Label>
+              <Input
+                id="ev_plate"
+                value={form.plate_number}
+                onChange={(e) =>
+                  setForm({ ...form, plate_number: e.target.value })
+                }
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="ev_depr">Annual depreciation rate</Label>
+            <Input
+              id="ev_depr"
+              inputMode="decimal"
+              value={form.annual_depreciation_rate}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  annual_depreciation_rate: e.target.value,
+                })
+              }
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="ev_description">Description (optional)</Label>
+            <Input
+              id="ev_description"
+              value={form.description}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
+            />
+          </div>
+
+          {mutation.error && (
+            <p className="text-sm text-destructive">
+              {formatError(mutation.error)}
+            </p>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? 'Saving…' : 'Save changes'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function formatError(err: unknown): string {
+  if (err instanceof ApiError) {
+    if (typeof err.body === 'string' && err.body) return err.body
+    return `${err.status} ${err.message}`
+  }
+  if (err instanceof Error) return err.message
+  return 'unknown error'
+}

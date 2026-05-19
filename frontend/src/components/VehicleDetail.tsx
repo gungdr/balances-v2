@@ -22,13 +22,10 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
-import {
-  useBankAccount,
-  useDeleteBankAccount,
-  useSnapshots,
-} from '@/hooks/useBankAccounts'
+import { useVehicle, useDeleteVehicle } from '@/hooks/useVehicles'
+import { useSnapshots } from '@/hooks/useAssetSnapshots'
 import { CreateSnapshotDialog } from '@/components/CreateSnapshotDialog'
-import { EditBankAccountDialog } from '@/components/EditBankAccountDialog'
+import { EditVehicleDialog } from '@/components/EditVehicleDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { SnapshotRow } from '@/components/SnapshotRow'
 import { BankAccountChart } from '@/components/BankAccountChart'
@@ -40,10 +37,10 @@ type Props = {
 
 const PAGE_SIZE = 12
 
-export function BankAccountDetail({ assetId, onBack }: Props) {
-  const { data: account, isPending, error } = useBankAccount(assetId)
+export function VehicleDetail({ assetId, onBack }: Props) {
+  const { data: vehicle, isPending, error } = useVehicle(assetId)
   const { data: snapshots } = useSnapshots(assetId)
-  const deleteMutation = useDeleteBankAccount()
+  const deleteMutation = useDeleteVehicle()
 
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -54,9 +51,6 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
     Math.ceil((snapshots?.length ?? 0) / PAGE_SIZE),
   )
 
-  // After a delete, if our current page is now beyond the new last page,
-  // fall back to the last existing page. This is the only edge case for
-  // the "stay on current page" pagination rule (per the M3.7 design).
   useEffect(() => {
     if (page > totalPages) setPage(totalPages)
   }, [page, totalPages])
@@ -80,13 +74,20 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
       </p>
     )
   }
-  if (!account) return null
+  if (!vehicle) return null
 
-  const { asset, details } = account
+  const { asset, details } = vehicle
   const pageSnapshots = (snapshots ?? []).slice(
     (page - 1) * PAGE_SIZE,
     page * PAGE_SIZE,
   )
+  const makeModel = [details.make, details.model].filter(Boolean).join(' ')
+  const subtitleParts = [
+    details.vehicle_type,
+    makeModel,
+    details.year ? String(details.year) : null,
+    details.plate_number,
+  ].filter(Boolean)
 
   return (
     <div className="space-y-6">
@@ -103,13 +104,15 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
           <h1 className="text-2xl font-semibold tracking-tight">
             {asset.display_name}
           </h1>
-          <p className="text-sm text-muted-foreground">
-            {details.bank_name} · {details.account_number} ·{' '}
-            {details.account_type}
+          <p className="text-sm text-muted-foreground capitalize">
+            {subtitleParts.join(' · ')}
           </p>
         </div>
         <div className="flex gap-2">
-          <CreateSnapshotDialog assetId={asset.id} currency={asset.native_currency} />
+          <CreateSnapshotDialog
+            assetId={asset.id}
+            currency={asset.native_currency}
+          />
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             Edit
           </Button>
@@ -125,15 +128,24 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Account Details</CardTitle>
+          <CardTitle>Vehicle Details</CardTitle>
           <CardDescription>
             Ownership: <span className="capitalize">{asset.ownership_type}</span>{' '}
             · Currency: {asset.native_currency} · Status: {asset.status}
           </CardDescription>
         </CardHeader>
-        {asset.description && (
-          <CardContent>
-            <p className="text-sm">{asset.description}</p>
+        {(details.annual_depreciation_rate || asset.description) && (
+          <CardContent className="text-sm space-y-1">
+            {details.annual_depreciation_rate && (
+              <p>
+                <span className="text-muted-foreground">
+                  Depreciation rate:
+                </span>{' '}
+                {(Number(details.annual_depreciation_rate) * 100).toFixed(2)}%
+                /yr
+              </p>
+            )}
+            {asset.description && <p className="pt-1">{asset.description}</p>}
           </CardContent>
         )}
       </Card>
@@ -141,9 +153,9 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
       {snapshots && snapshots.length >= 2 && (
         <Card>
           <CardHeader>
-            <CardTitle>Balance Over Time</CardTitle>
+            <CardTitle>Valuation Over Time</CardTitle>
             <CardDescription>
-              Monthly balance progression in {asset.native_currency}.
+              Monthly valuation progression in {asset.native_currency}.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -159,14 +171,14 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
         <CardHeader>
           <CardTitle>Snapshots</CardTitle>
           <CardDescription>
-            Monthly balance readings from your bank statements.
+            Monthly valuation readings (manual entry).
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {!snapshots || snapshots.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
               No snapshots yet. Click "New snapshot" to record this month's
-              balance.
+              valuation.
             </p>
           ) : (
             <>
@@ -199,15 +211,15 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
         </CardContent>
       </Card>
 
-      <EditBankAccountDialog
+      <EditVehicleDialog
         open={editOpen}
         onOpenChange={setEditOpen}
-        account={account}
+        vehicle={vehicle}
       />
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this bank account?"
+        title="Delete this vehicle?"
         description="Snapshots and history will be hidden. This can be undone via the database, not yet via the UI."
         confirmLabel="Delete"
         destructive
@@ -238,9 +250,7 @@ function PaginationControls({
               if (page > 1) onPageChange(page - 1)
             }}
             aria-disabled={page === 1}
-            className={
-              page === 1 ? 'pointer-events-none opacity-50' : undefined
-            }
+            className={page === 1 ? 'pointer-events-none opacity-50' : undefined}
           />
         </PaginationItem>
         {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (

@@ -1,12 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
-import type {
-  BankAccount,
-  BankAccountListItem,
-  AssetSnapshot,
-} from '@/api/types'
-
-// ----- bank accounts -------------------------------------------------------
+import type { BankAccount, BankAccountListItem } from '@/api/types'
 
 export type CreateBankAccountPayload = {
   display_name: string
@@ -83,80 +77,17 @@ export function useDeleteBankAccount() {
   })
 }
 
-// ----- snapshots -----------------------------------------------------------
-
-export type CreateSnapshotPayload = {
-  year_month: string // "YYYY-MM" or "YYYY-MM-DD"
-  amount: string
-  currency: string
-  as_of_date: string | null
-  description: string | null
-}
-
-// Snapshot endpoints live under /api/assets/{id}/snapshots — shared across
-// every asset subtype (bank_account, property, vehicle) since the snapshot
-// shape and storage table are the same per ADR-0022.
-
-export function useSnapshots(assetId: string | null) {
-  return useQuery({
-    queryKey: ['snapshots', assetId],
-    queryFn: () =>
-      api<AssetSnapshot[]>(`/api/assets/${assetId}/snapshots`),
-    enabled: !!assetId,
-  })
-}
-
-export function useCreateSnapshot(assetId: string) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (payload: CreateSnapshotPayload) =>
-      api<AssetSnapshot>(`/api/assets/${assetId}/snapshots`, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['snapshots', assetId] })
-      // The list view shows latest_snapshot inline, so invalidate it too.
-      qc.invalidateQueries({ queryKey: ['bank-accounts'] })
-    },
-  })
-}
-
-export type UpdateSnapshotPayload = {
-  amount: string
-  currency: string
-  as_of_date: string | null
-  description: string | null
-}
-
-export function useUpdateSnapshot(assetId: string) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (args: { snapshotId: string; payload: UpdateSnapshotPayload }) =>
-      api<AssetSnapshot>(
-        `/api/assets/${assetId}/snapshots/${args.snapshotId}`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify(args.payload),
-        },
-      ),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['snapshots', assetId] })
-      qc.invalidateQueries({ queryKey: ['bank-accounts'] })
-    },
-  })
-}
-
-export function useDeleteSnapshot(assetId: string) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (snapshotId: string) =>
-      api(`/api/assets/${assetId}/snapshots/${snapshotId}`, {
-        method: 'DELETE',
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['snapshots', assetId] })
-      qc.invalidateQueries({ queryKey: ['bank-accounts'] })
-    },
-  })
-}
+// Snapshot hooks have moved to useAssetSnapshots — they're shared across
+// all asset subtypes per ADR-0022. Re-export for backwards compatibility
+// with existing imports; new code should import from useAssetSnapshots
+// directly.
+export {
+  useSnapshots,
+  useCreateSnapshot,
+  useUpdateSnapshot,
+  useDeleteSnapshot,
+} from './useAssetSnapshots'
+export type {
+  CreateSnapshotPayload,
+  UpdateSnapshotPayload,
+} from './useAssetSnapshots'

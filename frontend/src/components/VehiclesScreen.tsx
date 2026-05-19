@@ -12,29 +12,27 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useBankAccounts } from '@/hooks/useBankAccounts'
-import { CreateBankAccountDialog } from '@/components/CreateBankAccountDialog'
-import { BankAccountListRow } from '@/components/BankAccountListRow'
+import { useVehicles } from '@/hooks/useVehicles'
+import { CreateVehicleDialog } from '@/components/CreateVehicleDialog'
+import { VehicleListRow } from '@/components/VehicleListRow'
 
 type Props = {
   onSelect: (id: string) => void
 }
 
-export function BankAccountsScreen({ onSelect }: Props) {
-  const { data, isPending, error } = useBankAccounts()
+export function VehiclesScreen({ onSelect }: Props) {
+  const { data, isPending, error } = useVehicles()
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Bank Accounts
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Vehicles</h1>
           <p className="text-sm text-muted-foreground">
-            Track monthly balances across your household's bank accounts.
+            Track monthly valuations across the household's vehicles.
           </p>
         </div>
-        <CreateBankAccountDialog />
+        <CreateVehicleDialog />
       </div>
 
       {isPending && (
@@ -50,14 +48,14 @@ export function BankAccountsScreen({ onSelect }: Props) {
       {data && data.length === 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>No bank accounts yet</CardTitle>
+            <CardTitle>No vehicles yet</CardTitle>
             <CardDescription>
-              Create your first bank account to start tracking month-end
-              balances.
+              Create your first vehicle to start tracking month-end
+              valuations.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CreateBankAccountDialog />
+            <CreateVehicleDialog />
           </CardContent>
         </Card>
       )}
@@ -70,13 +68,13 @@ export function BankAccountsScreen({ onSelect }: Props) {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Ownership</TableHead>
-                  <TableHead>Latest balance</TableHead>
+                  <TableHead>Latest valuation</TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.map((item) => (
-                  <BankAccountListRow
+                  <VehicleListRow
                     key={item.asset.id}
                     item={item}
                     onSelect={onSelect}

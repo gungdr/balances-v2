@@ -1,6 +1,6 @@
-// Mirror of the backend JSON shapes for the M3 vertical slice. These will
-// diverge if the backend changes them, so any field tweaks here must be
-// matched by an API change (we don't have shared codegen yet).
+// Mirror of the backend JSON shapes. These will diverge if the backend
+// changes them — any field tweaks here must be matched by an API change
+// (we don't have shared codegen yet).
 
 export type Asset = {
   id: string
@@ -20,17 +20,7 @@ export type Asset = {
   updated_at: string
 }
 
-export type BankAccountDetails = {
-  asset_id: string
-  bank_name: string
-  account_number: string
-  account_type: 'savings' | 'current' | 'other'
-}
-
-export type BankAccount = {
-  asset: Asset
-  details: BankAccountDetails
-}
+// ----- shared snapshot --------------------------------------------------
 
 export type AssetSnapshot = {
   id: string
@@ -46,8 +36,67 @@ export type AssetSnapshot = {
   updated_at: string
 }
 
+// ----- bank account -----------------------------------------------------
+
+export type BankAccountDetails = {
+  asset_id: string
+  bank_name: string
+  account_number: string
+  account_type: 'savings' | 'current' | 'other'
+}
+
+export type BankAccount = {
+  asset: Asset
+  details: BankAccountDetails
+}
+
 export type BankAccountListItem = {
   asset: Asset
   details: BankAccountDetails
+  latest_snapshot: AssetSnapshot | null
+}
+
+// ----- property ---------------------------------------------------------
+
+export type PropertyDetails = {
+  asset_id: string
+  property_type: 'house' | 'apartment' | 'land' | 'commercial'
+  address: string | null
+  acquisition_date: string | null
+  acquisition_cost: string | null
+  annual_amortization_rate: string | null
+}
+
+export type Property = {
+  asset: Asset
+  details: PropertyDetails
+}
+
+export type PropertyListItem = {
+  asset: Asset
+  details: PropertyDetails
+  latest_snapshot: AssetSnapshot | null
+}
+
+// ----- vehicle ----------------------------------------------------------
+
+export type VehicleDetails = {
+  asset_id: string
+  vehicle_type: 'car' | 'motorcycle' | 'other'
+  make: string | null
+  model: string | null
+  year: number | null
+  plate_number: string | null
+  annual_depreciation_rate: string | null
+}
+
+export type Vehicle = {
+  asset: Asset
+  details: VehicleDetails
+}
+
+export type VehicleListItem = {
+  asset: Asset
+  details: VehicleDetails
   latest_snapshot: AssetSnapshot | null
 }
