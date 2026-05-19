@@ -35,6 +35,10 @@ func New(r *repo.AssetRepo) *Handlers {
 // Mount registers all asset routes. Caller is expected to mount this under
 // `/api` and apply SessionMiddleware at a higher level; RequireAuth is
 // applied inside Mount so all routes are protected.
+//
+// Snapshots live under /assets/{id}/snapshots rather than under each
+// subtype's path because the snapshot shape and storage table
+// (asset_snapshots, per ADR-0022) are shared across all asset subtypes.
 func (h *Handlers) Mount(r chi.Router) {
 	r.Route("/bank-accounts", func(r chi.Router) {
 		r.Use(auth.RequireAuth)
@@ -44,11 +48,37 @@ func (h *Handlers) Mount(r chi.Router) {
 			r.Get("/", h.handleGetBankAccount)
 			r.Patch("/", h.handleUpdateBankAccount)
 			r.Delete("/", h.handleDeleteBankAccount)
-			r.Post("/snapshots", h.handleCreateSnapshot)
-			r.Get("/snapshots", h.handleListSnapshots)
-			r.Patch("/snapshots/{snapshotID}", h.handleUpdateSnapshot)
-			r.Delete("/snapshots/{snapshotID}", h.handleDeleteSnapshot)
 		})
+	})
+
+	r.Route("/properties", func(r chi.Router) {
+		r.Use(auth.RequireAuth)
+		r.Post("/", h.handleCreateProperty)
+		r.Get("/", h.handleListProperties)
+		r.Route("/{id}", func(r chi.Router) {
+			r.Get("/", h.handleGetProperty)
+			r.Patch("/", h.handleUpdateProperty)
+			r.Delete("/", h.handleDeleteProperty)
+		})
+	})
+
+	r.Route("/vehicles", func(r chi.Router) {
+		r.Use(auth.RequireAuth)
+		r.Post("/", h.handleCreateVehicle)
+		r.Get("/", h.handleListVehicles)
+		r.Route("/{id}", func(r chi.Router) {
+			r.Get("/", h.handleGetVehicle)
+			r.Patch("/", h.handleUpdateVehicle)
+			r.Delete("/", h.handleDeleteVehicle)
+		})
+	})
+
+	r.Route("/assets/{id}/snapshots", func(r chi.Router) {
+		r.Use(auth.RequireAuth)
+		r.Post("/", h.handleCreateSnapshot)
+		r.Get("/", h.handleListSnapshots)
+		r.Patch("/{snapshotID}", h.handleUpdateSnapshot)
+		r.Delete("/{snapshotID}", h.handleDeleteSnapshot)
 	})
 }
 

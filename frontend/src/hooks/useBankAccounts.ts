@@ -93,11 +93,15 @@ export type CreateSnapshotPayload = {
   description: string | null
 }
 
+// Snapshot endpoints live under /api/assets/{id}/snapshots — shared across
+// every asset subtype (bank_account, property, vehicle) since the snapshot
+// shape and storage table are the same per ADR-0022.
+
 export function useSnapshots(assetId: string | null) {
   return useQuery({
     queryKey: ['snapshots', assetId],
     queryFn: () =>
-      api<AssetSnapshot[]>(`/api/bank-accounts/${assetId}/snapshots`),
+      api<AssetSnapshot[]>(`/api/assets/${assetId}/snapshots`),
     enabled: !!assetId,
   })
 }
@@ -106,7 +110,7 @@ export function useCreateSnapshot(assetId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (payload: CreateSnapshotPayload) =>
-      api<AssetSnapshot>(`/api/bank-accounts/${assetId}/snapshots`, {
+      api<AssetSnapshot>(`/api/assets/${assetId}/snapshots`, {
         method: 'POST',
         body: JSON.stringify(payload),
       }),
@@ -130,7 +134,7 @@ export function useUpdateSnapshot(assetId: string) {
   return useMutation({
     mutationFn: (args: { snapshotId: string; payload: UpdateSnapshotPayload }) =>
       api<AssetSnapshot>(
-        `/api/bank-accounts/${assetId}/snapshots/${args.snapshotId}`,
+        `/api/assets/${assetId}/snapshots/${args.snapshotId}`,
         {
           method: 'PATCH',
           body: JSON.stringify(args.payload),
@@ -147,7 +151,7 @@ export function useDeleteSnapshot(assetId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (snapshotId: string) =>
-      api(`/api/bank-accounts/${assetId}/snapshots/${snapshotId}`, {
+      api(`/api/assets/${assetId}/snapshots/${snapshotId}`, {
         method: 'DELETE',
       }),
     onSuccess: () => {

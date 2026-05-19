@@ -75,6 +75,15 @@ type HouseholdInvitation struct {
 	UsedAt       pgtype.Timestamptz `json:"used_at"`
 }
 
+type PropertyDetail struct {
+	AssetID                uuid.UUID        `json:"asset_id"`
+	PropertyType           string           `json:"property_type"`
+	Address                *string          `json:"address"`
+	AcquisitionDate        *time.Time       `json:"acquisition_date"`
+	AcquisitionCost        *decimal.Decimal `json:"acquisition_cost"`
+	AnnualAmortizationRate *decimal.Decimal `json:"annual_amortization_rate"`
+}
+
 type Session struct {
 	ID         string             `json:"id"`
 	UserID     uuid.UUID          `json:"user_id"`
@@ -97,4 +106,14 @@ type User struct {
 	UpdatedBy   *uuid.UUID         `json:"updated_by"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type VehicleDetail struct {
+	AssetID                uuid.UUID        `json:"asset_id"`
+	VehicleType            string           `json:"vehicle_type"`
+	Make                   *string          `json:"make"`
+	Model                  *string          `json:"model"`
+	Year                   *int32           `json:"year"`
+	PlateNumber            *string          `json:"plate_number"`
+	AnnualDepreciationRate *decimal.Decimal `json:"annual_depreciation_rate"`
 }

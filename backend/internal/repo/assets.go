@@ -15,6 +15,11 @@ import (
 	"github.com/kerti/balances-v2/backend/internal/db"
 )
 
+// AssetRepo wraps the generated queries with tenancy-aware methods for the
+// Asset position group and its three subtypes (bank_account, property,
+// vehicle — each in its own file). Asset snapshots, which share a table
+// across all subtypes per ADR-0022, live here since they're not
+// subtype-specific.
 type AssetRepo struct {
 	pool *pgxpool.Pool
 	q    *db.Queries
@@ -24,39 +29,7 @@ func NewAssetRepo(pool *pgxpool.Pool) *AssetRepo {
 	return &AssetRepo{pool: pool, q: db.New(pool)}
 }
 
-// BankAccount is the aggregate returned by Get/Create — the core asset row
-// joined with its bank_account_details extension.
-type BankAccount struct {
-	Asset   db.Asset             `json:"asset"`
-	Details db.BankAccountDetail `json:"details"`
-}
-
-// BankAccountListItem extends BankAccount with the most-recent Snapshot if
-// any (for list views that want to display the current balance).
-type BankAccountListItem struct {
-	Asset          db.Asset             `json:"asset"`
-	Details        db.BankAccountDetail `json:"details"`
-	LatestSnapshot *db.AssetSnapshot    `json:"latest_snapshot"`
-}
-
-type CreateBankAccountParams struct {
-	DisplayName     string
-	Description     *string
-	OwnershipType   string // "sole" or "joint"
-	SoleOwnerUserID *uuid.UUID
-	NativeCurrency  string
-	BankName        string
-	AccountNumber   string
-	AccountType     string // "savings" | "current" | "other"
-}
-
-type UpdateBankAccountParams struct {
-	DisplayName   string
-	Description   *string
-	BankName      string
-	AccountNumber string
-	AccountType   string
-}
+// ----- asset snapshots (shared across all subtypes) -----------------------
 
 type CreateAssetSnapshotParams struct {
 	AssetID     uuid.UUID
@@ -74,201 +47,6 @@ type UpdateAssetSnapshotParams struct {
 	AsOfDate    *time.Time
 	Description *string
 }
-
-// ----- bank accounts ------------------------------------------------------
-
-func (r *AssetRepo) CreateBankAccount(ctx context.Context, p CreateBankAccountParams) (*BankAccount, error) {
-	user, hid, err := currentUser(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	tx, err := r.pool.Begin(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("begin tx: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
-	qtx := r.q.WithTx(tx)
-	asset, err := qtx.CreateAsset(ctx, db.CreateAssetParams{
-		HouseholdID:     hid,
-		DisplayName:     p.DisplayName,
-		Description:     p.Description,
-		Subtype:         "bank_account",
-		OwnershipType:   p.OwnershipType,
-		SoleOwnerUserID: p.SoleOwnerUserID,
-		NativeCurrency:  p.NativeCurrency,
-		CreatedBy:       &user,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("create asset: %w", err)
-	}
-
-	details, err := qtx.CreateBankAccountDetails(ctx, db.CreateBankAccountDetailsParams{
-		AssetID:       asset.ID,
-		BankName:      p.BankName,
-		AccountNumber: p.AccountNumber,
-		AccountType:   p.AccountType,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("create bank_account_details: %w", err)
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return nil, fmt.Errorf("commit: %w", err)
-	}
-
-	return &BankAccount{Asset: asset, Details: details}, nil
-}
-
-func (r *AssetRepo) GetBankAccount(ctx context.Context, id uuid.UUID) (*BankAccount, error) {
-	_, hid, err := currentUser(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	asset, err := r.q.GetAssetByID(ctx, db.GetAssetByIDParams{ID: id, HouseholdID: hid})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrNotFound
-		}
-		return nil, err
-	}
-	if asset.Subtype != "bank_account" {
-		return nil, ErrNotFound
-	}
-
-	details, err := r.q.GetBankAccountDetailsByAssetID(ctx, asset.ID)
-	if err != nil {
-		// Asset row exists but its extension is missing — schema invariant
-		// violation. Surface as a real error rather than ErrNotFound.
-		return nil, fmt.Errorf("get bank_account_details: %w", err)
-	}
-
-	return &BankAccount{Asset: asset, Details: details}, nil
-}
-
-func (r *AssetRepo) ListBankAccounts(ctx context.Context) ([]BankAccountListItem, error) {
-	_, hid, err := currentUser(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	subtype := "bank_account"
-	assets, err := r.q.ListAssetsByHousehold(ctx, db.ListAssetsByHouseholdParams{
-		HouseholdID: hid,
-		Subtype:     &subtype,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("list assets: %w", err)
-	}
-	if len(assets) == 0 {
-		return []BankAccountListItem{}, nil
-	}
-
-	ids := make([]uuid.UUID, len(assets))
-	for i, a := range assets {
-		ids[i] = a.ID
-	}
-
-	details, err := r.q.ListBankAccountDetailsByAssetIDs(ctx, ids)
-	if err != nil {
-		return nil, fmt.Errorf("list bank_account_details: %w", err)
-	}
-	detailByID := make(map[uuid.UUID]db.BankAccountDetail, len(details))
-	for _, d := range details {
-		detailByID[d.AssetID] = d
-	}
-
-	snapshots, err := r.q.ListLatestSnapshotsByAssetIDs(ctx, ids)
-	if err != nil {
-		return nil, fmt.Errorf("list latest snapshots: %w", err)
-	}
-	snapByID := make(map[uuid.UUID]db.AssetSnapshot, len(snapshots))
-	for _, s := range snapshots {
-		snapByID[s.AssetID] = s
-	}
-
-	out := make([]BankAccountListItem, 0, len(assets))
-	for _, a := range assets {
-		item := BankAccountListItem{Asset: a, Details: detailByID[a.ID]}
-		if s, ok := snapByID[a.ID]; ok {
-			s := s
-			item.LatestSnapshot = &s
-		}
-		out = append(out, item)
-	}
-	return out, nil
-}
-
-func (r *AssetRepo) UpdateBankAccount(ctx context.Context, id uuid.UUID, p UpdateBankAccountParams) (*BankAccount, error) {
-	user, hid, err := currentUser(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	tx, err := r.pool.Begin(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("begin tx: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
-	qtx := r.q.WithTx(tx)
-	asset, err := qtx.UpdateAsset(ctx, db.UpdateAssetParams{
-		ID:          id,
-		HouseholdID: hid,
-		DisplayName: p.DisplayName,
-		Description: p.Description,
-		UpdatedBy:   &user,
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrNotFound
-		}
-		return nil, fmt.Errorf("update asset: %w", err)
-	}
-	if asset.Subtype != "bank_account" {
-		return nil, ErrNotFound
-	}
-
-	details, err := qtx.UpdateBankAccountDetails(ctx, db.UpdateBankAccountDetailsParams{
-		AssetID:       asset.ID,
-		BankName:      p.BankName,
-		AccountNumber: p.AccountNumber,
-		AccountType:   p.AccountType,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("update bank_account_details: %w", err)
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return nil, fmt.Errorf("commit: %w", err)
-	}
-
-	return &BankAccount{Asset: asset, Details: details}, nil
-}
-
-func (r *AssetRepo) DeleteBankAccount(ctx context.Context, id uuid.UUID) error {
-	user, hid, err := currentUser(ctx)
-	if err != nil {
-		return err
-	}
-
-	rows, err := r.q.SoftDeleteAsset(ctx, db.SoftDeleteAssetParams{
-		ID:          id,
-		HouseholdID: hid,
-		UpdatedBy:   &user,
-	})
-	if err != nil {
-		return fmt.Errorf("soft delete asset: %w", err)
-	}
-	if rows == 0 {
-		return ErrNotFound
-	}
-	return nil
-}
-
-// ----- asset snapshots ----------------------------------------------------
 
 func (r *AssetRepo) CreateAssetSnapshot(ctx context.Context, p CreateAssetSnapshotParams) (*db.AssetSnapshot, error) {
 	user, hid, err := currentUser(ctx)
@@ -344,6 +122,28 @@ func (r *AssetRepo) DeleteAssetSnapshot(ctx context.Context, snapshotID uuid.UUI
 	})
 	if err != nil {
 		return fmt.Errorf("soft delete snapshot: %w", err)
+	}
+	if rows == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// SoftDeleteAsset is the shared delete path for any Asset subtype. Each
+// subtype's repo file exposes a thin wrapper (DeleteBankAccount, etc.) that
+// adds a subtype guard before calling this.
+func (r *AssetRepo) softDeleteAsset(ctx context.Context, id uuid.UUID) error {
+	user, hid, err := currentUser(ctx)
+	if err != nil {
+		return err
+	}
+	rows, err := r.q.SoftDeleteAsset(ctx, db.SoftDeleteAssetParams{
+		ID:          id,
+		HouseholdID: hid,
+		UpdatedBy:   &user,
+	})
+	if err != nil {
+		return fmt.Errorf("soft delete asset: %w", err)
 	}
 	if rows == 0 {
 		return ErrNotFound
