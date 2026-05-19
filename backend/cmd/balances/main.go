@@ -16,7 +16,9 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 
+	"github.com/kerti/balances-v2/backend/internal/auth"
 	"github.com/kerti/balances-v2/backend/internal/config"
+	"github.com/kerti/balances-v2/backend/internal/db"
 	"github.com/kerti/balances-v2/backend/internal/httpserver"
 	"github.com/kerti/balances-v2/backend/internal/migrations"
 )
@@ -73,7 +75,23 @@ func serveCmd() error {
 	}
 	defer pool.Close()
 
-	srv := httpserver.New(pool, cfg)
+	queries := db.New(pool)
+
+	authH, err := auth.New(ctx, queries, auth.Config{
+		Google: auth.GoogleConfig{
+			ClientID:     cfg.GoogleClientID,
+			ClientSecret: cfg.GoogleClientSecret,
+			RedirectURL:  cfg.OAuthRedirectURL,
+		},
+		SessionTTL:   cfg.SessionTTL,
+		CookieSecure: cfg.CookieSecure,
+		FrontendURL:  cfg.FrontendURL,
+	})
+	if err != nil {
+		return fmt.Errorf("auth: %w", err)
+	}
+
+	srv := httpserver.New(pool, cfg, authH)
 
 	httpSrv := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),
@@ -114,11 +132,11 @@ func migrateCmd(args []string) error {
 		args = []string{"status"}
 	}
 
-	db, err := sql.Open("pgx", cfg.DatabaseURL)
+	dbConn, err := sql.Open("pgx", cfg.DatabaseURL)
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)
 	}
-	defer db.Close()
+	defer dbConn.Close()
 
 	goose.SetBaseFS(migrations.FS)
 	if err := goose.SetDialect("postgres"); err != nil {
@@ -131,7 +149,7 @@ func migrateCmd(args []string) error {
 		rest = args[1:]
 	}
 
-	return goose.RunContext(context.Background(), cmd, db, ".", rest...)
+	return goose.RunContext(context.Background(), cmd, dbConn, ".", rest...)
 }
 
 func newLogger(cfg *config.Config) *slog.Logger {

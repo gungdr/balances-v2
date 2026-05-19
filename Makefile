@@ -1,4 +1,4 @@
-.PHONY: up down logs ps backend-run backend-build backend-migrate-up backend-migrate-down backend-migrate-status backend-tidy frontend-install frontend-dev frontend-build
+.PHONY: up down logs ps backend-run backend-build backend-migrate-up backend-migrate-down backend-migrate-status backend-tidy backend-sqlc frontend-install frontend-dev frontend-build
 
 -include .env
 export
@@ -32,6 +32,9 @@ backend-migrate-status:
 
 backend-tidy:
 	cd backend && go mod tidy
+
+backend-sqlc:
+	cd backend && sqlc generate
 
 frontend-install:
 	cd frontend && npm install
