@@ -14,7 +14,8 @@ Read these first, in order:
 
 - **M1–M3 complete**: walking skeleton, Google OAuth + invites, first vertical slice (bank-account asset with snapshots), all tenancy-tested.
 - **M4.1 complete**: property + vehicle asset subtypes through the full stack, two-level nav, Title Case applied to nav.
-- **M4.2 complete (this handoff)**: liability + receivable groups end-to-end. Last commit on `origin/main`: see `git log -1`.
+- **M4.2 complete**: liability + receivable groups end-to-end. Last commit on `origin/main`: see `git log -1`.
+- **CI/coverage side quest complete (post-M4.2)**: GitHub Actions runs golangci-lint + `go test -race -coverprofile` + Codecov upload + ESLint + `npm run build` on every push to `main` and every PR. Coverage thresholds are informational-only until alpha. Codecov needs `CODECOV_TOKEN` (already set in repo secrets) because Codecov treats the default branch as protected even on public repos.
 - **M4.3 next**: Investment subtypes (Stock, MutualFund, Bond, Gold, TimeDeposit). **Do not start without grilling the user first** — design questions below.
 
 ## What M4.2 shipped
@@ -69,6 +70,11 @@ These are not ADRs because they're tactical, but they're load-bearing:
 - **React Query useEffect gotcha.** Never put a `useMutation` result in a `useEffect` deps array — it's recreated every render and will loop. There's a comment to this effect in `EditSnapshotDialog`; replicate the pattern when needed.
 - **Decimals are strings on the wire**, `decimal.Decimal` in Go, with DECIMAL(20,4) for amounts and DECIMAL(20,8) for rates/FX. ADR-0011.
 - **Soft-delete everything**, including snapshots. ADR-0007. Hard-delete is not a UI feature — "can be undone via the database" is the line we use in confirm dialogs.
+- **Backend lint is enforced.** `golangci-lint run` from `backend/` must be clean. Config at repo root in `.golangci.yml`. `revive`'s `exported` and `package-comments` rules are deliberately disabled — don't reintroduce godoc-comment-on-every-export expectations for application code. New shared blank imports (e.g. SQL drivers) need a justifying comment.
+- **Frontend lint is enforced.** `npm run lint` from `frontend/` must be clean. `react-refresh/only-export-components` is disabled for `components/ui/**` (shadcn-generated). `react-hooks/set-state-in-effect` is enforced everywhere else — no `setState` inside `useEffect` body.
+- **Pagination clamp is derived during render**, not done in an effect. Pattern: `const effectivePage = Math.min(page, totalPages)`. Use `effectivePage` for slicing and for the `PaginationControls page` prop; keep raw `setPage` for click handlers. Don't reintroduce `useEffect(() => if (page > totalPages) setPage(totalPages))`.
+- **Edit dialogs do not reset form state via `useEffect`.** Initial form state comes from the entity prop in `useState(() => toForm(entity))` or inline initializer. Parents pass `key={entity.id}` so React remounts the dialog on entity switch. Within the same entity, form state persists across open/cancel/reopen — by design.
+- **Defer cleanup that returns an error must swallow it explicitly**: `defer func() { _ = tx.Rollback(ctx) }()`. Applies to `pgxpool.Tx.Rollback` and `sql.DB.Close()`. errcheck catches the bare form.
 
 ## Things explicitly NOT to do
 
@@ -104,6 +110,18 @@ docker exec balances-v2-postgres-1 psql -U balances -d balances \
 ```
 
 Pass via `Cookie: session=<token>` header.
+
+## Lint locally before pushing
+
+```bash
+# Backend
+cd backend && golangci-lint run
+
+# Frontend
+cd frontend && npm run lint
+```
+
+CI runs both on every push. golangci-lint config is at `.golangci.yml` (repo root); ESLint config is `frontend/eslint.config.js`. The Codecov config (`codecov.yml`) keeps coverage status informational-only — failing CI from coverage drops is a deliberate non-goal until alpha.
 
 ## Deferred items still on the list
 

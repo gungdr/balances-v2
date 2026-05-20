@@ -1,12 +1,15 @@
 # balances-v2
 
+[![CI](https://github.com/kerti/balances-v2/actions/workflows/ci.yml/badge.svg)](https://github.com/kerti/balances-v2/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/kerti/balances-v2/graph/badge.svg)](https://codecov.io/gh/kerti/balances-v2)
+
 A snapshot-based personal-finance app for tracking household net worth without itemising every transaction.
 
 The domain glossary lives in `CONTEXT.md`. The decisions behind the design and tech stack live in `docs/adr/`. The implementation outline lives in `docs/ROADMAP.md`.
 
 ## Local development
 
-Prerequisites: Docker (OrbStack recommended on macOS), Go 1.22+, Node 20+.
+Prerequisites: Docker (OrbStack recommended on macOS), Go 1.25+, Node 22+.
 
 ```sh
 cp .env.example .env
