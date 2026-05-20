@@ -150,4 +150,64 @@ func TestLiabilityRepo_TenancyIsolation(t *testing.T) {
 			t.Errorf("alice's latest_snapshot mismatch: %+v", list[0].LatestSnapshot)
 		}
 	})
+
+	// ----- Alice happy-path CRUD on her own liability and snapshot -----
+
+	t.Run("alice update liability persists new display_name", func(t *testing.T) {
+		updated, err := r.UpdateLiability(aliceCtx, aliceLiability.ID, repo.UpdateLiabilityParams{
+			DisplayName:      "Alice KPR renamed",
+			CounterpartyName: "Bank BCA",
+		})
+		if err != nil {
+			t.Fatalf("UpdateLiability: %v", err)
+		}
+		if updated.DisplayName != "Alice KPR renamed" {
+			t.Errorf("DisplayName: got %q, want %q", updated.DisplayName, "Alice KPR renamed")
+		}
+	})
+
+	t.Run("alice update snapshot persists new amount", func(t *testing.T) {
+		updated, err := r.UpdateLiabilitySnapshot(aliceCtx, repo.UpdateLiabilitySnapshotParams{
+			SnapshotID: aliceSnap.ID,
+			Amount:     decimal.NewFromInt(42),
+			Currency:   "IDR",
+		})
+		if err != nil {
+			t.Fatalf("UpdateLiabilitySnapshot: %v", err)
+		}
+		if !updated.Amount.Equal(decimal.NewFromInt(42)) {
+			t.Errorf("Amount: got %s, want 42", updated.Amount)
+		}
+	})
+
+	t.Run("alice delete snapshot removes it from list", func(t *testing.T) {
+		if err := r.DeleteLiabilitySnapshot(aliceCtx, aliceSnap.ID); err != nil {
+			t.Fatalf("DeleteLiabilitySnapshot: %v", err)
+		}
+		snaps, err := r.ListLiabilitySnapshots(aliceCtx, aliceLiability.ID)
+		if err != nil {
+			t.Fatalf("ListLiabilitySnapshots: %v", err)
+		}
+		for _, s := range snaps {
+			if s.ID == aliceSnap.ID {
+				t.Errorf("deleted snapshot still in list")
+			}
+		}
+	})
+
+	t.Run("alice delete liability removes it from get and list", func(t *testing.T) {
+		if err := r.DeleteLiability(aliceCtx, aliceLiability.ID); err != nil {
+			t.Fatalf("DeleteLiability: %v", err)
+		}
+		if _, err := r.GetLiability(aliceCtx, aliceLiability.ID); !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("GetLiability after delete: want ErrNotFound, got %v", err)
+		}
+		list, err := r.ListLiabilities(aliceCtx, nil)
+		if err != nil {
+			t.Fatalf("ListLiabilities after delete: %v", err)
+		}
+		if len(list) != 0 {
+			t.Errorf("ListLiabilities after delete: got %d, want 0", len(list))
+		}
+	})
 }

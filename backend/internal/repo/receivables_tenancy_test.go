@@ -148,4 +148,64 @@ func TestReceivableRepo_TenancyIsolation(t *testing.T) {
 			t.Errorf("alice's latest_snapshot mismatch: %+v", list[0].LatestSnapshot)
 		}
 	})
+
+	// ----- Alice happy-path CRUD on her own receivable and snapshot ----
+
+	t.Run("alice update receivable persists new display_name", func(t *testing.T) {
+		updated, err := r.UpdateReceivable(aliceCtx, aliceReceivable.ID, repo.UpdateReceivableParams{
+			DisplayName:      "Loan to brother renamed",
+			CounterpartyName: "Brother",
+		})
+		if err != nil {
+			t.Fatalf("UpdateReceivable: %v", err)
+		}
+		if updated.DisplayName != "Loan to brother renamed" {
+			t.Errorf("DisplayName: got %q, want %q", updated.DisplayName, "Loan to brother renamed")
+		}
+	})
+
+	t.Run("alice update snapshot persists new amount", func(t *testing.T) {
+		updated, err := r.UpdateReceivableSnapshot(aliceCtx, repo.UpdateReceivableSnapshotParams{
+			SnapshotID: aliceSnap.ID,
+			Amount:     decimal.NewFromInt(42),
+			Currency:   "IDR",
+		})
+		if err != nil {
+			t.Fatalf("UpdateReceivableSnapshot: %v", err)
+		}
+		if !updated.Amount.Equal(decimal.NewFromInt(42)) {
+			t.Errorf("Amount: got %s, want 42", updated.Amount)
+		}
+	})
+
+	t.Run("alice delete snapshot removes it from list", func(t *testing.T) {
+		if err := r.DeleteReceivableSnapshot(aliceCtx, aliceSnap.ID); err != nil {
+			t.Fatalf("DeleteReceivableSnapshot: %v", err)
+		}
+		snaps, err := r.ListReceivableSnapshots(aliceCtx, aliceReceivable.ID)
+		if err != nil {
+			t.Fatalf("ListReceivableSnapshots: %v", err)
+		}
+		for _, s := range snaps {
+			if s.ID == aliceSnap.ID {
+				t.Errorf("deleted snapshot still in list")
+			}
+		}
+	})
+
+	t.Run("alice delete receivable removes it from get and list", func(t *testing.T) {
+		if err := r.DeleteReceivable(aliceCtx, aliceReceivable.ID); err != nil {
+			t.Fatalf("DeleteReceivable: %v", err)
+		}
+		if _, err := r.GetReceivable(aliceCtx, aliceReceivable.ID); !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("GetReceivable after delete: want ErrNotFound, got %v", err)
+		}
+		list, err := r.ListReceivables(aliceCtx)
+		if err != nil {
+			t.Fatalf("ListReceivables after delete: %v", err)
+		}
+		if len(list) != 0 {
+			t.Errorf("ListReceivables after delete: got %d, want 0", len(list))
+		}
+	})
 }

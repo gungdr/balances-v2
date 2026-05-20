@@ -84,4 +84,35 @@ func TestPropertyRepo_TenancyIsolation(t *testing.T) {
 			t.Errorf("DeleteBankAccount on property id: want ErrNotFound, got %v", err)
 		}
 	})
+
+	// ----- Alice happy-path CRUD on her own property -------------------
+
+	t.Run("alice update property persists new display_name", func(t *testing.T) {
+		updated, err := r.UpdateProperty(aliceCtx, aliceProperty.Asset.ID, repo.UpdatePropertyParams{
+			DisplayName:  "Alice House renamed",
+			PropertyType: "house",
+		})
+		if err != nil {
+			t.Fatalf("UpdateProperty: %v", err)
+		}
+		if updated.Asset.DisplayName != "Alice House renamed" {
+			t.Errorf("DisplayName: got %q, want %q", updated.Asset.DisplayName, "Alice House renamed")
+		}
+	})
+
+	t.Run("alice delete property removes it from get and list", func(t *testing.T) {
+		if err := r.DeleteProperty(aliceCtx, aliceProperty.Asset.ID); err != nil {
+			t.Fatalf("DeleteProperty: %v", err)
+		}
+		if _, err := r.GetProperty(aliceCtx, aliceProperty.Asset.ID); !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("GetProperty after delete: want ErrNotFound, got %v", err)
+		}
+		list, err := r.ListProperties(aliceCtx)
+		if err != nil {
+			t.Fatalf("ListProperties after delete: %v", err)
+		}
+		if len(list) != 0 {
+			t.Errorf("ListProperties after delete: got %d, want 0", len(list))
+		}
+	})
 }

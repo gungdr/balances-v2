@@ -68,4 +68,35 @@ func TestVehicleRepo_TenancyIsolation(t *testing.T) {
 			t.Errorf("DeleteVehicle: want ErrNotFound, got %v", err)
 		}
 	})
+
+	// ----- Alice happy-path CRUD on her own vehicle --------------------
+
+	t.Run("alice update vehicle persists new display_name", func(t *testing.T) {
+		updated, err := r.UpdateVehicle(aliceCtx, aliceVehicle.Asset.ID, repo.UpdateVehicleParams{
+			DisplayName: "Alice Car renamed",
+			VehicleType: "car",
+		})
+		if err != nil {
+			t.Fatalf("UpdateVehicle: %v", err)
+		}
+		if updated.Asset.DisplayName != "Alice Car renamed" {
+			t.Errorf("DisplayName: got %q, want %q", updated.Asset.DisplayName, "Alice Car renamed")
+		}
+	})
+
+	t.Run("alice delete vehicle removes it from get and list", func(t *testing.T) {
+		if err := r.DeleteVehicle(aliceCtx, aliceVehicle.Asset.ID); err != nil {
+			t.Fatalf("DeleteVehicle: %v", err)
+		}
+		if _, err := r.GetVehicle(aliceCtx, aliceVehicle.Asset.ID); !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("GetVehicle after delete: want ErrNotFound, got %v", err)
+		}
+		list, err := r.ListVehicles(aliceCtx)
+		if err != nil {
+			t.Fatalf("ListVehicles after delete: %v", err)
+		}
+		if len(list) != 0 {
+			t.Errorf("ListVehicles after delete: got %d, want 0", len(list))
+		}
+	})
 }

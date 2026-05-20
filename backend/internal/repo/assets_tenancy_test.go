@@ -154,4 +154,69 @@ func TestAssetRepo_TenancyIsolation(t *testing.T) {
 			t.Errorf("alice's latest_snapshot mismatch: %+v", list[0].LatestSnapshot)
 		}
 	})
+
+	// ----- Alice happy-path CRUD on her own account and snapshot -------
+	// These exercise the success branches of Update*, Delete*, and the
+	// shared softDeleteAsset helper — paths the cross-tenant tests above
+	// never reach because they bail out at the GetX subtype/tenancy guard.
+
+	t.Run("alice update account persists new display_name", func(t *testing.T) {
+		updated, err := r.UpdateBankAccount(aliceCtx, aliceAccount.Asset.ID, repo.UpdateBankAccountParams{
+			DisplayName:   "Alice BCA renamed",
+			BankName:      "BCA",
+			AccountNumber: "111",
+			AccountType:   "savings",
+		})
+		if err != nil {
+			t.Fatalf("UpdateBankAccount: %v", err)
+		}
+		if updated.Asset.DisplayName != "Alice BCA renamed" {
+			t.Errorf("DisplayName: got %q, want %q", updated.Asset.DisplayName, "Alice BCA renamed")
+		}
+	})
+
+	t.Run("alice update snapshot persists new amount", func(t *testing.T) {
+		updated, err := r.UpdateAssetSnapshot(aliceCtx, repo.UpdateAssetSnapshotParams{
+			SnapshotID: aliceSnap.ID,
+			Amount:     decimal.NewFromInt(42),
+			Currency:   "IDR",
+		})
+		if err != nil {
+			t.Fatalf("UpdateAssetSnapshot: %v", err)
+		}
+		if !updated.Amount.Equal(decimal.NewFromInt(42)) {
+			t.Errorf("Amount: got %s, want 42", updated.Amount)
+		}
+	})
+
+	t.Run("alice delete snapshot removes it from list", func(t *testing.T) {
+		if err := r.DeleteAssetSnapshot(aliceCtx, aliceSnap.ID); err != nil {
+			t.Fatalf("DeleteAssetSnapshot: %v", err)
+		}
+		snaps, err := r.ListAssetSnapshots(aliceCtx, aliceAccount.Asset.ID)
+		if err != nil {
+			t.Fatalf("ListAssetSnapshots: %v", err)
+		}
+		for _, s := range snaps {
+			if s.ID == aliceSnap.ID {
+				t.Errorf("deleted snapshot still in list")
+			}
+		}
+	})
+
+	t.Run("alice delete account removes it from get and list", func(t *testing.T) {
+		if err := r.DeleteBankAccount(aliceCtx, aliceAccount.Asset.ID); err != nil {
+			t.Fatalf("DeleteBankAccount: %v", err)
+		}
+		if _, err := r.GetBankAccount(aliceCtx, aliceAccount.Asset.ID); !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("GetBankAccount after delete: want ErrNotFound, got %v", err)
+		}
+		list, err := r.ListBankAccounts(aliceCtx)
+		if err != nil {
+			t.Fatalf("ListBankAccounts after delete: %v", err)
+		}
+		if len(list) != 0 {
+			t.Errorf("ListBankAccounts after delete: got %d, want 0", len(list))
+		}
+	})
 }
