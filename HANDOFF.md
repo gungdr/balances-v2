@@ -16,7 +16,9 @@ Read these first, in order:
 - **M4.1 complete**: property + vehicle asset subtypes through the full stack, two-level nav, Title Case applied to nav.
 - **M4.2 complete**: liability + receivable groups end-to-end. Last commit on `origin/main`: see `git log -1`.
 - **CI/coverage side quest complete (post-M4.2)**: GitHub Actions runs golangci-lint + `go test -race -coverprofile` + Codecov upload + ESLint + `npm run build` on every push to `main` and every PR. Coverage thresholds are informational-only until alpha. Codecov needs `CODECOV_TOKEN` (already set in repo secrets) because Codecov treats the default branch as protected even on public repos. Phase 1 coverage backfill added happy-path CRUD tests to the five repo tenancy suites; `internal/repo` sits around 70%. HTTP handler coverage (currently 0% across `internal/{assets,liabilities,receivables,auth}`) is deferred to a future side quest.
-- **M4.3 next**: Investment subtypes (Stock, MutualFund, Bond, Gold, TimeDeposit). **Do not start without grilling the user first** — design questions below.
+- **M4.3a backend complete**: Investments group with Stock + MutualFund + Gold subtypes shipped end-to-end on the backend (migration, repo, handlers, tenancy + happy-path + shape-validation tests). `investment_snapshots` column is `amount` (ADR-0022 was backtracked from `total_value` for cross-group consistency). Subtype and status enums carry all forward-compat values so M4.3b adds extension tables without ALTERs. `internal/repo` coverage ~72%.
+- **M4.3a-frontend pending**: hooks, list/detail pages per subtype, dialogs, three-level nav (Investments > {Stock, MutualFund, Gold}). Backend is ready for it.
+- **M4.3b next (after M4.3a-frontend)**: Bond + TimeDeposit (accrued-interest snapshot shape). Adds two extension tables and exercises the second XOR branch.
 
 ## What M4.2 shipped
 
@@ -37,23 +39,23 @@ Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:
 **Tests**
 - `backend/internal/repo/{liabilities,receivables}_tenancy_test.go` — 9 subtests each. Covers core CRUD + snapshot CRUD across two households. All pass.
 
-## Open design questions for M4.3 — grill the user before coding
+## What M4.3a backend shipped
 
-Investments are different from the other three groups in ways the design hasn't fully pinned down:
+- `backend/internal/migrations/00006_investments.sql` — `investments` + `stock_details` + `mutual_fund_details` + `gold_details` + `investment_snapshots`. Subtype enum carries all five values up front (bond/time_deposit reachable in M4.3b without an ALTER); status enum carries `active`/`sold`/`matured`. Snapshot table has the XOR CHECK from ADR-0022 plus a partial unique index on `(investment_id, year_month) WHERE deleted_at IS NULL`.
+- `backend/queries/{investments,stocks,mutual_funds,golds,investment_snapshots}.sql` — full CRUD plus batch latest-snapshot joins and detail joins for list views. Snapshot queries JOIN `investments` to enforce tenancy.
+- `backend/internal/repo/{investments,stocks,mutual_funds,golds}.go` — `InvestmentRepo` with per-subtype CRUD (txn-wrapped parent + detail writes), shared `softDeleteInvestment` helper, snapshot CRUD with `validateInvestmentSnapshotShape`. New `repo.ErrInvalidSnapshotShape` sentinel.
+- `backend/internal/investments/*` — HTTP package mounted under `/api/investments`, with `/stocks`, `/mutual-funds`, `/golds` subtype CRUD and `/{id}/snapshots` snapshot CRUD. `repoErrorStatus` maps `ErrInvalidSnapshotShape` to 400.
+- `backend/internal/repo/investments_tenancy_test.go` — covers cross-tenant rejection across all three subtypes, the subtype guard between them, snapshot tenancy, alice-side happy-path CRUD, and a separate `TestInvestmentRepo_SnapshotShapeValidation` exercising the repo's shape XOR.
 
-1. **Snapshot route shape.** Same question as M4.2 — per-group `/api/investments/{id}/snapshots` or per-subtype routes? Recommend mirroring M4.2 (per-group) for consistency with the snapshot table strategy in ADR-0022.
-2. **Subtype extension tables.** ADR-0009 specifies five: `stock_details`, `mutual_fund_details`, `bond_details`, `gold_details`, `time_deposit_details`. These have meaningfully different field sets — bond carries face_value/coupon_rate/coupon_frequency/maturity_date, gold carries form/purity, time_deposit carries principal/interest_rate/term/rollover_policy. Ship all five together or stage them?
-3. **Investment snapshot XOR.** ADR-0022 specifies the CHECK constraint:
-   ```
-   (quantity NOT NULL AND price_per_unit NOT NULL AND accrued_interest NULL)
-   OR
-   (quantity NULL AND price_per_unit NULL AND accrued_interest NOT NULL)
-   ```
-   Stock / MutualFund / Gold take the first branch; Bond / TimeDeposit take the second. Repo + integration tests must enforce the subtype→shape mapping (DB can't reference other tables in CHECK).
-4. **Transactions are a parallel concern**, not part of M4.3. ADR-0009 sets the Maturity transaction shape; the rest (Buy/Sell/Coupon/Dividend/Distribution/Fee) is still un-ADRed. Probably defer to **M4.4** as a separate milestone.
-5. **Frontend complexity**. Investments need a third level of nav (Investments > {Stocks, MutualFunds, Bonds, Gold, TimeDeposits}). The current `App.tsx` state-based nav is fine for one more level but is getting unwieldy — flagged for M4.9 (React Router).
+## M4.3 design decisions (settled during the grilling round)
 
-**Recommendation**: open M4.3 with a brief grilling round on (1) and (2), then implement. Don't dive into transactions until the user explicitly asks.
+1. **Snapshot routes are per-group**: `/api/investments/{id}/snapshots`. Mirrors ADR-0022 and the M4.2 pattern.
+2. **Subtypes ship in two batches** to validate each snapshot shape independently:
+   - M4.3a = Stock + MutualFund + Gold (quantity+price shape) — **done**
+   - M4.3b = Bond + TimeDeposit (accrued-interest shape) — pending
+3. **XOR shape integrity is two-layer**: DB CHECK rejects rows that satisfy no shape or both; the repo's `validateInvestmentSnapshotShape(subtype, ...)` rejects rows that pick the wrong shape for their parent's subtype (Postgres CHECK can't reference another table). Returns `repo.ErrInvalidSnapshotShape`, mapped to 400 in handlers.
+4. **Transactions stay out of M4.3** — deferred to M4.4 (Buy/Sell/Coupon/Dividend/Distribution/Fee/Maturity).
+5. **Three-level nav** (Investments > {subtype}) is acceptable for M4.3-frontend; React Router migration still flagged for M4.9.
 
 ## Conventions to keep, not to break
 
@@ -61,7 +63,8 @@ These are not ADRs because they're tactical, but they're load-bearing:
 
 - **One snapshot table per position group** (ADR-0022). Don't try to merge them or build a polymorphic snapshot table.
 - **Belt + suspenders tenancy.** Every SQL query that touches a position-related table filters by `household_id` *in SQL*, not just in middleware. Snapshot queries JOIN the parent table to verify ownership. See `backend/queries/asset_snapshots.sql` for the pattern.
-- **Subtype guards.** When an entity is in a shared table (only `assets` so far), `Delete{Subtype}` and `Update{Subtype}` must verify the subtype before mutating. See `DeleteBankAccount` calling `GetBankAccount` first.
+- **Subtype guards.** When an entity is in a shared table (`assets` and `investments`), `Delete{Subtype}` and `Update{Subtype}` must verify the subtype before mutating. See `DeleteBankAccount` calling `GetBankAccount` first, and `DeleteStock` calling `GetStock` first.
+- **Investment subtype→snapshot-shape validation lives in the repo, not the DB.** `validateInvestmentSnapshotShape(subtype, quantity, pricePerUnit, accruedInterest)` switches on subtype and returns `ErrInvalidSnapshotShape` if the value-column combo is wrong. The DB's CHECK only enforces "exactly one shape." When adding a new investment subtype, update both the switch in this helper and the `subtype` CHECK in migration 00006.
 - **No transaction wrapping** in `Create{Liability|Receivable}` because there's no extension table to also write. **Wrap in `pool.Begin` when there is** (e.g., `CreateBankAccount` writes assets + bank_account_details). This will apply to all five investment subtypes.
 - **Snapshot UI is group-agnostic now.** When you add investment snapshots, pass the relevant `useMutation` results into `CreateSnapshotDialog`/`EditSnapshotDialog`/`SnapshotRow` as props. Don't create per-group versions.
 - **`SnapshotChart` is shared.** Don't fork it per group — it's already generic over `{year_month, amount}[]`.
