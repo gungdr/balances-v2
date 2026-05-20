@@ -15,7 +15,7 @@ Read these first, in order:
 - **M1–M3 complete**: walking skeleton, Google OAuth + invites, first vertical slice (bank-account asset with snapshots), all tenancy-tested.
 - **M4.1 complete**: property + vehicle asset subtypes through the full stack, two-level nav, Title Case applied to nav.
 - **M4.2 complete**: liability + receivable groups end-to-end. Last commit on `origin/main`: see `git log -1`.
-- **CI/coverage side quest complete (post-M4.2)**: GitHub Actions runs golangci-lint + `go test -race -coverprofile` + Codecov upload + ESLint + `npm run build` on every push to `main` and every PR. Coverage thresholds are informational-only until alpha. Codecov needs `CODECOV_TOKEN` (already set in repo secrets) because Codecov treats the default branch as protected even on public repos.
+- **CI/coverage side quest complete (post-M4.2)**: GitHub Actions runs golangci-lint + `go test -race -coverprofile` + Codecov upload + ESLint + `npm run build` on every push to `main` and every PR. Coverage thresholds are informational-only until alpha. Codecov needs `CODECOV_TOKEN` (already set in repo secrets) because Codecov treats the default branch as protected even on public repos. Phase 1 coverage backfill added happy-path CRUD tests to the five repo tenancy suites; `internal/repo` sits around 70%. HTTP handler coverage (currently 0% across `internal/{assets,liabilities,receivables,auth}`) is deferred to a future side quest.
 - **M4.3 next**: Investment subtypes (Stock, MutualFund, Bond, Gold, TimeDeposit). **Do not start without grilling the user first** — design questions below.
 
 ## What M4.2 shipped
@@ -75,6 +75,7 @@ These are not ADRs because they're tactical, but they're load-bearing:
 - **Pagination clamp is derived during render**, not done in an effect. Pattern: `const effectivePage = Math.min(page, totalPages)`. Use `effectivePage` for slicing and for the `PaginationControls page` prop; keep raw `setPage` for click handlers. Don't reintroduce `useEffect(() => if (page > totalPages) setPage(totalPages))`.
 - **Edit dialogs do not reset form state via `useEffect`.** Initial form state comes from the entity prop in `useState(() => toForm(entity))` or inline initializer. Parents pass `key={entity.id}` so React remounts the dialog on entity switch. Within the same entity, form state persists across open/cancel/reopen — by design.
 - **Defer cleanup that returns an error must swallow it explicitly**: `defer func() { _ = tx.Rollback(ctx) }()`. Applies to `pgxpool.Tx.Rollback` and `sql.DB.Close()`. errcheck catches the bare form.
+- **Tenancy test pattern**: every position group's `*_tenancy_test.go` covers both the cross-tenant rejection path (bob attempts X, expects `ErrNotFound`) and the alice-side happy-path CRUD success (update + delete on entity and snapshot, then verify Get/List). Cross-tenant alone leaves `Update*`/`Delete*`/`softDeleteAsset` success branches uncovered because the rejection short-circuits at the GetX guard.
 
 ## Things explicitly NOT to do
 
