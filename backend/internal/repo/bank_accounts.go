@@ -55,7 +55,7 @@ func (r *AssetRepo) CreateBankAccount(ctx context.Context, p CreateBankAccountPa
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	qtx := r.q.WithTx(tx)
 	asset, err := qtx.CreateAsset(ctx, db.CreateAssetParams{
@@ -179,7 +179,7 @@ func (r *AssetRepo) UpdateBankAccount(ctx context.Context, id uuid.UUID, p Updat
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	qtx := r.q.WithTx(tx)
 	asset, err := qtx.UpdateAsset(ctx, db.UpdateAssetParams{

@@ -14,14 +14,14 @@ import (
 )
 
 type Property struct {
-	Asset   db.Asset           `json:"asset"`
-	Details db.PropertyDetail  `json:"details"`
+	Asset   db.Asset          `json:"asset"`
+	Details db.PropertyDetail `json:"details"`
 }
 
 type PropertyListItem struct {
-	Asset          db.Asset           `json:"asset"`
-	Details        db.PropertyDetail  `json:"details"`
-	LatestSnapshot *db.AssetSnapshot  `json:"latest_snapshot"`
+	Asset          db.Asset          `json:"asset"`
+	Details        db.PropertyDetail `json:"details"`
+	LatestSnapshot *db.AssetSnapshot `json:"latest_snapshot"`
 }
 
 type CreatePropertyParams struct {
@@ -57,7 +57,7 @@ func (r *AssetRepo) CreateProperty(ctx context.Context, p CreatePropertyParams) 
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	qtx := r.q.WithTx(tx)
 	asset, err := qtx.CreateAsset(ctx, db.CreateAssetParams{
@@ -181,7 +181,7 @@ func (r *AssetRepo) UpdateProperty(ctx context.Context, id uuid.UUID, p UpdatePr
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	qtx := r.q.WithTx(tx)
 	asset, err := qtx.UpdateAsset(ctx, db.UpdateAssetParams{

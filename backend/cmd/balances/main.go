@@ -164,7 +164,7 @@ func migrateCmd(args []string) error {
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)
 	}
-	defer dbConn.Close()
+	defer func() { _ = dbConn.Close() }()
 
 	goose.SetBaseFS(migrations.FS)
 	if err := goose.SetDialect("postgres"); err != nil {

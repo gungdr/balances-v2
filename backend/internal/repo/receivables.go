@@ -28,8 +28,8 @@ func NewReceivableRepo(pool *pgxpool.Pool) *ReceivableRepo {
 }
 
 type ReceivableListItem struct {
-	Receivable     db.Receivable           `json:"receivable"`
-	LatestSnapshot *db.ReceivableSnapshot  `json:"latest_snapshot"`
+	Receivable     db.Receivable          `json:"receivable"`
+	LatestSnapshot *db.ReceivableSnapshot `json:"latest_snapshot"`
 }
 
 type CreateReceivableParams struct {

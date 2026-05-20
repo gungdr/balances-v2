@@ -58,7 +58,7 @@ func (r *AssetRepo) CreateVehicle(ctx context.Context, p CreateVehicleParams) (*
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	qtx := r.q.WithTx(tx)
 	asset, err := qtx.CreateAsset(ctx, db.CreateAssetParams{
@@ -183,7 +183,7 @@ func (r *AssetRepo) UpdateVehicle(ctx context.Context, id uuid.UUID, p UpdateVeh
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	qtx := r.q.WithTx(tx)
 	asset, err := qtx.UpdateAsset(ctx, db.UpdateAssetParams{
