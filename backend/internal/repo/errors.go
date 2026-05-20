@@ -18,4 +18,13 @@ var (
 	// different Household (the SQL filter makes the two cases indistinguishable
 	// from the caller's perspective, which is intentional).
 	ErrNotFound = errors.New("repo: not found")
+
+	// ErrInvalidSnapshotShape is returned when an Investment snapshot mutation
+	// supplies a value-column combination that violates the subtype's expected
+	// shape (per ADR-0022). Stock/MutualFund/Gold require quantity+price_per_unit
+	// and reject accrued_interest; Bond/TimeDeposit require accrued_interest
+	// and reject quantity+price_per_unit. The DB's CHECK constraint catches
+	// rows that satisfy no shape; this error catches rows that pick the wrong
+	// shape for their parent's subtype (which the DB can't see).
+	ErrInvalidSnapshotShape = errors.New("repo: invalid investment snapshot shape for subtype")
 )

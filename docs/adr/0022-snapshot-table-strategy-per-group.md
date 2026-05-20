@@ -36,12 +36,18 @@ template for the rest.
 
 | Column | Used by |
 |---|---|
-| `total_value` (required) | all subtypes |
+| `amount` (required) | all subtypes |
 | `currency` (required) | all subtypes |
 | `quantity` (nullable) | Stock, MutualFund, Gold |
 | `price_per_unit` (nullable) | Stock, MutualFund, Gold |
 | `accrued_interest` (nullable) | Bond, TimeDeposit |
 | `year_month`, audit fields, soft-delete | all subtypes |
+
+The required value column is named `amount` (not `total_value`) for cross-group
+consistency with `asset_snapshots.amount`, `liability_snapshots.amount`, and
+`receivable_snapshots.amount`. This lets the four snapshot tables present a
+uniform `(year_month, amount, currency)` shape to net-worth aggregation and to
+the shared frontend snapshot components.
 
 A `CHECK` constraint enforces the XOR shape:
 
@@ -63,7 +69,7 @@ tests. The XOR check still catches "rows that satisfy no real shape" and
 
 - Four snapshot tables, each with a real FK to its parent group table.
 - Net-worth aggregation is a `UNION ALL` of four queries, all carrying
-  `total_value + currency + year_month` (subtraction for liabilities applied
+  `amount + currency + year_month` (subtraction for liabilities applied
   at the aggregate level).
 - The three amount-shape tables (`asset_*`, `liability_*`, `receivable_*`) have
   identical column lists. This minor duplication is acceptable; collapsing

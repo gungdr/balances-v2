@@ -1,0 +1,120 @@
+package investments
+
+import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+
+	"github.com/kerti/balances-v2/backend/internal/repo"
+)
+
+type createGoldReq struct {
+	DisplayName     string           `json:"display_name"       validate:"required"`
+	Description     *string          `json:"description"`
+	OwnershipType   string           `json:"ownership_type"     validate:"required,oneof=sole joint"`
+	SoleOwnerUserID *uuid.UUID       `json:"sole_owner_user_id" validate:"required_if=OwnershipType sole"`
+	NativeCurrency  string           `json:"native_currency"    validate:"required,iso4217"`
+	Form            string           `json:"form"               validate:"required,oneof=bar coin digital jewelry"`
+	Purity          *decimal.Decimal `json:"purity"             validate:"required"`
+}
+
+type updateGoldReq struct {
+	DisplayName string           `json:"display_name" validate:"required"`
+	Description *string          `json:"description"`
+	Form        string           `json:"form"         validate:"required,oneof=bar coin digital jewelry"`
+	Purity      *decimal.Decimal `json:"purity"       validate:"required"`
+}
+
+func (h *Handlers) handleCreateGold(w http.ResponseWriter, r *http.Request) {
+	var req createGoldReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json body", http.StatusBadRequest)
+		return
+	}
+	if err := h.validate.Struct(&req); err != nil {
+		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	g, err := h.repo.CreateGold(r.Context(), repo.CreateGoldParams{
+		DisplayName:     req.DisplayName,
+		Description:     req.Description,
+		OwnershipType:   req.OwnershipType,
+		SoleOwnerUserID: req.SoleOwnerUserID,
+		NativeCurrency:  req.NativeCurrency,
+		Form:            req.Form,
+		Purity:          *req.Purity,
+	})
+	if err != nil {
+		writeRepoError(w, "create gold", err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, g)
+}
+
+func (h *Handlers) handleListGolds(w http.ResponseWriter, r *http.Request) {
+	list, err := h.repo.ListGolds(r.Context())
+	if err != nil {
+		writeRepoError(w, "list golds", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, list)
+}
+
+func (h *Handlers) handleGetGold(w http.ResponseWriter, r *http.Request) {
+	id, err := parseIDParam(r, "id")
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	g, err := h.repo.GetGold(r.Context(), id)
+	if err != nil {
+		writeRepoError(w, "get gold", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, g)
+}
+
+func (h *Handlers) handleUpdateGold(w http.ResponseWriter, r *http.Request) {
+	id, err := parseIDParam(r, "id")
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	var req updateGoldReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json body", http.StatusBadRequest)
+		return
+	}
+	if err := h.validate.Struct(&req); err != nil {
+		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	g, err := h.repo.UpdateGold(r.Context(), id, repo.UpdateGoldParams{
+		DisplayName: req.DisplayName,
+		Description: req.Description,
+		Form:        req.Form,
+		Purity:      *req.Purity,
+	})
+	if err != nil {
+		writeRepoError(w, "update gold", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, g)
+}
+
+func (h *Handlers) handleDeleteGold(w http.ResponseWriter, r *http.Request) {
+	id, err := parseIDParam(r, "id")
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	if err := h.repo.DeleteGold(r.Context(), id); err != nil {
+		writeRepoError(w, "delete gold", err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

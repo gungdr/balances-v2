@@ -53,6 +53,12 @@ type BankAccountDetail struct {
 	AccountType   string    `json:"account_type"`
 }
 
+type GoldDetail struct {
+	InvestmentID uuid.UUID       `json:"investment_id"`
+	Form         string          `json:"form"`
+	Purity       decimal.Decimal `json:"purity"`
+}
+
 type Household struct {
 	ID                uuid.UUID          `json:"id"`
 	DisplayName       string             `json:"display_name"`
@@ -73,6 +79,43 @@ type HouseholdInvitation struct {
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	ExpiresAt    pgtype.Timestamptz `json:"expires_at"`
 	UsedAt       pgtype.Timestamptz `json:"used_at"`
+}
+
+type Investment struct {
+	ID              uuid.UUID          `json:"id"`
+	HouseholdID     uuid.UUID          `json:"household_id"`
+	DisplayName     string             `json:"display_name"`
+	Description     *string            `json:"description"`
+	Subtype         string             `json:"subtype"`
+	OwnershipType   string             `json:"ownership_type"`
+	SoleOwnerUserID *uuid.UUID         `json:"sole_owner_user_id"`
+	NativeCurrency  string             `json:"native_currency"`
+	Status          string             `json:"status"`
+	TerminatedAt    *time.Time         `json:"terminated_at"`
+	TerminationNote *string            `json:"termination_note"`
+	CreatedBy       *uuid.UUID         `json:"created_by"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedBy       *uuid.UUID         `json:"updated_by"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type InvestmentSnapshot struct {
+	ID              uuid.UUID          `json:"id"`
+	InvestmentID    uuid.UUID          `json:"investment_id"`
+	YearMonth       time.Time          `json:"year_month"`
+	Amount          decimal.Decimal    `json:"amount"`
+	Currency        string             `json:"currency"`
+	Quantity        *decimal.Decimal   `json:"quantity"`
+	PricePerUnit    *decimal.Decimal   `json:"price_per_unit"`
+	AccruedInterest *decimal.Decimal   `json:"accrued_interest"`
+	AsOfDate        *time.Time         `json:"as_of_date"`
+	Description     *string            `json:"description"`
+	CreatedBy       *uuid.UUID         `json:"created_by"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedBy       *uuid.UUID         `json:"updated_by"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
 }
 
 type Liability struct {
@@ -113,6 +156,12 @@ type LiabilitySnapshot struct {
 	UpdatedBy   *uuid.UUID         `json:"updated_by"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type MutualFundDetail struct {
+	InvestmentID uuid.UUID `json:"investment_id"`
+	FundCode     string    `json:"fund_code"`
+	FundManager  *string   `json:"fund_manager"`
 }
 
 type PropertyDetail struct {
@@ -166,6 +215,12 @@ type Session struct {
 	ExpiresAt  pgtype.Timestamptz `json:"expires_at"`
 	LastSeenAt pgtype.Timestamptz `json:"last_seen_at"`
 	UserAgent  *string            `json:"user_agent"`
+}
+
+type StockDetail struct {
+	InvestmentID uuid.UUID `json:"investment_id"`
+	Ticker       string    `json:"ticker"`
+	Exchange     string    `json:"exchange"`
 }
 
 type User struct {
