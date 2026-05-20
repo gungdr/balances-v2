@@ -107,6 +107,7 @@ export function VehicleListRow({ item, onSelect }: Props) {
       </TableRow>
 
       <EditVehicleDialog
+        key={vehicleForEdit.asset.id}
         open={editOpen}
         onOpenChange={setEditOpen}
         vehicle={vehicleForEdit}

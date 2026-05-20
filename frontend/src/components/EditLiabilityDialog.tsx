@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -36,11 +36,6 @@ function toForm(l: Liability) {
 export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
   const mutation = useUpdateLiability(liability.id)
   const [form, setForm] = useState(() => toForm(liability))
-
-  // `mutation` is deliberately not in the deps array — see EditSnapshotDialog.
-  useEffect(() => {
-    if (open) setForm(toForm(liability))
-  }, [open, liability])
 
   function submit(e: React.FormEvent) {
     e.preventDefault()

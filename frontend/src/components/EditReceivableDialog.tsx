@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -36,11 +36,6 @@ export function EditReceivableDialog({
 }: Props) {
   const mutation = useUpdateReceivable(receivable.id)
   const [form, setForm] = useState(() => toForm(receivable))
-
-  // `mutation` deliberately omitted from deps — see EditSnapshotDialog.
-  useEffect(() => {
-    if (open) setForm(toForm(receivable))
-  }, [open, receivable])
 
   function submit(e: React.FormEvent) {
     e.preventDefault()

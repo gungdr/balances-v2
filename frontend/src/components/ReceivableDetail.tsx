@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -59,10 +59,7 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
     1,
     Math.ceil((snapshots?.length ?? 0) / PAGE_SIZE),
   )
-
-  useEffect(() => {
-    if (page > totalPages) setPage(totalPages)
-  }, [page, totalPages])
+  const effectivePage = Math.min(page, totalPages)
 
   function handleConfirmDelete() {
     deleteMutation.mutate(receivableId, {
@@ -86,8 +83,8 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
   if (!receivable) return null
 
   const pageSnapshots = (snapshots ?? []).slice(
-    (page - 1) * PAGE_SIZE,
-    page * PAGE_SIZE,
+    (effectivePage - 1) * PAGE_SIZE,
+    effectivePage * PAGE_SIZE,
   )
 
   return (
@@ -201,7 +198,7 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
               {totalPages > 1 && (
                 <div className="px-6 py-3 border-t">
                   <PaginationControls
-                    page={page}
+                    page={effectivePage}
                     totalPages={totalPages}
                     onPageChange={setPage}
                   />
@@ -213,6 +210,7 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
       </Card>
 
       <EditReceivableDialog
+        key={receivable.id}
         open={editOpen}
         onOpenChange={setEditOpen}
         receivable={receivable}

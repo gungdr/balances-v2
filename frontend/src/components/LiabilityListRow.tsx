@@ -93,6 +93,7 @@ export function LiabilityListRow({ item, onSelect }: Props) {
       </TableRow>
 
       <EditLiabilityDialog
+        key={item.liability.id}
         open={editOpen}
         onOpenChange={setEditOpen}
         liability={item.liability}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -32,23 +32,6 @@ export function EditBankAccountDialog({ open, onOpenChange, account }: Props) {
     account_number: account.details.account_number,
     account_type: account.details.account_type,
   })
-
-  // Re-prime the form whenever the dialog opens (e.g., after a previous edit
-  // the local form state may be stale relative to the latest account row).
-  // `mutation` is deliberately not in the deps array — it's recreated every
-  // render by @tanstack/react-query, which would loop the effect indefinitely.
-  // Stale error state from a previous failed submit auto-clears on next mutate().
-  useEffect(() => {
-    if (open) {
-      setForm({
-        display_name: account.asset.display_name,
-        description: account.asset.description ?? '',
-        bank_name: account.details.bank_name,
-        account_number: account.details.account_number,
-        account_type: account.details.account_type,
-      })
-    }
-  }, [open, account])
 
   function submit(e: React.FormEvent) {
     e.preventDefault()

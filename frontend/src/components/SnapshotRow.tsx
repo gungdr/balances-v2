@@ -85,6 +85,7 @@ export function SnapshotRow<TUpdate, TDelete>({
       </TableRow>
 
       <EditSnapshotDialog
+        key={snapshot.id}
         open={editOpen}
         onOpenChange={setEditOpen}
         snapshot={snapshot}

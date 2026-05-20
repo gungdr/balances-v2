@@ -96,6 +96,7 @@ export function ReceivableListRow({ item, onSelect }: Props) {
       </TableRow>
 
       <EditReceivableDialog
+        key={item.receivable.id}
         open={editOpen}
         onOpenChange={setEditOpen}
         receivable={item.receivable}

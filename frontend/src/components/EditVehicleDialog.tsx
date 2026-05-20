@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -23,7 +23,7 @@ type Props = {
 export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
   const mutation = useUpdateVehicle(vehicle.asset.id)
 
-  const initial = {
+  const [form, setForm] = useState({
     display_name: vehicle.asset.display_name,
     description: vehicle.asset.description ?? '',
     vehicle_type: vehicle.details.vehicle_type,
@@ -32,13 +32,7 @@ export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
     year: vehicle.details.year ? String(vehicle.details.year) : '',
     plate_number: vehicle.details.plate_number ?? '',
     annual_depreciation_rate: vehicle.details.annual_depreciation_rate ?? '',
-  }
-  const [form, setForm] = useState(initial)
-
-  useEffect(() => {
-    if (open) setForm(initial)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, vehicle])
+  })
 
   function submit(e: React.FormEvent) {
     e.preventDefault()

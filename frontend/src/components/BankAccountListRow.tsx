@@ -98,6 +98,7 @@ export function BankAccountListRow({ item, onSelect }: Props) {
       </TableRow>
 
       <EditBankAccountDialog
+        key={accountForEdit.asset.id}
         open={editOpen}
         onOpenChange={setEditOpen}
         account={accountForEdit}

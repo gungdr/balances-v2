@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
@@ -56,18 +56,6 @@ export function EditSnapshotDialog<TResult>({
     as_of_date: snapshot.as_of_date ? snapshot.as_of_date.slice(0, 10) : '',
     description: snapshot.description ?? '',
   })
-
-  // `mutation` is deliberately not in the deps array — it's recreated every
-  // render by @tanstack/react-query, which would loop the effect indefinitely.
-  useEffect(() => {
-    if (open) {
-      setForm({
-        amount: snapshot.amount,
-        as_of_date: snapshot.as_of_date ? snapshot.as_of_date.slice(0, 10) : '',
-        description: snapshot.description ?? '',
-      })
-    }
-  }, [open, snapshot])
 
   function submit(e: React.FormEvent) {
     e.preventDefault()

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -61,13 +61,10 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
     1,
     Math.ceil((snapshots?.length ?? 0) / PAGE_SIZE),
   )
-
-  // After a delete, if our current page is now beyond the new last page,
-  // fall back to the last existing page. This is the only edge case for
-  // the "stay on current page" pagination rule (per the M3.7 design).
-  useEffect(() => {
-    if (page > totalPages) setPage(totalPages)
-  }, [page, totalPages])
+  // Derive during render so an out-of-range page (e.g., after a snapshot
+  // delete shrinks totalPages) clamps to the last existing page without an
+  // effect-driven setState. Per the M3.7 "stay on current page" rule.
+  const effectivePage = Math.min(page, totalPages)
 
   function handleConfirmDelete() {
     deleteMutation.mutate(assetId, {
@@ -92,8 +89,8 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
 
   const { asset, details } = account
   const pageSnapshots = (snapshots ?? []).slice(
-    (page - 1) * PAGE_SIZE,
-    page * PAGE_SIZE,
+    (effectivePage - 1) * PAGE_SIZE,
+    effectivePage * PAGE_SIZE,
   )
 
   return (
@@ -204,7 +201,7 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
               {totalPages > 1 && (
                 <div className="px-6 py-3 border-t">
                   <PaginationControls
-                    page={page}
+                    page={effectivePage}
                     totalPages={totalPages}
                     onPageChange={setPage}
                   />
@@ -216,6 +213,7 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
       </Card>
 
       <EditBankAccountDialog
+        key={account.asset.id}
         open={editOpen}
         onOpenChange={setEditOpen}
         account={account}

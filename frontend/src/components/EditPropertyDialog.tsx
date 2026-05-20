@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -35,23 +35,6 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
     annual_amortization_rate:
       property.details.annual_amortization_rate ?? '',
   })
-
-  useEffect(() => {
-    if (open) {
-      setForm({
-        display_name: property.asset.display_name,
-        description: property.asset.description ?? '',
-        property_type: property.details.property_type,
-        address: property.details.address ?? '',
-        acquisition_date: property.details.acquisition_date
-          ? property.details.acquisition_date.slice(0, 10)
-          : '',
-        acquisition_cost: property.details.acquisition_cost ?? '',
-        annual_amortization_rate:
-          property.details.annual_amortization_rate ?? '',
-      })
-    }
-  }, [open, property])
 
   function submit(e: React.FormEvent) {
     e.preventDefault()

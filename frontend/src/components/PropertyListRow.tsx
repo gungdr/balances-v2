@@ -99,6 +99,7 @@ export function PropertyListRow({ item, onSelect }: Props) {
       </TableRow>
 
       <EditPropertyDialog
+        key={propertyForEdit.asset.id}
         open={editOpen}
         onOpenChange={setEditOpen}
         property={propertyForEdit}
