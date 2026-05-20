@@ -23,12 +23,17 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination'
 import { useVehicle, useDeleteVehicle } from '@/hooks/useVehicles'
-import { useSnapshots } from '@/hooks/useAssetSnapshots'
+import {
+  useSnapshots,
+  useCreateSnapshot,
+  useUpdateSnapshot,
+  useDeleteSnapshot,
+} from '@/hooks/useAssetSnapshots'
 import { CreateSnapshotDialog } from '@/components/CreateSnapshotDialog'
 import { EditVehicleDialog } from '@/components/EditVehicleDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { SnapshotRow } from '@/components/SnapshotRow'
-import { BankAccountChart } from '@/components/BankAccountChart'
+import { SnapshotChart } from '@/components/SnapshotChart'
 
 type Props = {
   assetId: string
@@ -41,6 +46,9 @@ export function VehicleDetail({ assetId, onBack }: Props) {
   const { data: vehicle, isPending, error } = useVehicle(assetId)
   const { data: snapshots } = useSnapshots(assetId)
   const deleteMutation = useDeleteVehicle()
+  const createSnapshotMutation = useCreateSnapshot(assetId)
+  const updateSnapshotMutation = useUpdateSnapshot(assetId)
+  const deleteSnapshotMutation = useDeleteSnapshot(assetId)
 
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -110,8 +118,8 @@ export function VehicleDetail({ assetId, onBack }: Props) {
         </div>
         <div className="flex gap-2">
           <CreateSnapshotDialog
-            assetId={asset.id}
             currency={asset.native_currency}
+            mutation={createSnapshotMutation}
           />
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             Edit
@@ -159,7 +167,7 @@ export function VehicleDetail({ assetId, onBack }: Props) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <BankAccountChart
+            <SnapshotChart
               snapshots={snapshots}
               currency={asset.native_currency}
             />
@@ -193,7 +201,12 @@ export function VehicleDetail({ assetId, onBack }: Props) {
                 </TableHeader>
                 <TableBody>
                   {pageSnapshots.map((s) => (
-                    <SnapshotRow key={s.id} snapshot={s} assetId={assetId} />
+                    <SnapshotRow
+                      key={s.id}
+                      snapshot={s}
+                      updateMutation={updateSnapshotMutation}
+                      deleteMutation={deleteSnapshotMutation}
+                    />
                   ))}
                 </TableBody>
               </Table>

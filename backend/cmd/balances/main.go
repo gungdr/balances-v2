@@ -22,7 +22,9 @@ import (
 	"github.com/kerti/balances-v2/backend/internal/db"
 	"github.com/kerti/balances-v2/backend/internal/email"
 	"github.com/kerti/balances-v2/backend/internal/httpserver"
+	"github.com/kerti/balances-v2/backend/internal/liabilities"
 	"github.com/kerti/balances-v2/backend/internal/migrations"
+	"github.com/kerti/balances-v2/backend/internal/receivables"
 	"github.com/kerti/balances-v2/backend/internal/repo"
 )
 
@@ -111,7 +113,13 @@ func serveCmd() error {
 	assetRepo := repo.NewAssetRepo(pool)
 	assetsH := assets.New(assetRepo)
 
-	srv := httpserver.New(pool, cfg, authH, assetsH)
+	liabilityRepo := repo.NewLiabilityRepo(pool)
+	liabilitiesH := liabilities.New(liabilityRepo)
+
+	receivableRepo := repo.NewReceivableRepo(pool)
+	receivablesH := receivables.New(receivableRepo)
+
+	srv := httpserver.New(pool, cfg, authH, assetsH, liabilitiesH, receivablesH)
 
 	httpSrv := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),

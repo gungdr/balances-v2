@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { UseMutationResult } from '@tanstack/react-query'
 import { MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -8,21 +9,35 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { TableCell, TableRow } from '@/components/ui/table'
-import { EditSnapshotDialog } from '@/components/EditSnapshotDialog'
+import {
+  EditSnapshotDialog,
+  type UpdateSnapshotMutationVariables,
+} from '@/components/EditSnapshotDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
-import { useDeleteSnapshot } from '@/hooks/useBankAccounts'
 import { formatCurrency, formatYearMonth, formatDate } from '@/lib/format'
-import type { AssetSnapshot } from '@/api/types'
 
-type Props = {
-  snapshot: AssetSnapshot
-  assetId: string
+type SnapshotLike = {
+  id: string
+  year_month: string
+  amount: string
+  currency: string
+  as_of_date: string | null
+  description: string | null
 }
 
-export function SnapshotRow({ snapshot, assetId }: Props) {
+type Props<TUpdate, TDelete> = {
+  snapshot: SnapshotLike
+  updateMutation: UseMutationResult<TUpdate, unknown, UpdateSnapshotMutationVariables>
+  deleteMutation: UseMutationResult<TDelete, unknown, string>
+}
+
+export function SnapshotRow<TUpdate, TDelete>({
+  snapshot,
+  updateMutation,
+  deleteMutation,
+}: Props<TUpdate, TDelete>) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const deleteMutation = useDeleteSnapshot(assetId)
 
   function handleConfirmDelete() {
     deleteMutation.mutate(snapshot.id, {
@@ -72,8 +87,8 @@ export function SnapshotRow({ snapshot, assetId }: Props) {
       <EditSnapshotDialog
         open={editOpen}
         onOpenChange={setEditOpen}
-        assetId={assetId}
         snapshot={snapshot}
+        mutation={updateMutation}
       />
 
       <ConfirmDialog

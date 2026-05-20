@@ -22,36 +22,34 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
+import { useReceivable, useDeleteReceivable } from '@/hooks/useReceivables'
 import {
-  useBankAccount,
-  useDeleteBankAccount,
-} from '@/hooks/useBankAccounts'
-import {
-  useSnapshots,
-  useCreateSnapshot,
-  useUpdateSnapshot,
-  useDeleteSnapshot,
-} from '@/hooks/useAssetSnapshots'
+  useReceivableSnapshots,
+  useCreateReceivableSnapshot,
+  useUpdateReceivableSnapshot,
+  useDeleteReceivableSnapshot,
+} from '@/hooks/useReceivableSnapshots'
 import { CreateSnapshotDialog } from '@/components/CreateSnapshotDialog'
-import { EditBankAccountDialog } from '@/components/EditBankAccountDialog'
+import { EditReceivableDialog } from '@/components/EditReceivableDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { SnapshotRow } from '@/components/SnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
+import { formatDate } from '@/lib/format'
 
 type Props = {
-  assetId: string
+  receivableId: string
   onBack: () => void
 }
 
 const PAGE_SIZE = 12
 
-export function BankAccountDetail({ assetId, onBack }: Props) {
-  const { data: account, isPending, error } = useBankAccount(assetId)
-  const { data: snapshots } = useSnapshots(assetId)
-  const deleteMutation = useDeleteBankAccount()
-  const createSnapshotMutation = useCreateSnapshot(assetId)
-  const updateSnapshotMutation = useUpdateSnapshot(assetId)
-  const deleteSnapshotMutation = useDeleteSnapshot(assetId)
+export function ReceivableDetail({ receivableId, onBack }: Props) {
+  const { data: receivable, isPending, error } = useReceivable(receivableId)
+  const { data: snapshots } = useReceivableSnapshots(receivableId)
+  const deleteMutation = useDeleteReceivable()
+  const createSnapshotMutation = useCreateReceivableSnapshot(receivableId)
+  const updateSnapshotMutation = useUpdateReceivableSnapshot(receivableId)
+  const deleteSnapshotMutation = useDeleteReceivableSnapshot(receivableId)
 
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -62,15 +60,12 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
     Math.ceil((snapshots?.length ?? 0) / PAGE_SIZE),
   )
 
-  // After a delete, if our current page is now beyond the new last page,
-  // fall back to the last existing page. This is the only edge case for
-  // the "stay on current page" pagination rule (per the M3.7 design).
   useEffect(() => {
     if (page > totalPages) setPage(totalPages)
   }, [page, totalPages])
 
   function handleConfirmDelete() {
-    deleteMutation.mutate(assetId, {
+    deleteMutation.mutate(receivableId, {
       onSuccess: () => {
         setDeleteOpen(false)
         onBack()
@@ -88,9 +83,8 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
       </p>
     )
   }
-  if (!account) return null
+  if (!receivable) return null
 
-  const { asset, details } = account
   const pageSnapshots = (snapshots ?? []).slice(
     (page - 1) * PAGE_SIZE,
     page * PAGE_SIZE,
@@ -109,16 +103,18 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
             ← Back
           </Button>
           <h1 className="text-2xl font-semibold tracking-tight">
-            {asset.display_name}
+            {receivable.display_name}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {details.bank_name} · {details.account_number} ·{' '}
-            {details.account_type}
+            {receivable.counterparty_name}
+            {receivable.due_date && (
+              <> · due {formatDate(receivable.due_date)}</>
+            )}
           </p>
         </div>
         <div className="flex gap-2">
           <CreateSnapshotDialog
-            currency={asset.native_currency}
+            currency={receivable.native_currency}
             mutation={createSnapshotMutation}
           />
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
@@ -136,15 +132,16 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Account Details</CardTitle>
+          <CardTitle>Receivable Details</CardTitle>
           <CardDescription>
-            Ownership: <span className="capitalize">{asset.ownership_type}</span>{' '}
-            · Currency: {asset.native_currency} · Status: {asset.status}
+            Ownership:{' '}
+            <span className="capitalize">{receivable.ownership_type}</span> ·
+            Currency: {receivable.native_currency} · Status: {receivable.status}
           </CardDescription>
         </CardHeader>
-        {asset.description && (
+        {receivable.description && (
           <CardContent>
-            <p className="text-sm">{asset.description}</p>
+            <p className="text-sm">{receivable.description}</p>
           </CardContent>
         )}
       </Card>
@@ -152,15 +149,15 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
       {snapshots && snapshots.length >= 2 && (
         <Card>
           <CardHeader>
-            <CardTitle>Balance Over Time</CardTitle>
+            <CardTitle>Outstanding Balance Over Time</CardTitle>
             <CardDescription>
-              Monthly balance progression in {asset.native_currency}.
+              Monthly balance progression in {receivable.native_currency}.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <SnapshotChart
               snapshots={snapshots}
-              currency={asset.native_currency}
+              currency={receivable.native_currency}
             />
           </CardContent>
         </Card>
@@ -170,14 +167,14 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
         <CardHeader>
           <CardTitle>Snapshots</CardTitle>
           <CardDescription>
-            Monthly balance readings from your bank statements.
+            Monthly outstanding-balance readings (manual entry).
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {!snapshots || snapshots.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
               No snapshots yet. Click "New snapshot" to record this month's
-              balance.
+              outstanding balance.
             </p>
           ) : (
             <>
@@ -215,15 +212,15 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
         </CardContent>
       </Card>
 
-      <EditBankAccountDialog
+      <EditReceivableDialog
         open={editOpen}
         onOpenChange={setEditOpen}
-        account={account}
+        receivable={receivable}
       />
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this bank account?"
+        title="Delete this receivable?"
         description="Snapshots and history will be hidden. This can be undone via the database, not yet via the UI."
         confirmLabel="Delete"
         destructive
@@ -254,9 +251,7 @@ function PaginationControls({
               if (page > 1) onPageChange(page - 1)
             }}
             aria-disabled={page === 1}
-            className={
-              page === 1 ? 'pointer-events-none opacity-50' : undefined
-            }
+            className={page === 1 ? 'pointer-events-none opacity-50' : undefined}
           />
         </PaginationItem>
         {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (

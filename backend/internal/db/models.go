@@ -75,6 +75,46 @@ type HouseholdInvitation struct {
 	UsedAt       pgtype.Timestamptz `json:"used_at"`
 }
 
+type Liability struct {
+	ID               uuid.UUID          `json:"id"`
+	HouseholdID      uuid.UUID          `json:"household_id"`
+	DisplayName      string             `json:"display_name"`
+	Description      *string            `json:"description"`
+	Subtype          string             `json:"subtype"`
+	OwnershipType    string             `json:"ownership_type"`
+	SoleOwnerUserID  *uuid.UUID         `json:"sole_owner_user_id"`
+	NativeCurrency   string             `json:"native_currency"`
+	Status           string             `json:"status"`
+	TerminatedAt     *time.Time         `json:"terminated_at"`
+	TerminationNote  *string            `json:"termination_note"`
+	CounterpartyName string             `json:"counterparty_name"`
+	Principal        *decimal.Decimal   `json:"principal"`
+	InterestRate     *decimal.Decimal   `json:"interest_rate"`
+	TermMonths       *int32             `json:"term_months"`
+	StartDate        *time.Time         `json:"start_date"`
+	MaturityDate     *time.Time         `json:"maturity_date"`
+	CreatedBy        *uuid.UUID         `json:"created_by"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedBy        *uuid.UUID         `json:"updated_by"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt        pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type LiabilitySnapshot struct {
+	ID          uuid.UUID          `json:"id"`
+	LiabilityID uuid.UUID          `json:"liability_id"`
+	YearMonth   time.Time          `json:"year_month"`
+	Amount      decimal.Decimal    `json:"amount"`
+	Currency    string             `json:"currency"`
+	AsOfDate    *time.Time         `json:"as_of_date"`
+	Description *string            `json:"description"`
+	CreatedBy   *uuid.UUID         `json:"created_by"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedBy   *uuid.UUID         `json:"updated_by"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
+}
+
 type PropertyDetail struct {
 	AssetID                uuid.UUID        `json:"asset_id"`
 	PropertyType           string           `json:"property_type"`
@@ -82,6 +122,41 @@ type PropertyDetail struct {
 	AcquisitionDate        *time.Time       `json:"acquisition_date"`
 	AcquisitionCost        *decimal.Decimal `json:"acquisition_cost"`
 	AnnualAmortizationRate *decimal.Decimal `json:"annual_amortization_rate"`
+}
+
+type Receivable struct {
+	ID               uuid.UUID          `json:"id"`
+	HouseholdID      uuid.UUID          `json:"household_id"`
+	DisplayName      string             `json:"display_name"`
+	Description      *string            `json:"description"`
+	OwnershipType    string             `json:"ownership_type"`
+	SoleOwnerUserID  *uuid.UUID         `json:"sole_owner_user_id"`
+	NativeCurrency   string             `json:"native_currency"`
+	Status           string             `json:"status"`
+	TerminatedAt     *time.Time         `json:"terminated_at"`
+	TerminationNote  *string            `json:"termination_note"`
+	CounterpartyName string             `json:"counterparty_name"`
+	DueDate          *time.Time         `json:"due_date"`
+	CreatedBy        *uuid.UUID         `json:"created_by"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedBy        *uuid.UUID         `json:"updated_by"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt        pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type ReceivableSnapshot struct {
+	ID           uuid.UUID          `json:"id"`
+	ReceivableID uuid.UUID          `json:"receivable_id"`
+	YearMonth    time.Time          `json:"year_month"`
+	Amount       decimal.Decimal    `json:"amount"`
+	Currency     string             `json:"currency"`
+	AsOfDate     *time.Time         `json:"as_of_date"`
+	Description  *string            `json:"description"`
+	CreatedBy    *uuid.UUID         `json:"created_by"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedBy    *uuid.UUID         `json:"updated_by"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt    pgtype.Timestamptz `json:"deleted_at"`
 }
 
 type Session struct {

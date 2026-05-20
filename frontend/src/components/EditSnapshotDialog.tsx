@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { UseMutationResult } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -10,35 +11,54 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useUpdateSnapshot } from '@/hooks/useBankAccounts'
 import { ApiError } from '@/api/client'
-import type { AssetSnapshot } from '@/api/types'
 
-type Props = {
+// Generic snapshot shape — only the fields the edit form needs.
+type SnapshotLike = {
+  id: string
+  amount: string
+  currency: string
+  as_of_date: string | null
+  description: string | null
+}
+
+export type UpdateSnapshotPayload = {
+  amount: string
+  currency: string
+  as_of_date: string | null
+  description: string | null
+}
+
+export type UpdateSnapshotMutationVariables = {
+  snapshotId: string
+  payload: UpdateSnapshotPayload
+}
+
+type Props<TResult> = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  assetId: string
-  snapshot: AssetSnapshot
+  snapshot: SnapshotLike
+  // Owned by the parent so this dialog works for any position group.
+  mutation: UseMutationResult<TResult, unknown, UpdateSnapshotMutationVariables>
 }
 
 // year_month is not editable: changing it would mean creating a different
-// month's snapshot, which conflicts with the (asset_id, year_month) unique
+// month's snapshot, which conflicts with the (position_id, year_month) unique
 // constraint. To "move" a snapshot to a different month, delete and recreate.
-export function EditSnapshotDialog({
+export function EditSnapshotDialog<TResult>({
   open,
   onOpenChange,
-  assetId,
   snapshot,
-}: Props) {
-  const mutation = useUpdateSnapshot(assetId)
-
+  mutation,
+}: Props<TResult>) {
   const [form, setForm] = useState({
     amount: snapshot.amount,
     as_of_date: snapshot.as_of_date ? snapshot.as_of_date.slice(0, 10) : '',
     description: snapshot.description ?? '',
   })
 
-  // See EditBankAccountDialog for why `mutation` is omitted from deps.
+  // `mutation` is deliberately not in the deps array — it's recreated every
+  // render by @tanstack/react-query, which would loop the effect indefinitely.
   useEffect(() => {
     if (open) {
       setForm({
@@ -112,7 +132,7 @@ export function EditSnapshotDialog({
             />
           </div>
 
-          {mutation.error && (
+          {mutation.isError && (
             <p className="text-sm text-destructive">
               {formatError(mutation.error)}
             </p>

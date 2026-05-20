@@ -10,18 +10,36 @@ import (
 	"github.com/kerti/balances-v2/backend/internal/assets"
 	"github.com/kerti/balances-v2/backend/internal/auth"
 	"github.com/kerti/balances-v2/backend/internal/config"
+	"github.com/kerti/balances-v2/backend/internal/liabilities"
+	"github.com/kerti/balances-v2/backend/internal/receivables"
 )
 
 type Server struct {
-	pool     *pgxpool.Pool
-	cfg      *config.Config
-	authH    *auth.Handlers
-	assetsH  *assets.Handlers
-	router   chi.Router
+	pool         *pgxpool.Pool
+	cfg          *config.Config
+	authH        *auth.Handlers
+	assetsH      *assets.Handlers
+	liabilitiesH *liabilities.Handlers
+	receivablesH *receivables.Handlers
+	router       chi.Router
 }
 
-func New(pool *pgxpool.Pool, cfg *config.Config, authH *auth.Handlers, assetsH *assets.Handlers) *Server {
-	s := &Server{pool: pool, cfg: cfg, authH: authH, assetsH: assetsH}
+func New(
+	pool *pgxpool.Pool,
+	cfg *config.Config,
+	authH *auth.Handlers,
+	assetsH *assets.Handlers,
+	liabilitiesH *liabilities.Handlers,
+	receivablesH *receivables.Handlers,
+) *Server {
+	s := &Server{
+		pool:         pool,
+		cfg:          cfg,
+		authH:        authH,
+		assetsH:      assetsH,
+		liabilitiesH: liabilitiesH,
+		receivablesH: receivablesH,
+	}
 	s.router = s.buildRouter()
 	return s
 }
@@ -43,6 +61,8 @@ func (s *Server) buildRouter() chi.Router {
 	r.Route("/api", func(r chi.Router) {
 		s.authH.Mount(r)
 		s.assetsH.Mount(r)
+		s.liabilitiesH.Mount(r)
+		s.receivablesH.Mount(r)
 	})
 
 	return r

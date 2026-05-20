@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { UseMutationResult } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -11,21 +12,32 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useCreateSnapshot } from '@/hooks/useBankAccounts'
 import { ApiError } from '@/api/client'
 
-type Props = {
-  assetId: string
+export type CreateSnapshotPayload = {
+  year_month: string
+  amount: string
   currency: string
+  as_of_date: string | null
+  description: string | null
 }
 
-// Default to the current month in YYYY-MM form.
+type Props<TResult> = {
+  currency: string
+  // Mutation is owned by the parent so the same dialog can drive snapshot
+  // creation for any position group (asset/liability/receivable).
+  mutation: UseMutationResult<TResult, unknown, CreateSnapshotPayload>
+}
+
 function thisYearMonth(): string {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-export function CreateSnapshotDialog({ assetId, currency }: Props) {
+export function CreateSnapshotDialog<TResult>({
+  currency,
+  mutation,
+}: Props<TResult>) {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
     year_month: thisYearMonth(),
@@ -33,7 +45,6 @@ export function CreateSnapshotDialog({ assetId, currency }: Props) {
     as_of_date: '',
     description: '',
   })
-  const mutation = useCreateSnapshot(assetId)
 
   function close() {
     setOpen(false)
@@ -67,10 +78,10 @@ export function CreateSnapshotDialog({ assetId, currency }: Props) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Record monthly balance</DialogTitle>
+          <DialogTitle>Record monthly snapshot</DialogTitle>
           <DialogDescription>
-            Enter the month-end balance for this account. Currency is locked
-            to the account's native currency ({currency}).
+            Enter the month-end value. Currency is locked to the position's
+            native currency ({currency}).
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
@@ -124,7 +135,7 @@ export function CreateSnapshotDialog({ assetId, currency }: Props) {
             />
           </div>
 
-          {mutation.error && (
+          {mutation.isError && (
             <p className="text-sm text-destructive">
               {formatError(mutation.error)}
             </p>

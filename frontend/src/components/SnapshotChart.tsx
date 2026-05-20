@@ -6,25 +6,28 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart'
 import { formatCurrency } from '@/lib/format'
-import type { AssetSnapshot } from '@/api/types'
+
+// Generic snapshot shape — all four position groups (asset, liability,
+// receivable, investment) have amount-shaped snapshots with year_month +
+// amount, so the chart only needs these two fields.
+type SnapshotLike = {
+  year_month: string
+  amount: string
+}
 
 type Props = {
-  snapshots: AssetSnapshot[]
+  snapshots: SnapshotLike[]
   currency: string
 }
 
 const chartConfig = {
-  balance: {
-    label: 'Balance',
+  amount: {
+    label: 'Amount',
     color: 'var(--chart-1)',
   },
 } satisfies ChartConfig
 
-// Build the chart data: sort snapshots ascending by year_month, project to
-// the shape Recharts expects, with a short month label on the x-axis and the
-// numeric amount on the y-axis. The formatted-currency value comes through
-// to the tooltip via formatter.
-function toChartData(snapshots: AssetSnapshot[]) {
+function toChartData(snapshots: SnapshotLike[]) {
   return [...snapshots]
     .sort((a, b) => a.year_month.localeCompare(b.year_month))
     .map((s) => {
@@ -35,12 +38,12 @@ function toChartData(snapshots: AssetSnapshot[]) {
       })
       return {
         month: monthLabel,
-        balance: Number(s.amount),
+        amount: Number(s.amount),
       }
     })
 }
 
-export function BankAccountChart({ snapshots, currency }: Props) {
+export function SnapshotChart({ snapshots, currency }: Props) {
   if (snapshots.length === 0) return null
   const data = toChartData(snapshots)
 
@@ -79,11 +82,11 @@ export function BankAccountChart({ snapshots, currency }: Props) {
           }
         />
         <Area
-          dataKey="balance"
+          dataKey="amount"
           type="monotone"
-          fill="var(--color-balance)"
+          fill="var(--color-amount)"
           fillOpacity={0.2}
-          stroke="var(--color-balance)"
+          stroke="var(--color-amount)"
           strokeWidth={2}
         />
       </AreaChart>

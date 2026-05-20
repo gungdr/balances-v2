@@ -17,22 +17,29 @@ import { PropertiesScreen } from '@/components/PropertiesScreen'
 import { PropertyDetail } from '@/components/PropertyDetail'
 import { VehiclesScreen } from '@/components/VehiclesScreen'
 import { VehicleDetail } from '@/components/VehicleDetail'
+import { LiabilitiesScreen } from '@/components/LiabilitiesScreen'
+import { LiabilityDetail } from '@/components/LiabilityDetail'
+import { ReceivablesScreen } from '@/components/ReceivablesScreen'
+import { ReceivableDetail } from '@/components/ReceivableDetail'
 
 type Group = 'assets' | 'liabilities' | 'receivables' | 'investments' | 'income'
 type AssetSubtype = 'bank_account' | 'property' | 'vehicle'
+type LiabilitySubtype = 'personal' | 'institutional'
 
-type Selection = {
-  kind: AssetSubtype
-  assetId: string
-}
+type Selection =
+  | { kind: AssetSubtype; assetId: string }
+  | { kind: 'liability'; liabilityId: string }
+  | { kind: 'receivable'; receivableId: string }
 
 function App() {
   const { data: user, isPending } = useSession()
   // Two-level in-state navigation: outer group (Assets / Liabilities / …),
-  // inner subtype (only Assets has multiple today). A real router lands in
-  // M4.9 and the URL structure will mirror this hierarchy.
+  // inner subtype where the group has one. A real router lands in M4.9 and
+  // the URL structure will mirror this hierarchy.
   const [group, setGroup] = useState<Group>('assets')
   const [assetSubtype, setAssetSubtype] = useState<AssetSubtype>('bank_account')
+  const [liabilitySubtype, setLiabilitySubtype] =
+    useState<LiabilitySubtype>('personal')
   const [selection, setSelection] = useState<Selection | null>(null)
 
   if (isPending) {
@@ -65,6 +72,18 @@ function App() {
         {selection.kind === 'vehicle' && (
           <VehicleDetail
             assetId={selection.assetId}
+            onBack={() => setSelection(null)}
+          />
+        )}
+        {selection.kind === 'liability' && (
+          <LiabilityDetail
+            liabilityId={selection.liabilityId}
+            onBack={() => setSelection(null)}
+          />
+        )}
+        {selection.kind === 'receivable' && (
+          <ReceivableDetail
+            receivableId={selection.receivableId}
             onBack={() => setSelection(null)}
           />
         )}
@@ -119,11 +138,43 @@ function App() {
           </TabsContent>
 
           <TabsContent value="liabilities" className="mt-6">
-            <ComingSoonCard title="Liabilities" milestone="M4.2" />
+            <Tabs
+              value={liabilitySubtype}
+              onValueChange={(v) =>
+                setLiabilitySubtype(v as LiabilitySubtype)
+              }
+            >
+              <TabsList>
+                <TabsTrigger value="personal">Personal</TabsTrigger>
+                <TabsTrigger value="institutional">Institutional</TabsTrigger>
+              </TabsList>
+              <TabsContent value="personal" className="mt-6">
+                <LiabilitiesScreen
+                  subtype="personal"
+                  onSelect={(liabilityId) =>
+                    setSelection({ kind: 'liability', liabilityId })
+                  }
+                />
+              </TabsContent>
+              <TabsContent value="institutional" className="mt-6">
+                <LiabilitiesScreen
+                  subtype="institutional"
+                  onSelect={(liabilityId) =>
+                    setSelection({ kind: 'liability', liabilityId })
+                  }
+                />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
+
           <TabsContent value="receivables" className="mt-6">
-            <ComingSoonCard title="Receivables" milestone="M4.2" />
+            <ReceivablesScreen
+              onSelect={(receivableId) =>
+                setSelection({ kind: 'receivable', receivableId })
+              }
+            />
           </TabsContent>
+
           <TabsContent value="investments" className="mt-6">
             <ComingSoonCard title="Investments" milestone="M4.3–M4.6" />
           </TabsContent>

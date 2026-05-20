@@ -100,3 +100,88 @@ export type VehicleListItem = {
   details: VehicleDetails
   latest_snapshot: AssetSnapshot | null
 }
+
+// ----- liability --------------------------------------------------------
+
+export type Liability = {
+  id: string
+  household_id: string
+  display_name: string
+  description: string | null
+  subtype: 'personal' | 'institutional'
+  ownership_type: 'sole' | 'joint'
+  sole_owner_user_id: string | null
+  native_currency: string
+  status: 'active' | 'paid_off' | 'forgiven' | 'written_off'
+  terminated_at: string | null
+  termination_note: string | null
+  counterparty_name: string
+  principal: string | null
+  interest_rate: string | null
+  term_months: number | null
+  start_date: string | null
+  maturity_date: string | null
+  created_by: string | null
+  created_at: string
+  updated_by: string | null
+  updated_at: string
+}
+
+export type LiabilitySnapshot = {
+  id: string
+  liability_id: string
+  year_month: string
+  amount: string
+  currency: string
+  as_of_date: string | null
+  description: string | null
+  created_by: string | null
+  created_at: string
+  updated_by: string | null
+  updated_at: string
+}
+
+export type LiabilityListItem = {
+  liability: Liability
+  latest_snapshot: LiabilitySnapshot | null
+}
+
+// ----- receivable -------------------------------------------------------
+
+export type Receivable = {
+  id: string
+  household_id: string
+  display_name: string
+  description: string | null
+  ownership_type: 'sole' | 'joint'
+  sole_owner_user_id: string | null
+  native_currency: string
+  status: 'active' | 'collected' | 'written_off'
+  terminated_at: string | null
+  termination_note: string | null
+  counterparty_name: string
+  due_date: string | null
+  created_by: string | null
+  created_at: string
+  updated_by: string | null
+  updated_at: string
+}
+
+export type ReceivableSnapshot = {
+  id: string
+  receivable_id: string
+  year_month: string
+  amount: string
+  currency: string
+  as_of_date: string | null
+  description: string | null
+  created_by: string | null
+  created_at: string
+  updated_by: string | null
+  updated_at: string
+}
+
+export type ReceivableListItem = {
+  receivable: Receivable
+  latest_snapshot: ReceivableSnapshot | null
+}

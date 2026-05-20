@@ -1,0 +1,289 @@
+package repo
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/shopspring/decimal"
+
+	"github.com/kerti/balances-v2/backend/internal/db"
+)
+
+// LiabilityRepo wraps the generated queries for the Liability position group.
+// Liabilities use inline metadata (no extension table) and carry a subtype
+// enum ('personal' | 'institutional'). Liability snapshots share their own
+// per-group table (see ADR-0022) and live here since they're not
+// subtype-specific.
+type LiabilityRepo struct {
+	pool *pgxpool.Pool
+	q    *db.Queries
+}
+
+func NewLiabilityRepo(pool *pgxpool.Pool) *LiabilityRepo {
+	return &LiabilityRepo{pool: pool, q: db.New(pool)}
+}
+
+// LiabilityListItem extends a Liability row with the most-recent Snapshot if
+// any (for list views).
+type LiabilityListItem struct {
+	Liability      db.Liability          `json:"liability"`
+	LatestSnapshot *db.LiabilitySnapshot `json:"latest_snapshot"`
+}
+
+type CreateLiabilityParams struct {
+	DisplayName      string
+	Description      *string
+	Subtype          string // "personal" | "institutional"
+	OwnershipType    string // "sole" | "joint"
+	SoleOwnerUserID  *uuid.UUID
+	NativeCurrency   string
+	CounterpartyName string
+	Principal        *decimal.Decimal
+	InterestRate     *decimal.Decimal
+	TermMonths       *int32
+	StartDate        *time.Time
+	MaturityDate     *time.Time
+}
+
+type UpdateLiabilityParams struct {
+	DisplayName      string
+	Description      *string
+	CounterpartyName string
+	Principal        *decimal.Decimal
+	InterestRate     *decimal.Decimal
+	TermMonths       *int32
+	StartDate        *time.Time
+	MaturityDate     *time.Time
+}
+
+func (r *LiabilityRepo) CreateLiability(ctx context.Context, p CreateLiabilityParams) (*db.Liability, error) {
+	user, hid, err := currentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	row, err := r.q.CreateLiability(ctx, db.CreateLiabilityParams{
+		HouseholdID:      hid,
+		DisplayName:      p.DisplayName,
+		Description:      p.Description,
+		Subtype:          p.Subtype,
+		OwnershipType:    p.OwnershipType,
+		SoleOwnerUserID:  p.SoleOwnerUserID,
+		NativeCurrency:   p.NativeCurrency,
+		CounterpartyName: p.CounterpartyName,
+		Principal:        p.Principal,
+		InterestRate:     p.InterestRate,
+		TermMonths:       p.TermMonths,
+		StartDate:        p.StartDate,
+		MaturityDate:     p.MaturityDate,
+		CreatedBy:        &user,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create liability: %w", err)
+	}
+	return &row, nil
+}
+
+func (r *LiabilityRepo) GetLiability(ctx context.Context, id uuid.UUID) (*db.Liability, error) {
+	_, hid, err := currentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	row, err := r.q.GetLiabilityByID(ctx, db.GetLiabilityByIDParams{ID: id, HouseholdID: hid})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return &row, nil
+}
+
+func (r *LiabilityRepo) ListLiabilities(ctx context.Context, subtype *string) ([]LiabilityListItem, error) {
+	_, hid, err := currentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := r.q.ListLiabilitiesByHousehold(ctx, db.ListLiabilitiesByHouseholdParams{
+		HouseholdID: hid,
+		Subtype:     subtype,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list liabilities: %w", err)
+	}
+	if len(rows) == 0 {
+		return []LiabilityListItem{}, nil
+	}
+
+	ids := make([]uuid.UUID, len(rows))
+	for i, l := range rows {
+		ids[i] = l.ID
+	}
+
+	snapshots, err := r.q.ListLatestLiabilitySnapshotsByLiabilityIDs(ctx, ids)
+	if err != nil {
+		return nil, fmt.Errorf("list latest liability snapshots: %w", err)
+	}
+	snapByID := make(map[uuid.UUID]db.LiabilitySnapshot, len(snapshots))
+	for _, s := range snapshots {
+		snapByID[s.LiabilityID] = s
+	}
+
+	out := make([]LiabilityListItem, 0, len(rows))
+	for _, l := range rows {
+		item := LiabilityListItem{Liability: l}
+		if s, ok := snapByID[l.ID]; ok {
+			s := s
+			item.LatestSnapshot = &s
+		}
+		out = append(out, item)
+	}
+	return out, nil
+}
+
+func (r *LiabilityRepo) UpdateLiability(ctx context.Context, id uuid.UUID, p UpdateLiabilityParams) (*db.Liability, error) {
+	user, hid, err := currentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	row, err := r.q.UpdateLiability(ctx, db.UpdateLiabilityParams{
+		ID:               id,
+		HouseholdID:      hid,
+		DisplayName:      p.DisplayName,
+		Description:      p.Description,
+		CounterpartyName: p.CounterpartyName,
+		Principal:        p.Principal,
+		InterestRate:     p.InterestRate,
+		TermMonths:       p.TermMonths,
+		StartDate:        p.StartDate,
+		MaturityDate:     p.MaturityDate,
+		UpdatedBy:        &user,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("update liability: %w", err)
+	}
+	return &row, nil
+}
+
+func (r *LiabilityRepo) DeleteLiability(ctx context.Context, id uuid.UUID) error {
+	user, hid, err := currentUser(ctx)
+	if err != nil {
+		return err
+	}
+	rows, err := r.q.SoftDeleteLiability(ctx, db.SoftDeleteLiabilityParams{
+		ID:          id,
+		HouseholdID: hid,
+		UpdatedBy:   &user,
+	})
+	if err != nil {
+		return fmt.Errorf("soft delete liability: %w", err)
+	}
+	if rows == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// ----- liability snapshots -----------------------------------------------
+
+type CreateLiabilitySnapshotParams struct {
+	LiabilityID uuid.UUID
+	YearMonth   time.Time
+	Amount      decimal.Decimal
+	Currency    string
+	AsOfDate    *time.Time
+	Description *string
+}
+
+type UpdateLiabilitySnapshotParams struct {
+	SnapshotID  uuid.UUID
+	Amount      decimal.Decimal
+	Currency    string
+	AsOfDate    *time.Time
+	Description *string
+}
+
+func (r *LiabilityRepo) CreateLiabilitySnapshot(ctx context.Context, p CreateLiabilitySnapshotParams) (*db.LiabilitySnapshot, error) {
+	user, hid, err := currentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	snap, err := r.q.CreateLiabilitySnapshot(ctx, db.CreateLiabilitySnapshotParams{
+		ID:          p.LiabilityID,
+		YearMonth:   p.YearMonth,
+		Amount:      p.Amount,
+		Currency:    p.Currency,
+		AsOfDate:    p.AsOfDate,
+		Description: p.Description,
+		CreatedBy:   &user,
+		HouseholdID: hid,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("create liability snapshot: %w", err)
+	}
+	return &snap, nil
+}
+
+func (r *LiabilityRepo) ListLiabilitySnapshots(ctx context.Context, liabilityID uuid.UUID) ([]db.LiabilitySnapshot, error) {
+	_, hid, err := currentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.q.ListLiabilitySnapshotsForLiability(ctx, db.ListLiabilitySnapshotsForLiabilityParams{
+		LiabilityID: liabilityID,
+		HouseholdID: hid,
+	})
+}
+
+func (r *LiabilityRepo) UpdateLiabilitySnapshot(ctx context.Context, p UpdateLiabilitySnapshotParams) (*db.LiabilitySnapshot, error) {
+	user, hid, err := currentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	snap, err := r.q.UpdateLiabilitySnapshot(ctx, db.UpdateLiabilitySnapshotParams{
+		ID:          p.SnapshotID,
+		HouseholdID: hid,
+		Amount:      p.Amount,
+		Currency:    p.Currency,
+		AsOfDate:    p.AsOfDate,
+		Description: p.Description,
+		UpdatedBy:   &user,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("update liability snapshot: %w", err)
+	}
+	return &snap, nil
+}
+
+func (r *LiabilityRepo) DeleteLiabilitySnapshot(ctx context.Context, snapshotID uuid.UUID) error {
+	user, hid, err := currentUser(ctx)
+	if err != nil {
+		return err
+	}
+	rows, err := r.q.SoftDeleteLiabilitySnapshot(ctx, db.SoftDeleteLiabilitySnapshotParams{
+		ID:          snapshotID,
+		HouseholdID: hid,
+		UpdatedBy:   &user,
+	})
+	if err != nil {
+		return fmt.Errorf("soft delete liability snapshot: %w", err)
+	}
+	if rows == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
