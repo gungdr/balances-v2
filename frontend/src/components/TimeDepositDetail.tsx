@@ -22,18 +22,24 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
-import { useStock, useDeleteStock } from '@/hooks/useInvestments'
+import {
+  useTimeDeposit,
+  useDeleteTimeDeposit,
+} from '@/hooks/useInvestments'
 import {
   useInvestmentSnapshots,
   useCreateInvestmentSnapshot,
   useUpdateInvestmentSnapshot,
   useDeleteInvestmentSnapshot,
 } from '@/hooks/useInvestmentSnapshots'
-import { CreateQuantityPriceSnapshotDialog } from '@/components/CreateQuantityPriceSnapshotDialog'
-import { EditStockDialog } from '@/components/EditStockDialog'
+import { CreateAccruedInterestSnapshotDialog } from '@/components/CreateAccruedInterestSnapshotDialog'
+import { EditTimeDepositDialog } from '@/components/EditTimeDepositDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
-import { QuantityPriceSnapshotRow } from '@/components/QuantityPriceSnapshotRow'
+import { AccruedInterestSnapshotRow } from '@/components/AccruedInterestSnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
+import { formatCurrency, formatDate } from '@/lib/format'
+import { maturityClass, maturityInfo } from '@/lib/maturity'
+import type { RolloverPolicy } from '@/api/types'
 
 type Props = {
   investmentId: string
@@ -42,21 +48,32 @@ type Props = {
 
 const PAGE_SIZE = 12
 
-export function StockDetail({ investmentId, onBack }: Props) {
-  const { data: stock, isPending, error } = useStock(investmentId)
+function rolloverLabel(p: RolloverPolicy): string {
+  switch (p) {
+    case 'auto_renew_principal':
+      return 'Auto-renew principal'
+    case 'auto_renew_with_interest':
+      return 'Auto-renew with interest'
+    case 'no_rollover':
+      return 'No rollover'
+  }
+}
+
+export function TimeDepositDetail({ investmentId, onBack }: Props) {
+  const { data: td, isPending, error } = useTimeDeposit(investmentId)
   const { data: snapshots } = useInvestmentSnapshots(investmentId)
-  const deleteMutation = useDeleteStock()
+  const deleteMutation = useDeleteTimeDeposit()
   const createSnapshotMutation = useCreateInvestmentSnapshot(
     investmentId,
-    'stocks',
+    'time-deposits',
   )
   const updateSnapshotMutation = useUpdateInvestmentSnapshot(
     investmentId,
-    'stocks',
+    'time-deposits',
   )
   const deleteSnapshotMutation = useDeleteInvestmentSnapshot(
     investmentId,
-    'stocks',
+    'time-deposits',
   )
 
   const [editOpen, setEditOpen] = useState(false)
@@ -88,12 +105,14 @@ export function StockDetail({ investmentId, onBack }: Props) {
       </p>
     )
   }
-  if (!stock) return null
+  if (!td) return null
 
   const pageSnapshots = (snapshots ?? []).slice(
     (effectivePage - 1) * PAGE_SIZE,
     effectivePage * PAGE_SIZE,
   )
+  const mInfo = maturityInfo(td.details.maturity_date)
+  const ratePct = Number(td.details.interest_rate).toFixed(2)
 
   return (
     <div className="space-y-6">
@@ -108,15 +127,15 @@ export function StockDetail({ investmentId, onBack }: Props) {
             ← Back
           </Button>
           <h1 className="text-2xl font-semibold tracking-tight">
-            {stock.investment.display_name}
+            {td.investment.display_name}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {stock.details.ticker} · {stock.details.exchange}
+            {td.details.bank_name} · {ratePct}% · {td.details.term_months}mo
           </p>
         </div>
         <div className="flex gap-2">
-          <CreateQuantityPriceSnapshotDialog
-            currency={stock.investment.native_currency}
+          <CreateAccruedInterestSnapshotDialog
+            currency={td.investment.native_currency}
             mutation={createSnapshotMutation}
           />
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
@@ -134,21 +153,41 @@ export function StockDetail({ investmentId, onBack }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Stock Details</CardTitle>
+          <CardTitle>Time Deposit Details</CardTitle>
           <CardDescription>
             Ownership:{' '}
-            <span className="capitalize">
-              {stock.investment.ownership_type}
-            </span>{' '}
-            · Currency: {stock.investment.native_currency} · Status:{' '}
-            {stock.investment.status}
+            <span className="capitalize">{td.investment.ownership_type}</span>{' '}
+            · Currency: {td.investment.native_currency} · Status:{' '}
+            {td.investment.status}
           </CardDescription>
         </CardHeader>
-        {stock.investment.description && (
-          <CardContent className="text-sm">
-            {stock.investment.description}
-          </CardContent>
-        )}
+        <CardContent className="text-sm space-y-1">
+          <p>
+            <span className="text-muted-foreground">Principal:</span>{' '}
+            {formatCurrency(
+              td.details.principal,
+              td.investment.native_currency,
+            )}
+          </p>
+          <p>
+            <span className="text-muted-foreground">Placement:</span>{' '}
+            {formatDate(td.details.placement_date)}
+          </p>
+          <p>
+            <span className="text-muted-foreground">Maturity:</span>{' '}
+            {formatDate(td.details.maturity_date)}{' '}
+            <span className={maturityClass(mInfo.state)}>
+              ({mInfo.label})
+            </span>
+          </p>
+          <p>
+            <span className="text-muted-foreground">At maturity:</span>{' '}
+            {rolloverLabel(td.details.rollover_policy)}
+          </p>
+          {td.investment.description && (
+            <p className="pt-1">{td.investment.description}</p>
+          )}
+        </CardContent>
       </Card>
 
       {snapshots && snapshots.length >= 2 && (
@@ -156,13 +195,14 @@ export function StockDetail({ investmentId, onBack }: Props) {
           <CardHeader>
             <CardTitle>Position Value Over Time</CardTitle>
             <CardDescription>
-              Monthly value progression in {stock.investment.native_currency}.
+              Monthly total value progression in{' '}
+              {td.investment.native_currency}.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <SnapshotChart
               snapshots={snapshots}
-              currency={stock.investment.native_currency}
+              currency={td.investment.native_currency}
             />
           </CardContent>
         </Card>
@@ -172,14 +212,14 @@ export function StockDetail({ investmentId, onBack }: Props) {
         <CardHeader>
           <CardTitle>Snapshots</CardTitle>
           <CardDescription>
-            Monthly quantity and price readings (manual entry).
+            Monthly total value and accrued-interest breakdown.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {!snapshots || snapshots.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
               No snapshots yet. Click "New snapshot" to record this month's
-              quantity and price.
+              total value and accrued interest.
             </p>
           ) : (
             <>
@@ -187,8 +227,8 @@ export function StockDetail({ investmentId, onBack }: Props) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Month</TableHead>
-                    <TableHead>Quantity</TableHead>
-                    <TableHead>Price</TableHead>
+                    <TableHead>Principal</TableHead>
+                    <TableHead>Accrued</TableHead>
                     <TableHead>Total value</TableHead>
                     <TableHead>Notes</TableHead>
                     <TableHead className="w-12"></TableHead>
@@ -196,10 +236,9 @@ export function StockDetail({ investmentId, onBack }: Props) {
                 </TableHeader>
                 <TableBody>
                   {pageSnapshots.map((s) => (
-                    <QuantityPriceSnapshotRow
+                    <AccruedInterestSnapshotRow
                       key={s.id}
                       snapshot={s}
-                      quantityUnit="sh"
                       updateMutation={updateSnapshotMutation}
                       deleteMutation={deleteSnapshotMutation}
                     />
@@ -220,16 +259,16 @@ export function StockDetail({ investmentId, onBack }: Props) {
         </CardContent>
       </Card>
 
-      <EditStockDialog
-        key={stock.investment.id}
+      <EditTimeDepositDialog
+        key={td.investment.id}
         open={editOpen}
         onOpenChange={setEditOpen}
-        stock={stock}
+        timeDeposit={td}
       />
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this stock position?"
+        title="Delete this time deposit?"
         description="Snapshots and history will be hidden. This can be undone via the database, not yet via the UI."
         confirmLabel="Delete"
         destructive

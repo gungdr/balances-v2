@@ -61,6 +61,7 @@ type BondDetail struct {
 	CouponRate      decimal.Decimal `json:"coupon_rate"`
 	CouponFrequency string          `json:"coupon_frequency"`
 	MaturityDate    time.Time       `json:"maturity_date"`
+	SeriesCode      *string         `json:"series_code"`
 }
 
 type GoldDetail struct {

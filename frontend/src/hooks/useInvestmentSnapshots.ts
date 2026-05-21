@@ -33,7 +33,12 @@ export type UpdateInvestmentSnapshotPayload = {
   description: string | null
 }
 
-export type InvestmentListKey = 'stocks' | 'mutual-funds' | 'golds'
+export type InvestmentListKey =
+  | 'stocks'
+  | 'mutual-funds'
+  | 'golds'
+  | 'bonds'
+  | 'time-deposits'
 
 export function useInvestmentSnapshots(investmentId: string | null) {
   return useQuery({

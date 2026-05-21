@@ -171,7 +171,7 @@ export function CreateVehicleDialog() {
 
           <div className="grid gap-2">
             <Label htmlFor="v_depr">
-              Annual depreciation rate (decimal, optional)
+              Annual depreciation rate (%, optional)
             </Label>
             <Input
               id="v_depr"

@@ -163,7 +163,7 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="interest_rate">
-                Interest rate (decimal, optional)
+                Interest rate (% per year, optional)
               </Label>
               <Input
                 id="interest_rate"

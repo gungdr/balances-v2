@@ -33,6 +33,7 @@ type CreateBondParams struct {
 	SoleOwnerUserID *uuid.UUID
 	NativeCurrency  string
 	BondType        string // "govt_primary" | "secondary_market"
+	SeriesCode      *string
 	Issuer          string
 	FaceValue       decimal.Decimal
 	CouponRate      decimal.Decimal
@@ -44,6 +45,7 @@ type UpdateBondParams struct {
 	DisplayName     string
 	Description     *string
 	BondType        string
+	SeriesCode      *string
 	Issuer          string
 	FaceValue       decimal.Decimal
 	CouponRate      decimal.Decimal
@@ -81,6 +83,7 @@ func (r *InvestmentRepo) CreateBond(ctx context.Context, p CreateBondParams) (*B
 	details, err := qtx.CreateBondDetails(ctx, db.CreateBondDetailsParams{
 		InvestmentID:    inv.ID,
 		BondType:        p.BondType,
+		SeriesCode:      p.SeriesCode,
 		Issuer:          p.Issuer,
 		FaceValue:       p.FaceValue,
 		CouponRate:      p.CouponRate,
@@ -209,6 +212,7 @@ func (r *InvestmentRepo) UpdateBond(ctx context.Context, id uuid.UUID, p UpdateB
 	details, err := qtx.UpdateBondDetails(ctx, db.UpdateBondDetailsParams{
 		InvestmentID:    inv.ID,
 		BondType:        p.BondType,
+		SeriesCode:      p.SeriesCode,
 		Issuer:          p.Issuer,
 		FaceValue:       p.FaceValue,
 		CouponRate:      p.CouponRate,

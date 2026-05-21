@@ -1,9 +1,9 @@
 -- name: CreateBondDetails :one
 INSERT INTO bond_details (
-    investment_id, bond_type, issuer, face_value,
+    investment_id, bond_type, series_code, issuer, face_value,
     coupon_rate, coupon_frequency, maturity_date
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 )
 RETURNING *;
 
@@ -20,10 +20,11 @@ WHERE investment_id = ANY($1::uuid[]);
 -- name: UpdateBondDetails :one
 UPDATE bond_details
 SET bond_type        = $2,
-    issuer           = $3,
-    face_value       = $4,
-    coupon_rate      = $5,
-    coupon_frequency = $6,
-    maturity_date    = $7
+    series_code      = $3,
+    issuer           = $4,
+    face_value       = $5,
+    coupon_rate      = $6,
+    coupon_frequency = $7,
+    maturity_date    = $8
 WHERE investment_id = $1
 RETURNING *;

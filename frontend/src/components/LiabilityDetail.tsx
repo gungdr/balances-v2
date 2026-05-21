@@ -152,7 +152,7 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
             {liability.interest_rate && (
               <p>
                 <span className="text-muted-foreground">Interest rate:</span>{' '}
-                {(Number(liability.interest_rate) * 100).toFixed(2)}% /yr
+                {Number(liability.interest_rate).toFixed(2)}% /yr
               </p>
             )}
             {liability.term_months !== null && (

@@ -130,7 +130,7 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="edit_p_amort">Annual amortization rate</Label>
+            <Label htmlFor="edit_p_amort">Annual amortization rate (%)</Label>
             <Input
               id="edit_p_amort"
               inputMode="decimal"

@@ -29,10 +29,10 @@ import {
   useUpdateInvestmentSnapshot,
   useDeleteInvestmentSnapshot,
 } from '@/hooks/useInvestmentSnapshots'
-import { CreateInvestmentSnapshotDialog } from '@/components/CreateInvestmentSnapshotDialog'
+import { CreateQuantityPriceSnapshotDialog } from '@/components/CreateQuantityPriceSnapshotDialog'
 import { EditGoldDialog } from '@/components/EditGoldDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
-import { InvestmentSnapshotRow } from '@/components/InvestmentSnapshotRow'
+import { QuantityPriceSnapshotRow } from '@/components/QuantityPriceSnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
 import { formatGoldPurity } from '@/lib/gold'
 
@@ -116,7 +116,7 @@ export function GoldDetail({ investmentId, onBack }: Props) {
           </p>
         </div>
         <div className="flex gap-2">
-          <CreateInvestmentSnapshotDialog
+          <CreateQuantityPriceSnapshotDialog
             currency={gold.investment.native_currency}
             mutation={createSnapshotMutation}
           />
@@ -197,7 +197,7 @@ export function GoldDetail({ investmentId, onBack }: Props) {
                 </TableHeader>
                 <TableBody>
                   {pageSnapshots.map((s) => (
-                    <InvestmentSnapshotRow
+                    <QuantityPriceSnapshotRow
                       key={s.id}
                       snapshot={s}
                       quantityUnit="g"

@@ -27,11 +27,20 @@ import { MutualFundsScreen } from '@/components/MutualFundsScreen'
 import { MutualFundDetail } from '@/components/MutualFundDetail'
 import { GoldsScreen } from '@/components/GoldsScreen'
 import { GoldDetail } from '@/components/GoldDetail'
+import { BondsScreen } from '@/components/BondsScreen'
+import { BondDetail } from '@/components/BondDetail'
+import { TimeDepositsScreen } from '@/components/TimeDepositsScreen'
+import { TimeDepositDetail } from '@/components/TimeDepositDetail'
 
 type Group = 'assets' | 'liabilities' | 'receivables' | 'investments' | 'income'
 type AssetSubtype = 'bank_account' | 'property' | 'vehicle'
 type LiabilitySubtype = 'personal' | 'institutional'
-type InvestmentSubtypeNav = 'stock' | 'mutual_fund' | 'gold'
+type InvestmentSubtypeNav =
+  | 'stock'
+  | 'mutual_fund'
+  | 'bond'
+  | 'time_deposit'
+  | 'gold'
 
 type Selection =
   | { kind: AssetSubtype; assetId: string }
@@ -39,6 +48,8 @@ type Selection =
   | { kind: 'receivable'; receivableId: string }
   | { kind: 'stock'; investmentId: string }
   | { kind: 'mutual_fund'; investmentId: string }
+  | { kind: 'bond'; investmentId: string }
+  | { kind: 'time_deposit'; investmentId: string }
   | { kind: 'gold'; investmentId: string }
 
 function App() {
@@ -107,6 +118,18 @@ function App() {
         )}
         {selection.kind === 'mutual_fund' && (
           <MutualFundDetail
+            investmentId={selection.investmentId}
+            onBack={() => setSelection(null)}
+          />
+        )}
+        {selection.kind === 'bond' && (
+          <BondDetail
+            investmentId={selection.investmentId}
+            onBack={() => setSelection(null)}
+          />
+        )}
+        {selection.kind === 'time_deposit' && (
+          <TimeDepositDetail
             investmentId={selection.investmentId}
             onBack={() => setSelection(null)}
           />
@@ -215,6 +238,8 @@ function App() {
               <TabsList>
                 <TabsTrigger value="stock">Stocks</TabsTrigger>
                 <TabsTrigger value="mutual_fund">Mutual Funds</TabsTrigger>
+                <TabsTrigger value="bond">Bonds</TabsTrigger>
+                <TabsTrigger value="time_deposit">Time Deposits</TabsTrigger>
                 <TabsTrigger value="gold">Gold</TabsTrigger>
               </TabsList>
               <TabsContent value="stock" className="mt-6">
@@ -228,6 +253,20 @@ function App() {
                 <MutualFundsScreen
                   onSelect={(investmentId) =>
                     setSelection({ kind: 'mutual_fund', investmentId })
+                  }
+                />
+              </TabsContent>
+              <TabsContent value="bond" className="mt-6">
+                <BondsScreen
+                  onSelect={(investmentId) =>
+                    setSelection({ kind: 'bond', investmentId })
+                  }
+                />
+              </TabsContent>
+              <TabsContent value="time_deposit" className="mt-6">
+                <TimeDepositsScreen
+                  onSelect={(investmentId) =>
+                    setSelection({ kind: 'time_deposit', investmentId })
                   }
                 />
               </TabsContent>

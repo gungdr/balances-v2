@@ -18,6 +18,7 @@ type createBondReq struct {
 	SoleOwnerUserID *uuid.UUID       `json:"sole_owner_user_id" validate:"required_if=OwnershipType sole"`
 	NativeCurrency  string           `json:"native_currency"    validate:"required,iso4217"`
 	BondType        string           `json:"bond_type"          validate:"required,oneof=govt_primary secondary_market"`
+	SeriesCode      *string          `json:"series_code"`
 	Issuer          string           `json:"issuer"             validate:"required"`
 	FaceValue       *decimal.Decimal `json:"face_value"         validate:"required"`
 	CouponRate      *decimal.Decimal `json:"coupon_rate"        validate:"required"`
@@ -29,6 +30,7 @@ type updateBondReq struct {
 	DisplayName     string           `json:"display_name"     validate:"required"`
 	Description     *string          `json:"description"`
 	BondType        string           `json:"bond_type"        validate:"required,oneof=govt_primary secondary_market"`
+	SeriesCode      *string          `json:"series_code"`
 	Issuer          string           `json:"issuer"           validate:"required"`
 	FaceValue       *decimal.Decimal `json:"face_value"       validate:"required"`
 	CouponRate      *decimal.Decimal `json:"coupon_rate"      validate:"required"`
@@ -59,6 +61,7 @@ func (h *Handlers) handleCreateBond(w http.ResponseWriter, r *http.Request) {
 		SoleOwnerUserID: req.SoleOwnerUserID,
 		NativeCurrency:  req.NativeCurrency,
 		BondType:        req.BondType,
+		SeriesCode:      req.SeriesCode,
 		Issuer:          req.Issuer,
 		FaceValue:       *req.FaceValue,
 		CouponRate:      *req.CouponRate,
@@ -120,6 +123,7 @@ func (h *Handlers) handleUpdateBond(w http.ResponseWriter, r *http.Request) {
 		DisplayName:     req.DisplayName,
 		Description:     req.Description,
 		BondType:        req.BondType,
+		SeriesCode:      req.SeriesCode,
 		Issuer:          req.Issuer,
 		FaceValue:       *req.FaceValue,
 		CouponRate:      *req.CouponRate,

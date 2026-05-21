@@ -103,7 +103,7 @@ export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit_l_interest_rate">
-                Interest rate (decimal, optional)
+                Interest rate (% per year, optional)
               </Label>
               <Input
                 id="edit_l_interest_rate"

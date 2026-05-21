@@ -284,3 +284,59 @@ export type GoldListItem = {
   details: GoldDetails
   latest_snapshot: InvestmentSnapshot | null
 }
+
+export type BondType = 'govt_primary' | 'secondary_market'
+export type CouponFrequency =
+  | 'monthly'
+  | 'quarterly'
+  | 'semi_annual'
+  | 'annual'
+
+export type BondDetails = {
+  investment_id: string
+  bond_type: BondType
+  series_code: string | null
+  issuer: string
+  face_value: string
+  coupon_rate: string
+  coupon_frequency: CouponFrequency
+  maturity_date: string
+}
+
+export type Bond = {
+  investment: Investment
+  details: BondDetails
+}
+
+export type BondListItem = {
+  investment: Investment
+  details: BondDetails
+  latest_snapshot: InvestmentSnapshot | null
+}
+
+export type RolloverPolicy =
+  | 'auto_renew_principal'
+  | 'auto_renew_with_interest'
+  | 'no_rollover'
+
+export type TimeDepositDetails = {
+  investment_id: string
+  bank_name: string
+  principal: string
+  interest_rate: string
+  term_months: number
+  placement_date: string
+  maturity_date: string
+  rollover_policy: RolloverPolicy
+}
+
+export type TimeDeposit = {
+  investment: Investment
+  details: TimeDepositDetails
+}
+
+export type TimeDepositListItem = {
+  investment: Investment
+  details: TimeDepositDetails
+  latest_snapshot: InvestmentSnapshot | null
+}

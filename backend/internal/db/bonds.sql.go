@@ -15,17 +15,18 @@ import (
 
 const createBondDetails = `-- name: CreateBondDetails :one
 INSERT INTO bond_details (
-    investment_id, bond_type, issuer, face_value,
+    investment_id, bond_type, series_code, issuer, face_value,
     coupon_rate, coupon_frequency, maturity_date
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7
+    $1, $2, $3, $4, $5, $6, $7, $8
 )
-RETURNING investment_id, bond_type, issuer, face_value, coupon_rate, coupon_frequency, maturity_date
+RETURNING investment_id, bond_type, issuer, face_value, coupon_rate, coupon_frequency, maturity_date, series_code
 `
 
 type CreateBondDetailsParams struct {
 	InvestmentID    uuid.UUID       `json:"investment_id"`
 	BondType        string          `json:"bond_type"`
+	SeriesCode      *string         `json:"series_code"`
 	Issuer          string          `json:"issuer"`
 	FaceValue       decimal.Decimal `json:"face_value"`
 	CouponRate      decimal.Decimal `json:"coupon_rate"`
@@ -37,6 +38,7 @@ func (q *Queries) CreateBondDetails(ctx context.Context, arg CreateBondDetailsPa
 	row := q.db.QueryRow(ctx, createBondDetails,
 		arg.InvestmentID,
 		arg.BondType,
+		arg.SeriesCode,
 		arg.Issuer,
 		arg.FaceValue,
 		arg.CouponRate,
@@ -52,12 +54,13 @@ func (q *Queries) CreateBondDetails(ctx context.Context, arg CreateBondDetailsPa
 		&i.CouponRate,
 		&i.CouponFrequency,
 		&i.MaturityDate,
+		&i.SeriesCode,
 	)
 	return i, err
 }
 
 const getBondDetailsByInvestmentID = `-- name: GetBondDetailsByInvestmentID :one
-SELECT investment_id, bond_type, issuer, face_value, coupon_rate, coupon_frequency, maturity_date
+SELECT investment_id, bond_type, issuer, face_value, coupon_rate, coupon_frequency, maturity_date, series_code
 FROM bond_details
 WHERE investment_id = $1
 `
@@ -73,12 +76,13 @@ func (q *Queries) GetBondDetailsByInvestmentID(ctx context.Context, investmentID
 		&i.CouponRate,
 		&i.CouponFrequency,
 		&i.MaturityDate,
+		&i.SeriesCode,
 	)
 	return i, err
 }
 
 const listBondDetailsByInvestmentIDs = `-- name: ListBondDetailsByInvestmentIDs :many
-SELECT investment_id, bond_type, issuer, face_value, coupon_rate, coupon_frequency, maturity_date
+SELECT investment_id, bond_type, issuer, face_value, coupon_rate, coupon_frequency, maturity_date, series_code
 FROM bond_details
 WHERE investment_id = ANY($1::uuid[])
 `
@@ -100,6 +104,7 @@ func (q *Queries) ListBondDetailsByInvestmentIDs(ctx context.Context, dollar_1 [
 			&i.CouponRate,
 			&i.CouponFrequency,
 			&i.MaturityDate,
+			&i.SeriesCode,
 		); err != nil {
 			return nil, err
 		}
@@ -114,18 +119,20 @@ func (q *Queries) ListBondDetailsByInvestmentIDs(ctx context.Context, dollar_1 [
 const updateBondDetails = `-- name: UpdateBondDetails :one
 UPDATE bond_details
 SET bond_type        = $2,
-    issuer           = $3,
-    face_value       = $4,
-    coupon_rate      = $5,
-    coupon_frequency = $6,
-    maturity_date    = $7
+    series_code      = $3,
+    issuer           = $4,
+    face_value       = $5,
+    coupon_rate      = $6,
+    coupon_frequency = $7,
+    maturity_date    = $8
 WHERE investment_id = $1
-RETURNING investment_id, bond_type, issuer, face_value, coupon_rate, coupon_frequency, maturity_date
+RETURNING investment_id, bond_type, issuer, face_value, coupon_rate, coupon_frequency, maturity_date, series_code
 `
 
 type UpdateBondDetailsParams struct {
 	InvestmentID    uuid.UUID       `json:"investment_id"`
 	BondType        string          `json:"bond_type"`
+	SeriesCode      *string         `json:"series_code"`
 	Issuer          string          `json:"issuer"`
 	FaceValue       decimal.Decimal `json:"face_value"`
 	CouponRate      decimal.Decimal `json:"coupon_rate"`
@@ -137,6 +144,7 @@ func (q *Queries) UpdateBondDetails(ctx context.Context, arg UpdateBondDetailsPa
 	row := q.db.QueryRow(ctx, updateBondDetails,
 		arg.InvestmentID,
 		arg.BondType,
+		arg.SeriesCode,
 		arg.Issuer,
 		arg.FaceValue,
 		arg.CouponRate,
@@ -152,6 +160,7 @@ func (q *Queries) UpdateBondDetails(ctx context.Context, arg UpdateBondDetailsPa
 		&i.CouponRate,
 		&i.CouponFrequency,
 		&i.MaturityDate,
+		&i.SeriesCode,
 	)
 	return i, err
 }

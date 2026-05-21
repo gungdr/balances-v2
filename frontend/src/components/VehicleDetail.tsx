@@ -146,8 +146,7 @@ export function VehicleDetail({ assetId, onBack }: Props) {
                 <span className="text-muted-foreground">
                   Depreciation rate:
                 </span>{' '}
-                {(Number(details.annual_depreciation_rate) * 100).toFixed(2)}%
-                /yr
+                {Number(details.annual_depreciation_rate).toFixed(2)}% /yr
               </p>
             )}
             {asset.description && <p className="pt-1">{asset.description}</p>}

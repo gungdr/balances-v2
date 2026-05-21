@@ -135,7 +135,7 @@ export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="ev_depr">Annual depreciation rate</Label>
+            <Label htmlFor="ev_depr">Annual depreciation rate (%)</Label>
             <Input
               id="ev_depr"
               inputMode="decimal"

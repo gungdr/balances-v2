@@ -22,18 +22,21 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
-import { useStock, useDeleteStock } from '@/hooks/useInvestments'
+import { useBond, useDeleteBond } from '@/hooks/useInvestments'
 import {
   useInvestmentSnapshots,
   useCreateInvestmentSnapshot,
   useUpdateInvestmentSnapshot,
   useDeleteInvestmentSnapshot,
 } from '@/hooks/useInvestmentSnapshots'
-import { CreateQuantityPriceSnapshotDialog } from '@/components/CreateQuantityPriceSnapshotDialog'
-import { EditStockDialog } from '@/components/EditStockDialog'
+import { CreateAccruedInterestSnapshotDialog } from '@/components/CreateAccruedInterestSnapshotDialog'
+import { EditBondDialog } from '@/components/EditBondDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
-import { QuantityPriceSnapshotRow } from '@/components/QuantityPriceSnapshotRow'
+import { AccruedInterestSnapshotRow } from '@/components/AccruedInterestSnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
+import { formatCurrency, formatDate } from '@/lib/format'
+import { maturityClass, maturityInfo } from '@/lib/maturity'
+import type { CouponFrequency } from '@/api/types'
 
 type Props = {
   investmentId: string
@@ -42,21 +45,34 @@ type Props = {
 
 const PAGE_SIZE = 12
 
-export function StockDetail({ investmentId, onBack }: Props) {
-  const { data: stock, isPending, error } = useStock(investmentId)
+function frequencyLabel(f: CouponFrequency): string {
+  switch (f) {
+    case 'monthly':
+      return 'Monthly'
+    case 'quarterly':
+      return 'Quarterly'
+    case 'semi_annual':
+      return 'Semi-annual'
+    case 'annual':
+      return 'Annual'
+  }
+}
+
+export function BondDetail({ investmentId, onBack }: Props) {
+  const { data: bond, isPending, error } = useBond(investmentId)
   const { data: snapshots } = useInvestmentSnapshots(investmentId)
-  const deleteMutation = useDeleteStock()
+  const deleteMutation = useDeleteBond()
   const createSnapshotMutation = useCreateInvestmentSnapshot(
     investmentId,
-    'stocks',
+    'bonds',
   )
   const updateSnapshotMutation = useUpdateInvestmentSnapshot(
     investmentId,
-    'stocks',
+    'bonds',
   )
   const deleteSnapshotMutation = useDeleteInvestmentSnapshot(
     investmentId,
-    'stocks',
+    'bonds',
   )
 
   const [editOpen, setEditOpen] = useState(false)
@@ -88,12 +104,21 @@ export function StockDetail({ investmentId, onBack }: Props) {
       </p>
     )
   }
-  if (!stock) return null
+  if (!bond) return null
 
   const pageSnapshots = (snapshots ?? []).slice(
     (effectivePage - 1) * PAGE_SIZE,
     effectivePage * PAGE_SIZE,
   )
+  const mInfo = maturityInfo(bond.details.maturity_date)
+  const couponPct = Number(bond.details.coupon_rate).toFixed(2)
+  const subtitleBits = [
+    bond.details.series_code,
+    bond.details.bond_type === 'govt_primary'
+      ? 'Government primary'
+      : 'Secondary market',
+    bond.details.issuer,
+  ].filter(Boolean)
 
   return (
     <div className="space-y-6">
@@ -108,15 +133,15 @@ export function StockDetail({ investmentId, onBack }: Props) {
             ← Back
           </Button>
           <h1 className="text-2xl font-semibold tracking-tight">
-            {stock.investment.display_name}
+            {bond.investment.display_name}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {stock.details.ticker} · {stock.details.exchange}
+            {subtitleBits.join(' · ')}
           </p>
         </div>
         <div className="flex gap-2">
-          <CreateQuantityPriceSnapshotDialog
-            currency={stock.investment.native_currency}
+          <CreateAccruedInterestSnapshotDialog
+            currency={bond.investment.native_currency}
             mutation={createSnapshotMutation}
           />
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
@@ -134,21 +159,39 @@ export function StockDetail({ investmentId, onBack }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Stock Details</CardTitle>
+          <CardTitle>Bond Details</CardTitle>
           <CardDescription>
             Ownership:{' '}
             <span className="capitalize">
-              {stock.investment.ownership_type}
+              {bond.investment.ownership_type}
             </span>{' '}
-            · Currency: {stock.investment.native_currency} · Status:{' '}
-            {stock.investment.status}
+            · Currency: {bond.investment.native_currency} · Status:{' '}
+            {bond.investment.status}
           </CardDescription>
         </CardHeader>
-        {stock.investment.description && (
-          <CardContent className="text-sm">
-            {stock.investment.description}
-          </CardContent>
-        )}
+        <CardContent className="text-sm space-y-1">
+          <p>
+            <span className="text-muted-foreground">Face value:</span>{' '}
+            {formatCurrency(
+              bond.details.face_value,
+              bond.investment.native_currency,
+            )}
+          </p>
+          <p>
+            <span className="text-muted-foreground">Coupon:</span> {couponPct}%
+            /yr · {frequencyLabel(bond.details.coupon_frequency)}
+          </p>
+          <p>
+            <span className="text-muted-foreground">Maturity:</span>{' '}
+            {formatDate(bond.details.maturity_date)}{' '}
+            <span className={maturityClass(mInfo.state)}>
+              ({mInfo.label})
+            </span>
+          </p>
+          {bond.investment.description && (
+            <p className="pt-1">{bond.investment.description}</p>
+          )}
+        </CardContent>
       </Card>
 
       {snapshots && snapshots.length >= 2 && (
@@ -156,13 +199,14 @@ export function StockDetail({ investmentId, onBack }: Props) {
           <CardHeader>
             <CardTitle>Position Value Over Time</CardTitle>
             <CardDescription>
-              Monthly value progression in {stock.investment.native_currency}.
+              Monthly total value progression in{' '}
+              {bond.investment.native_currency}.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <SnapshotChart
               snapshots={snapshots}
-              currency={stock.investment.native_currency}
+              currency={bond.investment.native_currency}
             />
           </CardContent>
         </Card>
@@ -172,14 +216,14 @@ export function StockDetail({ investmentId, onBack }: Props) {
         <CardHeader>
           <CardTitle>Snapshots</CardTitle>
           <CardDescription>
-            Monthly quantity and price readings (manual entry).
+            Monthly total value and accrued-interest breakdown.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {!snapshots || snapshots.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
               No snapshots yet. Click "New snapshot" to record this month's
-              quantity and price.
+              total value and accrued interest.
             </p>
           ) : (
             <>
@@ -187,8 +231,8 @@ export function StockDetail({ investmentId, onBack }: Props) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Month</TableHead>
-                    <TableHead>Quantity</TableHead>
-                    <TableHead>Price</TableHead>
+                    <TableHead>Principal</TableHead>
+                    <TableHead>Accrued</TableHead>
                     <TableHead>Total value</TableHead>
                     <TableHead>Notes</TableHead>
                     <TableHead className="w-12"></TableHead>
@@ -196,10 +240,9 @@ export function StockDetail({ investmentId, onBack }: Props) {
                 </TableHeader>
                 <TableBody>
                   {pageSnapshots.map((s) => (
-                    <QuantityPriceSnapshotRow
+                    <AccruedInterestSnapshotRow
                       key={s.id}
                       snapshot={s}
-                      quantityUnit="sh"
                       updateMutation={updateSnapshotMutation}
                       deleteMutation={deleteSnapshotMutation}
                     />
@@ -220,16 +263,16 @@ export function StockDetail({ investmentId, onBack }: Props) {
         </CardContent>
       </Card>
 
-      <EditStockDialog
-        key={stock.investment.id}
+      <EditBondDialog
+        key={bond.investment.id}
         open={editOpen}
         onOpenChange={setEditOpen}
-        stock={stock}
+        bond={bond}
       />
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this stock position?"
+        title="Delete this bond position?"
         description="Snapshots and history will be hidden. This can be undone via the database, not yet via the UI."
         confirmLabel="Delete"
         destructive

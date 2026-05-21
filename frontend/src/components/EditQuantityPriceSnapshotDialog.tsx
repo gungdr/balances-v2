@@ -25,7 +25,7 @@ type InvestmentSnapshotLike = {
   description: string | null
 }
 
-export type UpdateInvestmentSnapshotMutationVariables = {
+export type UpdateQuantityPriceSnapshotMutationVariables = {
   snapshotId: string
   payload: UpdateInvestmentSnapshotPayload
 }
@@ -39,7 +39,7 @@ type Props<TResult> = {
   mutation: UseMutationResult<
     TResult,
     unknown,
-    UpdateInvestmentSnapshotMutationVariables
+    UpdateQuantityPriceSnapshotMutationVariables
   >
 }
 
@@ -54,7 +54,7 @@ function deriveAmount(quantity: string, pricePerUnit: string): string | null {
 
 // year_month is not editable here (same constraint as the amount-shape edit
 // dialog — would break the (investment_id, year_month) unique index).
-export function EditInvestmentSnapshotDialog<TResult>({
+export function EditQuantityPriceSnapshotDialog<TResult>({
   open,
   onOpenChange,
   snapshot,

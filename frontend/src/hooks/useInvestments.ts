@@ -1,12 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import type {
+  Bond,
+  BondListItem,
+  BondType,
+  CouponFrequency,
   Gold,
   GoldListItem,
   MutualFund,
   MutualFundListItem,
+  RolloverPolicy,
   Stock,
   StockListItem,
+  TimeDeposit,
+  TimeDepositListItem,
 } from '@/api/types'
 
 // ----- stock -----------------------------------------------------------
@@ -232,6 +239,178 @@ export function useDeleteGold() {
       api(`/api/investments/golds/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['golds'] })
+    },
+  })
+}
+
+// ----- bond ------------------------------------------------------------
+
+export type CreateBondPayload = {
+  display_name: string
+  description: string | null
+  ownership_type: 'sole' | 'joint'
+  sole_owner_user_id: string | null
+  native_currency: string
+  bond_type: BondType
+  series_code: string | null
+  issuer: string
+  face_value: string
+  coupon_rate: string
+  coupon_frequency: CouponFrequency
+  maturity_date: string
+}
+
+export type UpdateBondPayload = {
+  display_name: string
+  description: string | null
+  bond_type: BondType
+  series_code: string | null
+  issuer: string
+  face_value: string
+  coupon_rate: string
+  coupon_frequency: CouponFrequency
+  maturity_date: string
+}
+
+export function useBonds() {
+  return useQuery({
+    queryKey: ['bonds'],
+    queryFn: () => api<BondListItem[]>('/api/investments/bonds'),
+    staleTime: 10_000,
+  })
+}
+
+export function useBond(id: string | null) {
+  return useQuery({
+    queryKey: ['bonds', id],
+    queryFn: () => api<Bond>(`/api/investments/bonds/${id}`),
+    enabled: !!id,
+  })
+}
+
+export function useCreateBond() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: CreateBondPayload) =>
+      api<Bond>('/api/investments/bonds', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bonds'] })
+    },
+  })
+}
+
+export function useUpdateBond(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: UpdateBondPayload) =>
+      api<Bond>(`/api/investments/bonds/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bonds'] })
+      qc.invalidateQueries({ queryKey: ['bonds', id] })
+    },
+  })
+}
+
+export function useDeleteBond() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) =>
+      api(`/api/investments/bonds/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bonds'] })
+    },
+  })
+}
+
+// ----- time deposit ----------------------------------------------------
+
+export type CreateTimeDepositPayload = {
+  display_name: string
+  description: string | null
+  ownership_type: 'sole' | 'joint'
+  sole_owner_user_id: string | null
+  native_currency: string
+  bank_name: string
+  principal: string
+  interest_rate: string
+  term_months: number
+  placement_date: string
+  maturity_date: string
+  rollover_policy: RolloverPolicy
+}
+
+export type UpdateTimeDepositPayload = {
+  display_name: string
+  description: string | null
+  bank_name: string
+  principal: string
+  interest_rate: string
+  term_months: number
+  placement_date: string
+  maturity_date: string
+  rollover_policy: RolloverPolicy
+}
+
+export function useTimeDeposits() {
+  return useQuery({
+    queryKey: ['time-deposits'],
+    queryFn: () =>
+      api<TimeDepositListItem[]>('/api/investments/time-deposits'),
+    staleTime: 10_000,
+  })
+}
+
+export function useTimeDeposit(id: string | null) {
+  return useQuery({
+    queryKey: ['time-deposits', id],
+    queryFn: () =>
+      api<TimeDeposit>(`/api/investments/time-deposits/${id}`),
+    enabled: !!id,
+  })
+}
+
+export function useCreateTimeDeposit() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: CreateTimeDepositPayload) =>
+      api<TimeDeposit>('/api/investments/time-deposits', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['time-deposits'] })
+    },
+  })
+}
+
+export function useUpdateTimeDeposit(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: UpdateTimeDepositPayload) =>
+      api<TimeDeposit>(`/api/investments/time-deposits/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['time-deposits'] })
+      qc.invalidateQueries({ queryKey: ['time-deposits', id] })
+    },
+  })
+}
+
+export function useDeleteTimeDeposit() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) =>
+      api(`/api/investments/time-deposits/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['time-deposits'] })
     },
   })
 }

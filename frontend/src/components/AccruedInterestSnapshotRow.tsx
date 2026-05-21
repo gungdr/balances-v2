@@ -10,39 +10,46 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { TableCell, TableRow } from '@/components/ui/table'
 import {
-  EditInvestmentSnapshotDialog,
-  type UpdateInvestmentSnapshotMutationVariables,
-} from '@/components/EditInvestmentSnapshotDialog'
+  EditAccruedInterestSnapshotDialog,
+  type UpdateAccruedInterestSnapshotMutationVariables,
+} from '@/components/EditAccruedInterestSnapshotDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { formatCurrency, formatYearMonth, formatDate } from '@/lib/format'
 
-type InvestmentSnapshotLike = {
+type AccruedInterestSnapshotLike = {
   id: string
   year_month: string
   amount: string
   currency: string
-  quantity: string | null
-  price_per_unit: string | null
+  accrued_interest: string | null
   as_of_date: string | null
   description: string | null
 }
 
 type Props<TUpdate, TDelete> = {
-  snapshot: InvestmentSnapshotLike
-  // Unit label is subtype-specific ("sh" for stocks, "units" for mutual
-  // funds, "g" for gold). Passed in so this row stays subtype-agnostic.
-  quantityUnit: string
+  snapshot: AccruedInterestSnapshotLike
   updateMutation: UseMutationResult<
     TUpdate,
     unknown,
-    UpdateInvestmentSnapshotMutationVariables
+    UpdateAccruedInterestSnapshotMutationVariables
   >
   deleteMutation: UseMutationResult<TDelete, unknown, string>
 }
 
-export function InvestmentSnapshotRow<TUpdate, TDelete>({
+// principal = amount − accrued. Label is "Principal" for now — for
+// secondary-market bonds it's technically "clean value", but the
+// simplification is fine pre-alpha (column header is the only place this
+// would mislead; renaming is cheap later).
+function principal(snapshot: AccruedInterestSnapshotLike): string | null {
+  if (!snapshot.accrued_interest) return null
+  const a = Number(snapshot.amount)
+  const i = Number(snapshot.accrued_interest)
+  if (Number.isNaN(a) || Number.isNaN(i)) return null
+  return (a - i).toString()
+}
+
+export function AccruedInterestSnapshotRow<TUpdate, TDelete>({
   snapshot,
-  quantityUnit,
   updateMutation,
   deleteMutation,
 }: Props<TUpdate, TDelete>) {
@@ -54,6 +61,8 @@ export function InvestmentSnapshotRow<TUpdate, TDelete>({
       onSuccess: () => setDeleteOpen(false),
     })
   }
+
+  const p = principal(snapshot)
 
   return (
     <>
@@ -69,14 +78,16 @@ export function InvestmentSnapshotRow<TUpdate, TDelete>({
           )}
         </TableCell>
         <TableCell>
-          {snapshot.quantity ? `${snapshot.quantity} ${quantityUnit}` : '—'}
+          {p !== null ? formatCurrency(p, snapshot.currency) : '—'}
         </TableCell>
         <TableCell>
-          {snapshot.price_per_unit
-            ? formatCurrency(snapshot.price_per_unit, snapshot.currency)
+          {snapshot.accrued_interest
+            ? formatCurrency(snapshot.accrued_interest, snapshot.currency)
             : '—'}
         </TableCell>
-        <TableCell>{formatCurrency(snapshot.amount, snapshot.currency)}</TableCell>
+        <TableCell>
+          {formatCurrency(snapshot.amount, snapshot.currency)}
+        </TableCell>
         <TableCell className="text-muted-foreground">
           {snapshot.description ?? '—'}
         </TableCell>
@@ -102,7 +113,7 @@ export function InvestmentSnapshotRow<TUpdate, TDelete>({
         </TableCell>
       </TableRow>
 
-      <EditInvestmentSnapshotDialog
+      <EditAccruedInterestSnapshotDialog
         key={snapshot.id}
         open={editOpen}
         onOpenChange={setEditOpen}

@@ -76,6 +76,7 @@ The app's reason to exist.
 - Property/vehicle amortization-rate UI helper (Q8a) is in
 - Fee cash→quantity helper (Q12 follow-up) is in
 - TimeDeposit "duplicate matured TD" helper (Q14c-iv) is in
+- Migrations consolidated — the accumulated pre-alpha migration files (currently ~7+, including amendments like the M4.3b-frontend `bond_details.series_code` add) are squashed into a single initial-schema migration before the first production deploy
 - Hosting target is chosen and the app is deployed
 - A real Resend domain is configured for production email
 - Backup / restore for the production DB is documented

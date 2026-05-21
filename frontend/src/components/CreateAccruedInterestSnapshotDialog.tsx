@@ -18,9 +18,6 @@ import type { CreateInvestmentSnapshotPayload } from '@/hooks/useInvestmentSnaps
 
 type Props<TResult> = {
   currency: string
-  // Mutation is owned by the parent so the same dialog drives stocks,
-  // mutual funds, and gold — each subtype's detail page wires its own
-  // useCreateInvestmentSnapshot result in.
   mutation: UseMutationResult<
     TResult,
     unknown,
@@ -36,34 +33,34 @@ function thisYearMonth(): string {
 function emptyForm() {
   return {
     year_month: thisYearMonth(),
-    quantity: '',
-    price_per_unit: '',
+    amount: '',
+    accrued_interest: '',
     as_of_date: '',
     description: '',
   }
 }
 
-// amount = quantity × price_per_unit. The backend re-validates and stores
-// amount alongside the two factors, so the UI sends both. Computed in
-// JS with Number — household scale is fine; precision-sensitive arithmetic
-// stays on the backend (decimal.Decimal).
-function deriveAmount(quantity: string, pricePerUnit: string): string | null {
-  const q = Number(quantity)
-  const p = Number(pricePerUnit)
-  if (!quantity || !pricePerUnit || Number.isNaN(q) || Number.isNaN(p)) {
+// `amount` is the dirty total value (already includes accrued); the user
+// types it as it appears on the statement. The derived "of which principal"
+// line below = amount − accrued. The backend's validateInvestmentSnapshotShape
+// re-checks both fields are present for bond/time_deposit subtypes.
+function derivePrincipal(amount: string, accrued: string): string | null {
+  const a = Number(amount)
+  const i = Number(accrued)
+  if (!amount || !accrued || Number.isNaN(a) || Number.isNaN(i)) {
     return null
   }
-  return (q * p).toString()
+  return (a - i).toString()
 }
 
-export function CreateInvestmentSnapshotDialog<TResult>({
+export function CreateAccruedInterestSnapshotDialog<TResult>({
   currency,
   mutation,
 }: Props<TResult>) {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
 
-  const derivedAmount = deriveAmount(form.quantity, form.price_per_unit)
+  const derivedPrincipal = derivePrincipal(form.amount, form.accrued_interest)
 
   function close() {
     setOpen(false)
@@ -73,15 +70,14 @@ export function CreateInvestmentSnapshotDialog<TResult>({
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (derivedAmount === null) return
     mutation.mutate(
       {
         year_month: form.year_month,
-        amount: derivedAmount,
+        amount: form.amount,
         currency,
-        quantity: form.quantity,
-        price_per_unit: form.price_per_unit,
-        accrued_interest: null,
+        quantity: null,
+        price_per_unit: null,
+        accrued_interest: form.accrued_interest,
         as_of_date: form.as_of_date || null,
         description: form.description || null,
       },
@@ -98,16 +94,16 @@ export function CreateInvestmentSnapshotDialog<TResult>({
         <DialogHeader>
           <DialogTitle>Record monthly snapshot</DialogTitle>
           <DialogDescription>
-            Enter the month-end quantity and price per unit. The total value
-            is derived ({currency}).
+            Enter the month-end total value and the accrued interest
+            component ({currency}). Total already includes accrued.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="inv_year_month">Month</Label>
+              <Label htmlFor="ai_year_month">Month</Label>
               <Input
-                id="inv_year_month"
+                id="ai_year_month"
                 type="month"
                 required
                 value={form.year_month}
@@ -117,9 +113,9 @@ export function CreateInvestmentSnapshotDialog<TResult>({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="inv_as_of_date">Statement date (optional)</Label>
+              <Label htmlFor="ai_as_of_date">Statement date (optional)</Label>
               <Input
-                id="inv_as_of_date"
+                id="ai_as_of_date"
                 type="date"
                 value={form.as_of_date}
                 onChange={(e) =>
@@ -131,51 +127,49 @@ export function CreateInvestmentSnapshotDialog<TResult>({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="inv_quantity">Quantity</Label>
+              <Label htmlFor="ai_amount">Total value ({currency})</Label>
               <Input
-                id="inv_quantity"
+                id="ai_amount"
                 required
                 inputMode="decimal"
-                value={form.quantity}
-                onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-                placeholder="100"
+                value={form.amount}
+                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                placeholder="50250000"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="inv_price_per_unit">
-                Price per unit ({currency})
-              </Label>
+              <Label htmlFor="ai_accrued">Accrued ({currency})</Label>
               <Input
-                id="inv_price_per_unit"
+                id="ai_accrued"
                 required
                 inputMode="decimal"
-                value={form.price_per_unit}
+                value={form.accrued_interest}
                 onChange={(e) =>
-                  setForm({ ...form, price_per_unit: e.target.value })
+                  setForm({ ...form, accrued_interest: e.target.value })
                 }
-                placeholder="8500"
+                placeholder="250000"
               />
             </div>
           </div>
 
           <div className="rounded-md bg-muted px-3 py-2 text-sm">
-            <span className="text-muted-foreground">Total value:</span>{' '}
+            <span className="text-muted-foreground">Of which principal:</span>{' '}
             <span className="font-medium">
-              {derivedAmount !== null
-                ? formatCurrency(derivedAmount, currency)
+              {derivedPrincipal !== null
+                ? formatCurrency(derivedPrincipal, currency)
                 : '—'}
             </span>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="inv_snap_description">Description (optional)</Label>
+            <Label htmlFor="ai_description">Description (optional)</Label>
             <Input
-              id="inv_snap_description"
+              id="ai_description"
               value={form.description}
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
               }
-              placeholder="from broker statement"
+              placeholder="from bank statement"
             />
           </div>
 
@@ -189,10 +183,7 @@ export function CreateInvestmentSnapshotDialog<TResult>({
             <Button type="button" variant="outline" onClick={close}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={mutation.isPending || derivedAmount === null}
-            >
+            <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending ? 'Saving…' : 'Save snapshot'}
             </Button>
           </DialogFooter>

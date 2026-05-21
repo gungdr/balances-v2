@@ -152,7 +152,7 @@ export function PropertyDetail({ assetId, onBack }: Props) {
               <span className="text-muted-foreground">
                 Amortization rate:
               </span>{' '}
-              {(Number(details.annual_amortization_rate) * 100).toFixed(2)}% /yr
+              {Number(details.annual_amortization_rate).toFixed(2)}% /yr
             </p>
           )}
           {asset.description && (

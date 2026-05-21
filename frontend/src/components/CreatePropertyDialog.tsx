@@ -162,7 +162,7 @@ export function CreatePropertyDialog() {
 
           <div className="grid gap-2">
             <Label htmlFor="annual_amortization_rate">
-              Annual amortization rate (decimal, optional)
+              Annual amortization rate (%, optional)
             </Label>
             <Input
               id="annual_amortization_rate"
