@@ -94,7 +94,7 @@ These are not ADRs because they're tactical, but they're load-bearing:
 
 ## Things explicitly NOT to do
 
-- **Don't autoflush commits.** User wants commit + push explicitly when they ask. Default to staging + showing diff.
+- **Don't autoflush commits.** When work seems ready, stage + show the diff + ask. Push only on explicit green light. After every push, watch CI to completion (`gh run list --branch <branch>` / `gh run watch <id>`); if a workflow fails, surface the failure with logs and ask the user whether to fix now or defer. Don't declare a commit done while runs are still queued or in_progress.
 - **Don't dive into UI alone.** User has near-zero frontend skill and relies heavily on you for UI — but expects to be consulted on UX choices (form density, navigation, button labels). Always surface tradeoffs.
 - **Don't fear backtracking on prior decisions** if they're suboptimal — pre-alpha migrations are not sacred. User explicitly accepted this. Flag the issue, propose the better path, let user decide.
 - **Don't create planning/analysis documents** unless asked. Live state goes in this file or in memory; design decisions go in ADRs; nothing else.
