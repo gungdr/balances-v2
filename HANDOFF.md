@@ -18,7 +18,8 @@ Read these first, in order:
 - **CI/coverage side quest complete (post-M4.2)**: GitHub Actions runs golangci-lint + `go test -race -coverprofile` + Codecov upload + ESLint + `npm run build` on every push to `main` and every PR. Coverage thresholds are informational-only until alpha. Codecov needs `CODECOV_TOKEN` (already set in repo secrets) because Codecov treats the default branch as protected even on public repos. Phase 1 coverage backfill added happy-path CRUD tests to the five repo tenancy suites; `internal/repo` sits around 70%. HTTP handler coverage (currently 0% across `internal/{assets,liabilities,receivables,auth}`) is deferred to a future side quest.
 - **M4.3a backend complete**: Investments group with Stock + MutualFund + Gold subtypes shipped end-to-end on the backend (migration, repo, handlers, tenancy + happy-path + shape-validation tests). `investment_snapshots` column is `amount` (ADR-0022 was backtracked from `total_value` for cross-group consistency). Subtype and status enums carry all forward-compat values so M4.3b adds extension tables without ALTERs. `internal/repo` coverage ~72%.
 - **M4.3a-frontend complete**: three-level nav (Investments > {Stocks, Mutual Funds, Gold}); per-subtype list/detail pages and create/edit dialogs; quantity×price snapshot dialog set with derived amount preview. Smoke-tested end-to-end against the live backend.
-- **M4.3b next**: Bond + TimeDeposit (accrued-interest snapshot shape). Adds two extension tables and exercises the second XOR branch.
+- **M4.3b backend complete**: Bond + TimeDeposit subtypes shipped end-to-end on the backend (migration 00007 adds the two extension tables; no schema change to `investments` or `investment_snapshots` since M4.3a already carried `bond`/`time_deposit` in the subtype CHECK and the accrued-interest value column). Five-subtype tenancy test now covers all of stock/mutual_fund/gold/bond/time_deposit; snapshot-shape validation exercises both XOR branches.
+- **M4.3b-frontend next**: per-subtype list/detail pages and create/edit dialogs for Bond + TimeDeposit. Snapshot dialog set for the accrued-interest shape (parallel to the quantity+price set from M4.3a-frontend, per the "fork by shape, not by group" convention).
 
 ## What M4.2 shipped
 
@@ -59,15 +60,26 @@ Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:
 - `frontend/src/App.tsx` — Investments replaces the placeholder with a three-level nav (Group > Investments > {Stocks, Mutual Funds, Gold}). `Selection` union extended with `{kind: 'stock'|'mutual_fund'|'gold', investmentId}`.
 - Bundle size: ~840KB / ~228KB gzipped (Recharts deferred code-split note in the deferred-items list, was ~790KB before M4.3a-frontend).
 
+## What M4.3b backend shipped
+
+- `backend/internal/migrations/00007_bonds_time_deposits.sql` — adds `bond_details` (bond_type enum `govt_primary|secondary_market`, issuer, face_value, coupon_rate, coupon_frequency enum `monthly|quarterly|semi_annual|annual` default monthly, maturity_date) and `time_deposit_details` (bank_name, principal, interest_rate, term_months, placement_date, maturity_date, rollover_policy enum `auto_renew_principal|auto_renew_with_interest|no_rollover`). No new indexes (deferred per the spec grilling — M4.2 precedent).
+- `backend/queries/{bonds,time_deposits}.sql` — Create/Get/List-by-IDs/Update on each details table. No detail-table soft-delete; parent's `softDeleteInvestment` cascades.
+- `backend/internal/repo/{bonds,time_deposits}.go` — `CreateBond` / `CreateTimeDeposit` (txn-wrapped parent + details), `Get/Update/Delete` with subtype guard mirroring stocks/golds. `validateInvestmentSnapshotShape` already covered `bond` and `time_deposit` since M4.3a; no change needed in `investments.go`.
+- `backend/internal/investments/{bonds,time_deposits}.go` — HTTP handlers mounted under `/api/investments/bonds` and `/api/investments/time-deposits`. `maturity_date` / `placement_date` accepted as `YYYY-MM-DD` strings; Go-side `time.Parse` rather than relying on validator.
+- `backend/internal/repo/investments_tenancy_test.go` — extended to five subtypes. New subtests cover bond/time_deposit list isolation, bob get/update/delete on each, subtype guard from bond → stock/time_deposit, alice happy-path update + delete on bond + TD. `TestInvestmentRepo_SnapshotShapeValidation` now exercises the accrued-interest XOR branch (missing accrued rejected, quantity+price rejected, accrued-only accepted).
+
 ## M4.3 design decisions (settled during the grilling round)
 
 1. **Snapshot routes are per-group**: `/api/investments/{id}/snapshots`. Mirrors ADR-0022 and the M4.2 pattern.
-2. **Subtypes ship in two batches** to validate each snapshot shape independently:
+2. **Subtypes shipped in two batches** to validate each snapshot shape independently:
    - M4.3a = Stock + MutualFund + Gold (quantity+price shape) — **done**
-   - M4.3b = Bond + TimeDeposit (accrued-interest shape) — pending
+   - M4.3b = Bond + TimeDeposit (accrued-interest shape) — **done** (backend)
 3. **XOR shape integrity is two-layer**: DB CHECK rejects rows that satisfy no shape or both; the repo's `validateInvestmentSnapshotShape(subtype, ...)` rejects rows that pick the wrong shape for their parent's subtype (Postgres CHECK can't reference another table). Returns `repo.ErrInvalidSnapshotShape`, mapped to 400 in handlers.
 4. **Transactions stay out of M4.3** — deferred to M4.4 (Buy/Sell/Coupon/Dividend/Distribution/Fee/Maturity).
 5. **Three-level nav** (Investments > {subtype}) is acceptable for M4.3-frontend; React Router migration still flagged for M4.9.
+6. **Snapshot `amount` is dirty for the accrued-interest shape** — for Bond/TimeDeposit, `amount` is the total position value (already includes accrued interest); `accrued_interest` is a *breakdown* column for income-tracking visibility and is never additive at aggregation time. Documented in ADR-0022 and CONTEXT.md (the Snapshot definition).
+7. **Floating-rate bonds (SBR, ST) use a plain `coupon_rate` field** — the user edits it on each rate reset. No structured rate_type / spread / base model; KISS, defer until UI needs filtering or display badges.
+8. **Early TimeDeposit withdrawal folds into the `sold` status** — `sold` is the generic "fully exited before scheduled term" outcome per CONTEXT.md; the frontend renders a subtype-aware label ("Withdrawn early" for TD).
 
 ## Conventions to keep, not to break
 

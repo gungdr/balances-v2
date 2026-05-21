@@ -53,6 +53,16 @@ type BankAccountDetail struct {
 	AccountType   string    `json:"account_type"`
 }
 
+type BondDetail struct {
+	InvestmentID    uuid.UUID       `json:"investment_id"`
+	BondType        string          `json:"bond_type"`
+	Issuer          string          `json:"issuer"`
+	FaceValue       decimal.Decimal `json:"face_value"`
+	CouponRate      decimal.Decimal `json:"coupon_rate"`
+	CouponFrequency string          `json:"coupon_frequency"`
+	MaturityDate    time.Time       `json:"maturity_date"`
+}
+
 type GoldDetail struct {
 	InvestmentID uuid.UUID       `json:"investment_id"`
 	Form         string          `json:"form"`
@@ -221,6 +231,17 @@ type StockDetail struct {
 	InvestmentID uuid.UUID `json:"investment_id"`
 	Ticker       string    `json:"ticker"`
 	Exchange     string    `json:"exchange"`
+}
+
+type TimeDepositDetail struct {
+	InvestmentID   uuid.UUID       `json:"investment_id"`
+	BankName       string          `json:"bank_name"`
+	Principal      decimal.Decimal `json:"principal"`
+	InterestRate   decimal.Decimal `json:"interest_rate"`
+	TermMonths     int32           `json:"term_months"`
+	PlacementDate  time.Time       `json:"placement_date"`
+	MaturityDate   time.Time       `json:"maturity_date"`
+	RolloverPolicy string          `json:"rollover_policy"`
 }
 
 type User struct {

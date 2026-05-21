@@ -1,0 +1,147 @@
+package investments
+
+import (
+	"encoding/json"
+	"net/http"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+
+	"github.com/kerti/balances-v2/backend/internal/repo"
+)
+
+type createBondReq struct {
+	DisplayName     string           `json:"display_name"       validate:"required"`
+	Description     *string          `json:"description"`
+	OwnershipType   string           `json:"ownership_type"     validate:"required,oneof=sole joint"`
+	SoleOwnerUserID *uuid.UUID       `json:"sole_owner_user_id" validate:"required_if=OwnershipType sole"`
+	NativeCurrency  string           `json:"native_currency"    validate:"required,iso4217"`
+	BondType        string           `json:"bond_type"          validate:"required,oneof=govt_primary secondary_market"`
+	Issuer          string           `json:"issuer"             validate:"required"`
+	FaceValue       *decimal.Decimal `json:"face_value"         validate:"required"`
+	CouponRate      *decimal.Decimal `json:"coupon_rate"        validate:"required"`
+	CouponFrequency string           `json:"coupon_frequency"   validate:"required,oneof=monthly quarterly semi_annual annual"`
+	MaturityDate    string           `json:"maturity_date"      validate:"required"`
+}
+
+type updateBondReq struct {
+	DisplayName     string           `json:"display_name"     validate:"required"`
+	Description     *string          `json:"description"`
+	BondType        string           `json:"bond_type"        validate:"required,oneof=govt_primary secondary_market"`
+	Issuer          string           `json:"issuer"           validate:"required"`
+	FaceValue       *decimal.Decimal `json:"face_value"       validate:"required"`
+	CouponRate      *decimal.Decimal `json:"coupon_rate"      validate:"required"`
+	CouponFrequency string           `json:"coupon_frequency" validate:"required,oneof=monthly quarterly semi_annual annual"`
+	MaturityDate    string           `json:"maturity_date"    validate:"required"`
+}
+
+func (h *Handlers) handleCreateBond(w http.ResponseWriter, r *http.Request) {
+	var req createBondReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json body", http.StatusBadRequest)
+		return
+	}
+	if err := h.validate.Struct(&req); err != nil {
+		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	maturity, err := time.Parse("2006-01-02", req.MaturityDate)
+	if err != nil {
+		http.Error(w, "invalid maturity_date: expected YYYY-MM-DD", http.StatusBadRequest)
+		return
+	}
+
+	b, err := h.repo.CreateBond(r.Context(), repo.CreateBondParams{
+		DisplayName:     req.DisplayName,
+		Description:     req.Description,
+		OwnershipType:   req.OwnershipType,
+		SoleOwnerUserID: req.SoleOwnerUserID,
+		NativeCurrency:  req.NativeCurrency,
+		BondType:        req.BondType,
+		Issuer:          req.Issuer,
+		FaceValue:       *req.FaceValue,
+		CouponRate:      *req.CouponRate,
+		CouponFrequency: req.CouponFrequency,
+		MaturityDate:    maturity,
+	})
+	if err != nil {
+		writeRepoError(w, "create bond", err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, b)
+}
+
+func (h *Handlers) handleListBonds(w http.ResponseWriter, r *http.Request) {
+	list, err := h.repo.ListBonds(r.Context())
+	if err != nil {
+		writeRepoError(w, "list bonds", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, list)
+}
+
+func (h *Handlers) handleGetBond(w http.ResponseWriter, r *http.Request) {
+	id, err := parseIDParam(r, "id")
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	b, err := h.repo.GetBond(r.Context(), id)
+	if err != nil {
+		writeRepoError(w, "get bond", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, b)
+}
+
+func (h *Handlers) handleUpdateBond(w http.ResponseWriter, r *http.Request) {
+	id, err := parseIDParam(r, "id")
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	var req updateBondReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json body", http.StatusBadRequest)
+		return
+	}
+	if err := h.validate.Struct(&req); err != nil {
+		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	maturity, err := time.Parse("2006-01-02", req.MaturityDate)
+	if err != nil {
+		http.Error(w, "invalid maturity_date: expected YYYY-MM-DD", http.StatusBadRequest)
+		return
+	}
+
+	b, err := h.repo.UpdateBond(r.Context(), id, repo.UpdateBondParams{
+		DisplayName:     req.DisplayName,
+		Description:     req.Description,
+		BondType:        req.BondType,
+		Issuer:          req.Issuer,
+		FaceValue:       *req.FaceValue,
+		CouponRate:      *req.CouponRate,
+		CouponFrequency: req.CouponFrequency,
+		MaturityDate:    maturity,
+	})
+	if err != nil {
+		writeRepoError(w, "update bond", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, b)
+}
+
+func (h *Handlers) handleDeleteBond(w http.ResponseWriter, r *http.Request) {
+	id, err := parseIDParam(r, "id")
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	if err := h.repo.DeleteBond(r.Context(), id); err != nil {
+		writeRepoError(w, "delete bond", err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

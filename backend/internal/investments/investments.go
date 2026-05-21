@@ -75,6 +75,26 @@ func (h *Handlers) Mount(r chi.Router) {
 			})
 		})
 
+		r.Route("/bonds", func(r chi.Router) {
+			r.Post("/", h.handleCreateBond)
+			r.Get("/", h.handleListBonds)
+			r.Route("/{id}", func(r chi.Router) {
+				r.Get("/", h.handleGetBond)
+				r.Patch("/", h.handleUpdateBond)
+				r.Delete("/", h.handleDeleteBond)
+			})
+		})
+
+		r.Route("/time-deposits", func(r chi.Router) {
+			r.Post("/", h.handleCreateTimeDeposit)
+			r.Get("/", h.handleListTimeDeposits)
+			r.Route("/{id}", func(r chi.Router) {
+				r.Get("/", h.handleGetTimeDeposit)
+				r.Patch("/", h.handleUpdateTimeDeposit)
+				r.Delete("/", h.handleDeleteTimeDeposit)
+			})
+		})
+
 		r.Route("/{id}/snapshots", func(r chi.Router) {
 			r.Post("/", h.handleCreateSnapshot)
 			r.Get("/", h.handleListSnapshots)

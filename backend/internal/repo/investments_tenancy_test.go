@@ -15,11 +15,11 @@ import (
 )
 
 // TestInvestmentRepo_TenancyAndCRUD verifies cross-Household isolation across
-// the M4.3a Investment subtypes (stock, mutual_fund, gold), the subtype
-// guard between them, the snapshot tenancy path, and the alice-side
-// happy-path CRUD success branches per the Phase 1 coverage pattern.
-// Investment snapshots share a per-group table (ADR-0022) so the snapshot
-// CRUD is exercised once via the stock fixture.
+// all five Investment subtypes (stock, mutual_fund, gold from M4.3a; bond,
+// time_deposit from M4.3b), the subtype guard between them, the snapshot
+// tenancy path, and the alice-side happy-path CRUD success branches per the
+// Phase 1 coverage pattern. Investment snapshots share a per-group table
+// (ADR-0022) so the snapshot CRUD is exercised once via the stock fixture.
 func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 	tdb := testutil.NewTestDB(t)
 	q := db.New(tdb.Pool)
@@ -66,6 +66,37 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("alice CreateGold: %v", err)
+	}
+	couponRate, _ := decimal.NewFromString("0.0625")
+	aliceBond, err := r.CreateBond(aliceCtx, repo.CreateBondParams{
+		DisplayName:     "Alice ORI024",
+		OwnershipType:   "joint",
+		NativeCurrency:  "IDR",
+		BondType:        "govt_primary",
+		Issuer:          "Republik Indonesia",
+		FaceValue:       decimal.NewFromInt(10_000_000),
+		CouponRate:      couponRate,
+		CouponFrequency: "monthly",
+		MaturityDate:    time.Date(2029, time.October, 15, 0, 0, 0, 0, time.UTC),
+	})
+	if err != nil {
+		t.Fatalf("alice CreateBond: %v", err)
+	}
+	interestRate, _ := decimal.NewFromString("0.055")
+	aliceTD, err := r.CreateTimeDeposit(aliceCtx, repo.CreateTimeDepositParams{
+		DisplayName:    "Alice BCA TD",
+		OwnershipType:  "joint",
+		NativeCurrency: "IDR",
+		BankName:       "BCA",
+		Principal:      decimal.NewFromInt(50_000_000),
+		InterestRate:   interestRate,
+		TermMonths:     12,
+		PlacementDate:  time.Date(2026, time.January, 15, 0, 0, 0, 0, time.UTC),
+		MaturityDate:   time.Date(2027, time.January, 15, 0, 0, 0, 0, time.UTC),
+		RolloverPolicy: "auto_renew_principal",
+	})
+	if err != nil {
+		t.Fatalf("alice CreateTimeDeposit: %v", err)
 	}
 
 	// Quantity+price snapshot under the stock, used to drive snapshot tenancy
@@ -116,6 +147,26 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 		}
 	})
 
+	t.Run("bob list bonds excludes alice's", func(t *testing.T) {
+		list, err := r.ListBonds(bobCtx)
+		if err != nil {
+			t.Fatalf("ListBonds: %v", err)
+		}
+		if len(list) != 0 {
+			t.Errorf("bob saw %d bonds; want 0", len(list))
+		}
+	})
+
+	t.Run("bob list time deposits excludes alice's", func(t *testing.T) {
+		list, err := r.ListTimeDeposits(bobCtx)
+		if err != nil {
+			t.Fatalf("ListTimeDeposits: %v", err)
+		}
+		if len(list) != 0 {
+			t.Errorf("bob saw %d time deposits; want 0", len(list))
+		}
+	})
+
 	t.Run("bob get returns ErrNotFound across subtypes", func(t *testing.T) {
 		if _, err := r.GetStock(bobCtx, aliceStock.Investment.ID); !errors.Is(err, repo.ErrNotFound) {
 			t.Errorf("GetStock: want ErrNotFound, got %v", err)
@@ -125,6 +176,12 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 		}
 		if _, err := r.GetGold(bobCtx, aliceGold.Investment.ID); !errors.Is(err, repo.ErrNotFound) {
 			t.Errorf("GetGold: want ErrNotFound, got %v", err)
+		}
+		if _, err := r.GetBond(bobCtx, aliceBond.Investment.ID); !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("GetBond: want ErrNotFound, got %v", err)
+		}
+		if _, err := r.GetTimeDeposit(bobCtx, aliceTD.Investment.ID); !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("GetTimeDeposit: want ErrNotFound, got %v", err)
 		}
 	})
 
@@ -149,6 +206,29 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 		}); !errors.Is(err, repo.ErrNotFound) {
 			t.Errorf("UpdateGold: want ErrNotFound, got %v", err)
 		}
+		if _, err := r.UpdateBond(bobCtx, aliceBond.Investment.ID, repo.UpdateBondParams{
+			DisplayName:     "stolen!",
+			BondType:        "govt_primary",
+			Issuer:          "Republik Indonesia",
+			FaceValue:       decimal.NewFromInt(10_000_000),
+			CouponRate:      couponRate,
+			CouponFrequency: "monthly",
+			MaturityDate:    aliceBond.Details.MaturityDate,
+		}); !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("UpdateBond: want ErrNotFound, got %v", err)
+		}
+		if _, err := r.UpdateTimeDeposit(bobCtx, aliceTD.Investment.ID, repo.UpdateTimeDepositParams{
+			DisplayName:    "stolen!",
+			BankName:       "BCA",
+			Principal:      decimal.NewFromInt(50_000_000),
+			InterestRate:   interestRate,
+			TermMonths:     12,
+			PlacementDate:  aliceTD.Details.PlacementDate,
+			MaturityDate:   aliceTD.Details.MaturityDate,
+			RolloverPolicy: "auto_renew_principal",
+		}); !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("UpdateTimeDeposit: want ErrNotFound, got %v", err)
+		}
 	})
 
 	t.Run("bob delete returns ErrNotFound across subtypes", func(t *testing.T) {
@@ -161,19 +241,46 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 		if err := r.DeleteGold(bobCtx, aliceGold.Investment.ID); !errors.Is(err, repo.ErrNotFound) {
 			t.Errorf("DeleteGold: want ErrNotFound, got %v", err)
 		}
+		if err := r.DeleteBond(bobCtx, aliceBond.Investment.ID); !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("DeleteBond: want ErrNotFound, got %v", err)
+		}
+		if err := r.DeleteTimeDeposit(bobCtx, aliceTD.Investment.ID); !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("DeleteTimeDeposit: want ErrNotFound, got %v", err)
+		}
 	})
 
 	// ----- Subtype guard (alice context, wrong subtype method) ---------
 
-	t.Run("alice's stock fetched via mutual-fund or gold methods returns ErrNotFound", func(t *testing.T) {
+	t.Run("alice's stock fetched via wrong-subtype methods returns ErrNotFound", func(t *testing.T) {
 		if _, err := r.GetMutualFund(aliceCtx, aliceStock.Investment.ID); !errors.Is(err, repo.ErrNotFound) {
 			t.Errorf("GetMutualFund on stock id: want ErrNotFound, got %v", err)
 		}
 		if _, err := r.GetGold(aliceCtx, aliceStock.Investment.ID); !errors.Is(err, repo.ErrNotFound) {
 			t.Errorf("GetGold on stock id: want ErrNotFound, got %v", err)
 		}
+		if _, err := r.GetBond(aliceCtx, aliceStock.Investment.ID); !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("GetBond on stock id: want ErrNotFound, got %v", err)
+		}
+		if _, err := r.GetTimeDeposit(aliceCtx, aliceStock.Investment.ID); !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("GetTimeDeposit on stock id: want ErrNotFound, got %v", err)
+		}
 		if err := r.DeleteMutualFund(aliceCtx, aliceStock.Investment.ID); !errors.Is(err, repo.ErrNotFound) {
 			t.Errorf("DeleteMutualFund on stock id: want ErrNotFound, got %v", err)
+		}
+		if err := r.DeleteBond(aliceCtx, aliceStock.Investment.ID); !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("DeleteBond on stock id: want ErrNotFound, got %v", err)
+		}
+		if err := r.DeleteTimeDeposit(aliceCtx, aliceStock.Investment.ID); !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("DeleteTimeDeposit on stock id: want ErrNotFound, got %v", err)
+		}
+	})
+
+	t.Run("alice's bond fetched via stock or time-deposit methods returns ErrNotFound", func(t *testing.T) {
+		if _, err := r.GetStock(aliceCtx, aliceBond.Investment.ID); !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("GetStock on bond id: want ErrNotFound, got %v", err)
+		}
+		if _, err := r.GetTimeDeposit(aliceCtx, aliceBond.Investment.ID); !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("GetTimeDeposit on bond id: want ErrNotFound, got %v", err)
 		}
 	})
 
@@ -244,6 +351,14 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 		if err != nil || len(golds) != 1 {
 			t.Fatalf("alice ListGolds: len=%d err=%v", len(golds), err)
 		}
+		bonds, err := r.ListBonds(aliceCtx)
+		if err != nil || len(bonds) != 1 {
+			t.Fatalf("alice ListBonds: len=%d err=%v", len(bonds), err)
+		}
+		tds, err := r.ListTimeDeposits(aliceCtx)
+		if err != nil || len(tds) != 1 {
+			t.Fatalf("alice ListTimeDeposits: len=%d err=%v", len(tds), err)
+		}
 	})
 
 	// ----- Alice happy-path CRUD ---------------------------------------
@@ -286,6 +401,43 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 		}
 		if updated.Investment.DisplayName != "Alice Antam Bar renamed" {
 			t.Errorf("DisplayName: got %q, want %q", updated.Investment.DisplayName, "Alice Antam Bar renamed")
+		}
+	})
+
+	t.Run("alice update bond persists new display_name", func(t *testing.T) {
+		updated, err := r.UpdateBond(aliceCtx, aliceBond.Investment.ID, repo.UpdateBondParams{
+			DisplayName:     "Alice ORI024 renamed",
+			BondType:        "govt_primary",
+			Issuer:          "Republik Indonesia",
+			FaceValue:       decimal.NewFromInt(10_000_000),
+			CouponRate:      couponRate,
+			CouponFrequency: "monthly",
+			MaturityDate:    aliceBond.Details.MaturityDate,
+		})
+		if err != nil {
+			t.Fatalf("UpdateBond: %v", err)
+		}
+		if updated.Investment.DisplayName != "Alice ORI024 renamed" {
+			t.Errorf("DisplayName: got %q, want %q", updated.Investment.DisplayName, "Alice ORI024 renamed")
+		}
+	})
+
+	t.Run("alice update time deposit persists new display_name", func(t *testing.T) {
+		updated, err := r.UpdateTimeDeposit(aliceCtx, aliceTD.Investment.ID, repo.UpdateTimeDepositParams{
+			DisplayName:    "Alice BCA TD renamed",
+			BankName:       "BCA",
+			Principal:      decimal.NewFromInt(50_000_000),
+			InterestRate:   interestRate,
+			TermMonths:     12,
+			PlacementDate:  aliceTD.Details.PlacementDate,
+			MaturityDate:   aliceTD.Details.MaturityDate,
+			RolloverPolicy: "auto_renew_principal",
+		})
+		if err != nil {
+			t.Fatalf("UpdateTimeDeposit: %v", err)
+		}
+		if updated.Investment.DisplayName != "Alice BCA TD renamed" {
+			t.Errorf("DisplayName: got %q, want %q", updated.Investment.DisplayName, "Alice BCA TD renamed")
 		}
 	})
 
@@ -355,12 +507,31 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 			t.Errorf("GetGold after delete: want ErrNotFound, got %v", err)
 		}
 	})
+
+	t.Run("alice delete bond removes it", func(t *testing.T) {
+		if err := r.DeleteBond(aliceCtx, aliceBond.Investment.ID); err != nil {
+			t.Fatalf("DeleteBond: %v", err)
+		}
+		if _, err := r.GetBond(aliceCtx, aliceBond.Investment.ID); !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("GetBond after delete: want ErrNotFound, got %v", err)
+		}
+	})
+
+	t.Run("alice delete time deposit removes it", func(t *testing.T) {
+		if err := r.DeleteTimeDeposit(aliceCtx, aliceTD.Investment.ID); err != nil {
+			t.Fatalf("DeleteTimeDeposit: %v", err)
+		}
+		if _, err := r.GetTimeDeposit(aliceCtx, aliceTD.Investment.ID); !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("GetTimeDeposit after delete: want ErrNotFound, got %v", err)
+		}
+	})
 }
 
 // TestInvestmentRepo_SnapshotShapeValidation exercises the repo-level
 // subtype→shape mapping that the DB's column-level CHECK can't express
 // (ADR-0022). Stock/MutualFund/Gold require quantity+price_per_unit and
-// reject accrued_interest; the wrong combo surfaces as
+// reject accrued_interest; Bond/TimeDeposit require accrued_interest and
+// reject quantity/price. The wrong combo surfaces as
 // ErrInvalidSnapshotShape rather than a SQL constraint violation.
 func TestInvestmentRepo_SnapshotShapeValidation(t *testing.T) {
 	tdb := testutil.NewTestDB(t)
@@ -380,6 +551,22 @@ func TestInvestmentRepo_SnapshotShapeValidation(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("CreateStock: %v", err)
+	}
+
+	couponRate, _ := decimal.NewFromString("0.0625")
+	bond, err := r.CreateBond(aliceCtx, repo.CreateBondParams{
+		DisplayName:     "ORI024",
+		OwnershipType:   "joint",
+		NativeCurrency:  "IDR",
+		BondType:        "govt_primary",
+		Issuer:          "Republik Indonesia",
+		FaceValue:       decimal.NewFromInt(10_000_000),
+		CouponRate:      couponRate,
+		CouponFrequency: "monthly",
+		MaturityDate:    time.Date(2029, time.October, 15, 0, 0, 0, 0, time.UTC),
+	})
+	if err != nil {
+		t.Fatalf("CreateBond: %v", err)
 	}
 
 	qty := decimal.NewFromInt(100)
@@ -441,6 +628,52 @@ func TestInvestmentRepo_SnapshotShapeValidation(t *testing.T) {
 		}
 		if !snap.Amount.Equal(decimal.NewFromInt(950_000)) {
 			t.Errorf("Amount: got %s, want 950000", snap.Amount)
+		}
+	})
+
+	t.Run("bond snapshot missing accrued_interest is rejected", func(t *testing.T) {
+		_, err := r.CreateInvestmentSnapshot(aliceCtx, repo.CreateInvestmentSnapshotParams{
+			InvestmentID: bond.Investment.ID,
+			YearMonth:    time.Date(2026, time.May, 1, 0, 0, 0, 0, time.UTC),
+			Amount:       decimal.NewFromInt(10_050_000),
+			Currency:     "IDR",
+		})
+		if !errors.Is(err, repo.ErrInvalidSnapshotShape) {
+			t.Errorf("want ErrInvalidSnapshotShape, got %v", err)
+		}
+	})
+
+	t.Run("bond snapshot with quantity+price is rejected", func(t *testing.T) {
+		_, err := r.CreateInvestmentSnapshot(aliceCtx, repo.CreateInvestmentSnapshotParams{
+			InvestmentID:    bond.Investment.ID,
+			YearMonth:       time.Date(2026, time.May, 1, 0, 0, 0, 0, time.UTC),
+			Amount:          decimal.NewFromInt(10_050_000),
+			Currency:        "IDR",
+			Quantity:        &qty,
+			PricePerUnit:    &price,
+			AccruedInterest: &accrued,
+		})
+		if !errors.Is(err, repo.ErrInvalidSnapshotShape) {
+			t.Errorf("want ErrInvalidSnapshotShape, got %v", err)
+		}
+	})
+
+	t.Run("bond snapshot with accrued_interest only is accepted", func(t *testing.T) {
+		snap, err := r.CreateInvestmentSnapshot(aliceCtx, repo.CreateInvestmentSnapshotParams{
+			InvestmentID:    bond.Investment.ID,
+			YearMonth:       time.Date(2026, time.May, 1, 0, 0, 0, 0, time.UTC),
+			Amount:          decimal.NewFromInt(10_050_000),
+			Currency:        "IDR",
+			AccruedInterest: &accrued,
+		})
+		if err != nil {
+			t.Fatalf("CreateInvestmentSnapshot: %v", err)
+		}
+		if !snap.Amount.Equal(decimal.NewFromInt(10_050_000)) {
+			t.Errorf("Amount: got %s, want 10050000", snap.Amount)
+		}
+		if snap.AccruedInterest == nil || !snap.AccruedInterest.Equal(accrued) {
+			t.Errorf("AccruedInterest: got %v, want %s", snap.AccruedInterest, accrued)
 		}
 	})
 
