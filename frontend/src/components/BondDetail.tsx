@@ -223,7 +223,10 @@ export function BondDetail({ investmentId, onBack }: Props) {
           {!snapshots || snapshots.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
               No snapshots yet. Click "New snapshot" to record this month's
-              total value and accrued interest.
+              reading. For held-to-maturity bonds (Indonesian govt-primary
+              where coupons pay out to your bank account), a single initial
+              snapshot at face value is enough — snapshot carry-forward
+              handles every subsequent month until maturity.
             </p>
           ) : (
             <>

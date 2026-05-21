@@ -28,7 +28,7 @@ A position in an individual equity, tracked per ticker.
 A position in a single mutual fund, tracked per fund.
 
 **Bond**:
-A fixed-income instrument with face value, coupon rate, and maturity. Each Bond is either **GovtPrimary** (issued directly by government, typically held to maturity) or **SecondaryMarket** (purchased on the secondary market, may trade before maturity). Coupon frequency is one of `monthly | quarterly | semi_annual | annual` — Indonesian retail (ORI/SBR/SR/ST) pays monthly; tradeable govt FR series and most corporates pay semi-annually. For floating-rate instruments (SBR, ST) the stored coupon rate is the *current* rate; the user edits it on each reset.
+A fixed-income instrument with face value, coupon rate, and maturity. Each Bond is either **GovtPrimary** (issued directly by government, typically held to maturity) or **SecondaryMarket** (purchased on the secondary market, may trade before maturity). Coupon frequency is one of `monthly | quarterly | semi_annual | annual` — Indonesian retail (ORI/SBR/SR/ST) pays monthly; tradeable govt FR series and most corporates pay semi-annually. For floating-rate instruments (SBR, ST) the stored coupon rate is the *current* rate; the user edits it on each reset. **Coupon disposition** varies in practice: Indonesian govt-primary retail coupons pay out *directly to the user's bank account* each period (the income is tracked as a Coupon Transaction; the bond's accrued component at any snapshot is structurally 0). Secondary-market and corporate bonds typically *accrue* between coupon dates — accrued > 0 between coupons, resets at each coupon. The Snapshot model accommodates both: accrued is a breakdown column, 0 is a valid value.
 _Avoid_: Obligation, Obligasi.
 
 **Gold**:

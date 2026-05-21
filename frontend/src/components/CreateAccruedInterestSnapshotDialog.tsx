@@ -31,10 +31,13 @@ function thisYearMonth(): string {
 }
 
 function emptyForm() {
+  // accrued defaults to 0: covers the common Indonesian-govt-primary case
+  // where coupons pay out to the bank account directly (no in-instrument
+  // accrual). Secondary-market bond + TimeDeposit users override.
   return {
     year_month: thisYearMonth(),
     amount: '',
-    accrued_interest: '',
+    accrued_interest: '0',
     as_of_date: '',
     description: '',
   }
@@ -160,6 +163,13 @@ export function CreateAccruedInterestSnapshotDialog<TResult>({
                 : '—'}
             </span>
           </div>
+
+          <p className="text-xs text-muted-foreground">
+            Leave accrued at 0 if your bond pays coupons directly to your
+            bank account each period (Indonesian govt-primary retail:
+            ORI/SBR/SR/ST). Override for secondary-market bonds and time
+            deposits where interest accrues inside the instrument.
+          </p>
 
           <div className="grid gap-2">
             <Label htmlFor="ai_description">Description (optional)</Label>
