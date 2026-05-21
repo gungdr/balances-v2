@@ -49,6 +49,17 @@ consistency with `asset_snapshots.amount`, `liability_snapshots.amount`, and
 uniform `(year_month, amount, currency)` shape to net-worth aggregation and to
 the shared frontend snapshot components.
 
+For the accrued-interest shape (Bond, TimeDeposit), `amount` is **dirty** — it
+is the total position value including any accrued interest since the last
+coupon/interest payout. `accrued_interest` is carried alongside as a *breakdown*
+column for income-tracking visibility (e.g., "of which IDR X is unpaid accrual"
+on a detail view, or to separate capital from income in a future income
+statement). It is never added to `amount` for aggregation. This convention keeps
+net-worth aggregation uniform: every snapshot table's `SUM(amount)` is
+authoritative without needing per-shape adjustments. Programmers reading the
+schema should not interpret `accrued_interest` as additive to `amount` — the
+relationship is that `amount` *contains* it.
+
 A `CHECK` constraint enforces the XOR shape:
 
 ```sql

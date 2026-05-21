@@ -28,7 +28,7 @@ A position in an individual equity, tracked per ticker.
 A position in a single mutual fund, tracked per fund.
 
 **Bond**:
-A fixed-income instrument with face value, coupon rate, and maturity. Each Bond is either **GovtPrimary** (issued directly by government, typically held to maturity) or **SecondaryMarket** (purchased on the secondary market, may trade before maturity).
+A fixed-income instrument with face value, coupon rate, and maturity. Each Bond is either **GovtPrimary** (issued directly by government, typically held to maturity) or **SecondaryMarket** (purchased on the secondary market, may trade before maturity). Coupon frequency is one of `monthly | quarterly | semi_annual | annual` — Indonesian retail (ORI/SBR/SR/ST) pays monthly; tradeable govt FR series and most corporates pay semi-annually. For floating-rate instruments (SBR, ST) the stored coupon rate is the *current* rate; the user edits it on each reset.
 _Avoid_: Obligation, Obligasi.
 
 **Gold**:
@@ -41,7 +41,7 @@ _Avoid_: Deposit (ambiguous with cash held in a bank account).
 ### Snapshots and transactions
 
 **Snapshot**:
-A monthly observation of a position's value. Asset / Liability / Receivable snapshots record an amount in a currency. Stock / MutualFund / Gold snapshots record quantity, market price per unit, and total value. Bond / TimeDeposit snapshots record accrued interest and total value. All snapshot values are entered manually from statements; the system does not auto-compute interest or market value.
+A monthly observation of a position's value. Asset / Liability / Receivable snapshots record an amount in a currency. Stock / MutualFund / Gold snapshots record quantity, market price per unit, and total value (= quantity × price). Bond / TimeDeposit snapshots record total value and accrued interest, where **total value is dirty** — it already includes the accrued interest. `accrued_interest` is carried as a breakdown column for income-tracking visibility, not as an additive component. Net-worth aggregation sums `total value` uniformly across all snapshot tables. All snapshot values are entered manually from statements; the system does not auto-compute interest or market value.
 
 **Transaction**:
 An event in an Investment instrument's ledger. Types: **Buy**, **Sell**, **Coupon**, **Dividend**, **Distribution**, **Fee**, **Maturity**.
