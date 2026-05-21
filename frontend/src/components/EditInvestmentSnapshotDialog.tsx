@@ -1,0 +1,200 @@
+import { useState } from 'react'
+import type { UseMutationResult } from '@tanstack/react-query'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { ApiError } from '@/api/client'
+import { formatCurrency } from '@/lib/format'
+import type { UpdateInvestmentSnapshotPayload } from '@/hooks/useInvestmentSnapshots'
+
+type InvestmentSnapshotLike = {
+  id: string
+  amount: string
+  currency: string
+  quantity: string | null
+  price_per_unit: string | null
+  as_of_date: string | null
+  description: string | null
+}
+
+export type UpdateInvestmentSnapshotMutationVariables = {
+  snapshotId: string
+  payload: UpdateInvestmentSnapshotPayload
+}
+
+type Props<TResult> = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  snapshot: InvestmentSnapshotLike
+  // Mutation owned by the parent so the dialog works for any
+  // M4.3a investment subtype (stock / mutual_fund / gold).
+  mutation: UseMutationResult<
+    TResult,
+    unknown,
+    UpdateInvestmentSnapshotMutationVariables
+  >
+}
+
+function deriveAmount(quantity: string, pricePerUnit: string): string | null {
+  const q = Number(quantity)
+  const p = Number(pricePerUnit)
+  if (!quantity || !pricePerUnit || Number.isNaN(q) || Number.isNaN(p)) {
+    return null
+  }
+  return (q * p).toString()
+}
+
+// year_month is not editable here (same constraint as the amount-shape edit
+// dialog — would break the (investment_id, year_month) unique index).
+export function EditInvestmentSnapshotDialog<TResult>({
+  open,
+  onOpenChange,
+  snapshot,
+  mutation,
+}: Props<TResult>) {
+  const [form, setForm] = useState({
+    quantity: snapshot.quantity ?? '',
+    price_per_unit: snapshot.price_per_unit ?? '',
+    as_of_date: snapshot.as_of_date ? snapshot.as_of_date.slice(0, 10) : '',
+    description: snapshot.description ?? '',
+  })
+
+  const derivedAmount = deriveAmount(form.quantity, form.price_per_unit)
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault()
+    if (derivedAmount === null) return
+    mutation.mutate(
+      {
+        snapshotId: snapshot.id,
+        payload: {
+          amount: derivedAmount,
+          currency: snapshot.currency,
+          quantity: form.quantity,
+          price_per_unit: form.price_per_unit,
+          accrued_interest: null,
+          as_of_date: form.as_of_date || null,
+          description: form.description || null,
+        },
+      },
+      { onSuccess: () => onOpenChange(false) },
+    )
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit snapshot</DialogTitle>
+          <DialogDescription>
+            Update the quantity, price, statement date, or description. To
+            change the month, delete and re-create.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-2">
+              <Label htmlFor="edit_inv_quantity">Quantity</Label>
+              <Input
+                id="edit_inv_quantity"
+                required
+                inputMode="decimal"
+                value={form.quantity}
+                onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit_inv_price_per_unit">
+                Price per unit ({snapshot.currency})
+              </Label>
+              <Input
+                id="edit_inv_price_per_unit"
+                required
+                inputMode="decimal"
+                value={form.price_per_unit}
+                onChange={(e) =>
+                  setForm({ ...form, price_per_unit: e.target.value })
+                }
+              />
+            </div>
+          </div>
+
+          <div className="rounded-md bg-muted px-3 py-2 text-sm">
+            <span className="text-muted-foreground">Total value:</span>{' '}
+            <span className="font-medium">
+              {derivedAmount !== null
+                ? formatCurrency(derivedAmount, snapshot.currency)
+                : '—'}
+            </span>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="edit_inv_as_of_date">
+              Statement date (optional)
+            </Label>
+            <Input
+              id="edit_inv_as_of_date"
+              type="date"
+              value={form.as_of_date}
+              onChange={(e) =>
+                setForm({ ...form, as_of_date: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="edit_inv_snap_description">
+              Description (optional)
+            </Label>
+            <Input
+              id="edit_inv_snap_description"
+              value={form.description}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
+            />
+          </div>
+
+          {mutation.isError && (
+            <p className="text-sm text-destructive">
+              {formatError(mutation.error)}
+            </p>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={mutation.isPending || derivedAmount === null}
+            >
+              {mutation.isPending ? 'Saving…' : 'Save changes'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function formatError(err: unknown): string {
+  if (err instanceof ApiError) {
+    if (typeof err.body === 'string' && err.body) return err.body
+    return `${err.status} ${err.message}`
+  }
+  if (err instanceof Error) return err.message
+  return 'unknown error'
+}

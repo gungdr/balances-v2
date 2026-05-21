@@ -185,3 +185,102 @@ export type ReceivableListItem = {
   receivable: Receivable
   latest_snapshot: ReceivableSnapshot | null
 }
+
+// ----- investment ------------------------------------------------------
+
+export type InvestmentSubtype =
+  | 'stock'
+  | 'mutual_fund'
+  | 'gold'
+  | 'bond'
+  | 'time_deposit'
+
+export type Investment = {
+  id: string
+  household_id: string
+  display_name: string
+  description: string | null
+  subtype: InvestmentSubtype
+  ownership_type: 'sole' | 'joint'
+  sole_owner_user_id: string | null
+  native_currency: string
+  status: 'active' | 'sold' | 'matured'
+  terminated_at: string | null
+  termination_note: string | null
+  created_by: string | null
+  created_at: string
+  updated_by: string | null
+  updated_at: string
+}
+
+// One snapshot table per ADR-0022. quantity + price_per_unit are populated
+// for stock/mutual_fund/gold; accrued_interest is populated for
+// bond/time_deposit (M4.3b). The repo validates which combo is valid based
+// on the parent investment's subtype.
+export type InvestmentSnapshot = {
+  id: string
+  investment_id: string
+  year_month: string
+  amount: string
+  currency: string
+  quantity: string | null
+  price_per_unit: string | null
+  accrued_interest: string | null
+  as_of_date: string | null
+  description: string | null
+  created_by: string | null
+  created_at: string
+  updated_by: string | null
+  updated_at: string
+}
+
+export type StockDetails = {
+  investment_id: string
+  ticker: string
+  exchange: string
+}
+
+export type Stock = {
+  investment: Investment
+  details: StockDetails
+}
+
+export type StockListItem = {
+  investment: Investment
+  details: StockDetails
+  latest_snapshot: InvestmentSnapshot | null
+}
+
+export type MutualFundDetails = {
+  investment_id: string
+  fund_code: string
+  fund_manager: string | null
+}
+
+export type MutualFund = {
+  investment: Investment
+  details: MutualFundDetails
+}
+
+export type MutualFundListItem = {
+  investment: Investment
+  details: MutualFundDetails
+  latest_snapshot: InvestmentSnapshot | null
+}
+
+export type GoldDetails = {
+  investment_id: string
+  form: 'bar' | 'coin' | 'digital' | 'jewelry'
+  purity: string
+}
+
+export type Gold = {
+  investment: Investment
+  details: GoldDetails
+}
+
+export type GoldListItem = {
+  investment: Investment
+  details: GoldDetails
+  latest_snapshot: InvestmentSnapshot | null
+}

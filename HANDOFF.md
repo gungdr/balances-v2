@@ -17,8 +17,8 @@ Read these first, in order:
 - **M4.2 complete**: liability + receivable groups end-to-end. Last commit on `origin/main`: see `git log -1`.
 - **CI/coverage side quest complete (post-M4.2)**: GitHub Actions runs golangci-lint + `go test -race -coverprofile` + Codecov upload + ESLint + `npm run build` on every push to `main` and every PR. Coverage thresholds are informational-only until alpha. Codecov needs `CODECOV_TOKEN` (already set in repo secrets) because Codecov treats the default branch as protected even on public repos. Phase 1 coverage backfill added happy-path CRUD tests to the five repo tenancy suites; `internal/repo` sits around 70%. HTTP handler coverage (currently 0% across `internal/{assets,liabilities,receivables,auth}`) is deferred to a future side quest.
 - **M4.3a backend complete**: Investments group with Stock + MutualFund + Gold subtypes shipped end-to-end on the backend (migration, repo, handlers, tenancy + happy-path + shape-validation tests). `investment_snapshots` column is `amount` (ADR-0022 was backtracked from `total_value` for cross-group consistency). Subtype and status enums carry all forward-compat values so M4.3b adds extension tables without ALTERs. `internal/repo` coverage ~72%.
-- **M4.3a-frontend pending**: hooks, list/detail pages per subtype, dialogs, three-level nav (Investments > {Stock, MutualFund, Gold}). Backend is ready for it.
-- **M4.3b next (after M4.3a-frontend)**: Bond + TimeDeposit (accrued-interest snapshot shape). Adds two extension tables and exercises the second XOR branch.
+- **M4.3a-frontend complete**: three-level nav (Investments > {Stocks, Mutual Funds, Gold}); per-subtype list/detail pages and create/edit dialogs; quantity×price snapshot dialog set with derived amount preview. Smoke-tested end-to-end against the live backend.
+- **M4.3b next**: Bond + TimeDeposit (accrued-interest snapshot shape). Adds two extension tables and exercises the second XOR branch.
 
 ## What M4.2 shipped
 
@@ -47,6 +47,18 @@ Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:
 - `backend/internal/investments/*` — HTTP package mounted under `/api/investments`, with `/stocks`, `/mutual-funds`, `/golds` subtype CRUD and `/{id}/snapshots` snapshot CRUD. `repoErrorStatus` maps `ErrInvalidSnapshotShape` to 400.
 - `backend/internal/repo/investments_tenancy_test.go` — covers cross-tenant rejection across all three subtypes, the subtype guard between them, snapshot tenancy, alice-side happy-path CRUD, and a separate `TestInvestmentRepo_SnapshotShapeValidation` exercising the repo's shape XOR.
 
+## What M4.3a-frontend shipped
+
+- `frontend/src/hooks/useInvestments.ts` — per-subtype CRUD (stocks / mutual-funds / golds) against `/api/investments/*`. Each subtype has its own list/detail/create/update/delete hooks; list queries cache under `['stocks']`, `['mutual-funds']`, `['golds']`.
+- `frontend/src/hooks/useInvestmentSnapshots.ts` — shared snapshot CRUD at `/api/investments/{id}/snapshots`. The mutation hooks take a `listKey: 'stocks' | 'mutual-funds' | 'golds'` so they can invalidate the right parent list when a snapshot changes (each list inlines `latest_snapshot`).
+- `frontend/src/components/{Stocks,MutualFunds,Golds}Screen.tsx`, `{Stock,MutualFund,Gold}ListRow.tsx`, `Create{Stock,MutualFund,Gold}Dialog.tsx`, `Edit{Stock,MutualFund,Gold}Dialog.tsx` — list, row, and dialog set per subtype. Edit dialogs accept either the detail `Stock`/`MutualFund`/`Gold` aggregate or the list-row `*ListItem` so both call sites can reuse them.
+- `frontend/src/components/{Stock,MutualFund,Gold}Detail.tsx` — detail pages mirror `LiabilityDetail`: own snapshot mutations, pass them as props to the snapshot dialogs/row, share `SnapshotChart`. Each detail page hardcodes its `quantityUnit` for the row ("sh" / "units" / "g").
+- `frontend/src/components/CreateInvestmentSnapshotDialog.tsx` + `EditInvestmentSnapshotDialog.tsx` + `InvestmentSnapshotRow.tsx` — **separate** from the amount-only `CreateSnapshotDialog`/`EditSnapshotDialog`/`SnapshotRow`. They take Quantity + Price-per-unit inputs and derive `amount = qty × price` client-side (shown as a preview, sent on the wire alongside the two factors). The backend's `validateInvestmentSnapshotShape` re-checks the subtype→shape mapping. This was a deliberate fork — see the convention note below.
+- `frontend/src/lib/gold.ts` — `formatGoldPurity` helper that renders "24K (.999+)", "22K", "18K", or falls through to a percentage. Used in `GoldListRow` and `GoldDetail`.
+- `frontend/src/api/types.ts` — added `Investment`, `InvestmentSnapshot`, `Stock`/`MutualFund`/`Gold` aggregates and `*ListItem` variants. `InvestmentSubtype` carries all five values for forward compatibility with M4.3b.
+- `frontend/src/App.tsx` — Investments replaces the placeholder with a three-level nav (Group > Investments > {Stocks, Mutual Funds, Gold}). `Selection` union extended with `{kind: 'stock'|'mutual_fund'|'gold', investmentId}`.
+- Bundle size: ~840KB / ~228KB gzipped (Recharts deferred code-split note in the deferred-items list, was ~790KB before M4.3a-frontend).
+
 ## M4.3 design decisions (settled during the grilling round)
 
 1. **Snapshot routes are per-group**: `/api/investments/{id}/snapshots`. Mirrors ADR-0022 and the M4.2 pattern.
@@ -66,7 +78,7 @@ These are not ADRs because they're tactical, but they're load-bearing:
 - **Subtype guards.** When an entity is in a shared table (`assets` and `investments`), `Delete{Subtype}` and `Update{Subtype}` must verify the subtype before mutating. See `DeleteBankAccount` calling `GetBankAccount` first, and `DeleteStock` calling `GetStock` first.
 - **Investment subtype→snapshot-shape validation lives in the repo, not the DB.** `validateInvestmentSnapshotShape(subtype, quantity, pricePerUnit, accruedInterest)` switches on subtype and returns `ErrInvalidSnapshotShape` if the value-column combo is wrong. The DB's CHECK only enforces "exactly one shape." When adding a new investment subtype, update both the switch in this helper and the `subtype` CHECK in migration 00006.
 - **No transaction wrapping** in `Create{Liability|Receivable}` because there's no extension table to also write. **Wrap in `pool.Begin` when there is** (e.g., `CreateBankAccount` writes assets + bank_account_details). This will apply to all five investment subtypes.
-- **Snapshot UI is group-agnostic now.** When you add investment snapshots, pass the relevant `useMutation` results into `CreateSnapshotDialog`/`EditSnapshotDialog`/`SnapshotRow` as props. Don't create per-group versions.
+- **Snapshot UI is split by shape.** Amount-only groups (asset, liability, receivable) share `CreateSnapshotDialog`/`EditSnapshotDialog`/`SnapshotRow` — pass the relevant `useMutation` results in as props, don't fork per group. Investments use a parallel set: `CreateInvestmentSnapshotDialog`/`EditInvestmentSnapshotDialog`/`InvestmentSnapshotRow` for the quantity+price shape (M4.3a). The fork is by snapshot *shape*, not by group; M4.3b's accrued-interest shape will need its own dialog set or will need one of these to grow a shape prop.
 - **`SnapshotChart` is shared.** Don't fork it per group — it's already generic over `{year_month, amount}[]`.
 - **Title Case** for nav labels, page H1s, data-section card titles. **Sentence case** for descriptions, empty-state messages, verb-phrase button labels. See M4.1 close commit for examples.
 - **Two-level nav** for groups with subtypes; **flat** for groups without. Liabilities = two-level. Receivables = flat. Investments will be two-level.
@@ -136,7 +148,9 @@ CI runs both on every push. golangci-lint config is at `.golangci.yml` (repo roo
 - Sole-owner user picker UI (currently defaults to current user)
 - React Router migration (M4.9)
 - Settings/Household page that holds the invite form (currently piggybacking on the bank-accounts tab)
-- Recharts code-split (bundle is ~790KB / 224KB gz — warning on build)
+- Recharts code-split (bundle is ~840KB / 228KB gz — warning on build)
+- Diagnose `serve` not auto-applying migrations: HANDOFF claims migrations auto-run on `go run ./cmd/balances serve` but during M4.3a-frontend smoke testing, migration 00006 required a manual `migrate up`. Either the auto-migrate path is broken or the doc is wrong.
+- Pagination footer in `{BankAccount,Property,Vehicle,Liability,Receivable,Stock,MutualFund,Gold}Detail.tsx` is the same `PaginationControls` block copy-pasted 8 times. Extract once it's clear the shape is stable.
 - Position lifecycle UI: editable status / terminated_at / termination_note (M4.8)
 
 ## Updating this document

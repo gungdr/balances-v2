@@ -21,15 +21,25 @@ import { LiabilitiesScreen } from '@/components/LiabilitiesScreen'
 import { LiabilityDetail } from '@/components/LiabilityDetail'
 import { ReceivablesScreen } from '@/components/ReceivablesScreen'
 import { ReceivableDetail } from '@/components/ReceivableDetail'
+import { StocksScreen } from '@/components/StocksScreen'
+import { StockDetail } from '@/components/StockDetail'
+import { MutualFundsScreen } from '@/components/MutualFundsScreen'
+import { MutualFundDetail } from '@/components/MutualFundDetail'
+import { GoldsScreen } from '@/components/GoldsScreen'
+import { GoldDetail } from '@/components/GoldDetail'
 
 type Group = 'assets' | 'liabilities' | 'receivables' | 'investments' | 'income'
 type AssetSubtype = 'bank_account' | 'property' | 'vehicle'
 type LiabilitySubtype = 'personal' | 'institutional'
+type InvestmentSubtypeNav = 'stock' | 'mutual_fund' | 'gold'
 
 type Selection =
   | { kind: AssetSubtype; assetId: string }
   | { kind: 'liability'; liabilityId: string }
   | { kind: 'receivable'; receivableId: string }
+  | { kind: 'stock'; investmentId: string }
+  | { kind: 'mutual_fund'; investmentId: string }
+  | { kind: 'gold'; investmentId: string }
 
 function App() {
   const { data: user, isPending } = useSession()
@@ -40,6 +50,8 @@ function App() {
   const [assetSubtype, setAssetSubtype] = useState<AssetSubtype>('bank_account')
   const [liabilitySubtype, setLiabilitySubtype] =
     useState<LiabilitySubtype>('personal')
+  const [investmentSubtype, setInvestmentSubtype] =
+    useState<InvestmentSubtypeNav>('stock')
   const [selection, setSelection] = useState<Selection | null>(null)
 
   if (isPending) {
@@ -84,6 +96,24 @@ function App() {
         {selection.kind === 'receivable' && (
           <ReceivableDetail
             receivableId={selection.receivableId}
+            onBack={() => setSelection(null)}
+          />
+        )}
+        {selection.kind === 'stock' && (
+          <StockDetail
+            investmentId={selection.investmentId}
+            onBack={() => setSelection(null)}
+          />
+        )}
+        {selection.kind === 'mutual_fund' && (
+          <MutualFundDetail
+            investmentId={selection.investmentId}
+            onBack={() => setSelection(null)}
+          />
+        )}
+        {selection.kind === 'gold' && (
+          <GoldDetail
+            investmentId={selection.investmentId}
             onBack={() => setSelection(null)}
           />
         )}
@@ -176,7 +206,39 @@ function App() {
           </TabsContent>
 
           <TabsContent value="investments" className="mt-6">
-            <ComingSoonCard title="Investments" milestone="M4.3–M4.6" />
+            <Tabs
+              value={investmentSubtype}
+              onValueChange={(v) =>
+                setInvestmentSubtype(v as InvestmentSubtypeNav)
+              }
+            >
+              <TabsList>
+                <TabsTrigger value="stock">Stocks</TabsTrigger>
+                <TabsTrigger value="mutual_fund">Mutual Funds</TabsTrigger>
+                <TabsTrigger value="gold">Gold</TabsTrigger>
+              </TabsList>
+              <TabsContent value="stock" className="mt-6">
+                <StocksScreen
+                  onSelect={(investmentId) =>
+                    setSelection({ kind: 'stock', investmentId })
+                  }
+                />
+              </TabsContent>
+              <TabsContent value="mutual_fund" className="mt-6">
+                <MutualFundsScreen
+                  onSelect={(investmentId) =>
+                    setSelection({ kind: 'mutual_fund', investmentId })
+                  }
+                />
+              </TabsContent>
+              <TabsContent value="gold" className="mt-6">
+                <GoldsScreen
+                  onSelect={(investmentId) =>
+                    setSelection({ kind: 'gold', investmentId })
+                  }
+                />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
           <TabsContent value="income" className="mt-6">
             <ComingSoonCard title="Income" milestone="M4.7" />
