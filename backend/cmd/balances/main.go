@@ -75,6 +75,10 @@ func serveCmd() error {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
+	if err := applyMigrations(ctx, cfg.DatabaseURL); err != nil {
+		return fmt.Errorf("migrate: %w", err)
+	}
+
 	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return fmt.Errorf("connect db: %w", err)
@@ -150,6 +154,20 @@ func serveCmd() error {
 	case err := <-errCh:
 		return err
 	}
+}
+
+func applyMigrations(ctx context.Context, dsn string) error {
+	dbConn, err := sql.Open("pgx", dsn)
+	if err != nil {
+		return fmt.Errorf("open db: %w", err)
+	}
+	defer func() { _ = dbConn.Close() }()
+
+	goose.SetBaseFS(migrations.FS)
+	if err := goose.SetDialect("postgres"); err != nil {
+		return fmt.Errorf("set dialect: %w", err)
+	}
+	return goose.UpContext(ctx, dbConn, ".")
 }
 
 func migrateCmd(args []string) error {
