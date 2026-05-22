@@ -20,6 +20,7 @@ Read these first, in order:
 - **M4.3a-frontend complete**: three-level nav (Investments > {Stocks, Mutual Funds, Gold}); per-subtype list/detail pages and create/edit dialogs; quantity×price snapshot dialog set with derived amount preview. Smoke-tested end-to-end against the live backend.
 - **M4.3b backend complete**: Bond + TimeDeposit subtypes shipped end-to-end on the backend (migration 00007 adds the two extension tables; no schema change to `investments` or `investment_snapshots` since M4.3a already carried `bond`/`time_deposit` in the subtype CHECK and the accrued-interest value column). Five-subtype tenancy test now covers all of stock/mutual_fund/gold/bond/time_deposit; snapshot-shape validation exercises both XOR branches.
 - **M4.3b-frontend complete**: per-subtype Bond + TimeDeposit UI (5 components each), three-set snapshot dialog fork (amount-only / quantity-price / accrued-interest) with the existing investment trio renamed to `QuantityPriceSnapshot*` for shape-based naming uniformity. Investments nav extended to 5 tabs (Stocks → Mutual Funds → Bonds → Time Deposits → Gold). Pre-M4.3b-frontend prep: migration 00008 backtracked rate storage convention from decimal fraction to percentage (`0.055` → `5.5`) across liability/property/vehicle/bond/time-deposit rates — uniform "type what you read on the statement" UX; migration 00009 added `bond_details.series_code` for parallel-with-MutualFund symmetry.
+- **Recharts code-split side quest complete (post-M4.3b-frontend)**: `SnapshotChart` is now a lazy wrapper around `SnapshotChartImpl` (default export, holds recharts + the shadcn chart wrapper). Detail pages keep their `import { SnapshotChart }` unchanged; the empty-snapshot short-circuit stays in the wrapper so the chunk isn't even fetched on empty data. `vite.config.ts` also gained `manualChunks` peeling React, Radix, react-query, and lucide into their own chunks, and `server.host: true` for LAN access during dev. Main chunk dropped from 890 kB / 233 kB gz to 242 kB / 35 kB gz; recharts is a 337 kB / 100 kB gz lazy chunk; chunk-size warning gone.
 - **M4.4 (Transactions) next**: Buy / Sell / Coupon / Dividend / Distribution / Fee / Maturity for investment instruments. ADR-0003 defers cash propagation to bank-account snapshots — transactions are income/cost-basis ledgers only.
 
 ## What M4.2 shipped
@@ -59,7 +60,7 @@ Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:
 - `frontend/src/lib/gold.ts` — `formatGoldPurity` helper that renders "24K (.999+)", "22K", "18K", or falls through to a percentage. Used in `GoldListRow` and `GoldDetail`.
 - `frontend/src/api/types.ts` — added `Investment`, `InvestmentSnapshot`, `Stock`/`MutualFund`/`Gold` aggregates and `*ListItem` variants. `InvestmentSubtype` carries all five values for forward compatibility with M4.3b.
 - `frontend/src/App.tsx` — Investments replaces the placeholder with a three-level nav (Group > Investments > {Stocks, Mutual Funds, Gold}). `Selection` union extended with `{kind: 'stock'|'mutual_fund'|'gold', investmentId}`.
-- Bundle size: ~840KB / ~228KB gzipped (Recharts deferred code-split note in the deferred-items list, was ~790KB before M4.3a-frontend).
+- Bundle size: ~840KB / ~228KB gzipped (was ~790KB before M4.3a-frontend; later code-split in the Recharts side quest, see below).
 
 ## What M4.3b backend shipped
 
@@ -173,7 +174,6 @@ CI runs both on every push. golangci-lint config is at `.golangci.yml` (repo roo
 - Sole-owner user picker UI (currently defaults to current user)
 - React Router migration (M4.9)
 - Settings/Household page that holds the invite form (currently piggybacking on the bank-accounts tab)
-- Recharts code-split (bundle is ~890KB / 233KB gz — warning on build)
 - Diagnose `serve` not auto-applying migrations: HANDOFF claims migrations auto-run on `go run ./cmd/balances serve` but during M4.3a-frontend smoke testing, migration 00006 required a manual `migrate up`. Either the auto-migrate path is broken or the doc is wrong.
 - Pagination footer in `{BankAccount,Property,Vehicle,Liability,Receivable,Stock,MutualFund,Gold,Bond,TimeDeposit}Detail.tsx` is the same `PaginationControls` block copy-pasted 10 times. Extract once it's clear the shape is stable.
 - Position lifecycle UI: editable status / terminated_at / termination_note (M4.8)
