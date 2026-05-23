@@ -27,4 +27,19 @@ var (
 	// rows that satisfy no shape; this error catches rows that pick the wrong
 	// shape for their parent's subtype (which the DB can't see).
 	ErrInvalidSnapshotShape = errors.New("repo: invalid investment snapshot shape for subtype")
+
+	// ErrInvalidTransactionType is returned when an Investment transaction
+	// mutation asks for a transaction_type the parent's subtype doesn't
+	// support (e.g., Coupon on a Stock, Buy on a TimeDeposit). The DB-level
+	// CHECK enforces shape-vs-type consistency; this error enforces the
+	// subtype-vs-type compatibility matrix (which the DB can't see).
+	ErrInvalidTransactionType = errors.New("repo: invalid transaction type for subtype")
+
+	// ErrInvalidTransactionShape is returned when an Investment transaction
+	// mutation supplies a value-column combination that doesn't match its
+	// declared transaction_type (e.g., Buy without quantity, Maturity
+	// without principal_disposition). Caught at the repo layer with a
+	// human-readable message; the DB CHECK would also reject these but
+	// later in the call.
+	ErrInvalidTransactionShape = errors.New("repo: invalid transaction shape for type")
 )

@@ -1,0 +1,283 @@
+package repo
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/shopspring/decimal"
+
+	"github.com/kerti/balances-v2/backend/internal/db"
+)
+
+// Transaction-type constants. Mirrors the CHECK constraint enum in
+// migration 00010. Subtype→type compatibility lives in
+// validateInvestmentTransactionType below.
+const (
+	TxnTypeBuy          = "buy"
+	TxnTypeSell         = "sell"
+	TxnTypeCoupon       = "coupon"
+	TxnTypeDividend     = "dividend"
+	TxnTypeDistribution = "distribution"
+	TxnTypeFee          = "fee"
+	TxnTypeMaturity     = "maturity"
+)
+
+// Disposition values for Maturity transactions (ADR-0009 §"Maturity
+// transaction extension").
+const (
+	DispositionRolledToNew = "rolled_to_new"
+	DispositionCashOut     = "cash_out"
+)
+
+type CreateInvestmentTransactionParams struct {
+	InvestmentID         uuid.UUID
+	TransactionType      string
+	TransactionDate      time.Time
+	Currency             string
+	Description          *string
+	Amount               *decimal.Decimal
+	Quantity             *decimal.Decimal
+	PricePerUnit         *decimal.Decimal
+	PrincipalAmount      *decimal.Decimal
+	InterestAmount       *decimal.Decimal
+	PrincipalDisposition *string
+	InterestDisposition  *string
+}
+
+type UpdateInvestmentTransactionParams struct {
+	TransactionID        uuid.UUID
+	TransactionDate      time.Time
+	Currency             string
+	Description          *string
+	Amount               *decimal.Decimal
+	Quantity             *decimal.Decimal
+	PricePerUnit         *decimal.Decimal
+	PrincipalAmount      *decimal.Decimal
+	InterestAmount       *decimal.Decimal
+	PrincipalDisposition *string
+	InterestDisposition  *string
+}
+
+func (r *InvestmentRepo) CreateInvestmentTransaction(ctx context.Context, p CreateInvestmentTransactionParams) (*db.InvestmentTransaction, error) {
+	user, hid, err := currentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	inv, err := r.q.GetInvestmentByID(ctx, db.GetInvestmentByIDParams{ID: p.InvestmentID, HouseholdID: hid})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("get investment for transaction: %w", err)
+	}
+	if err := validateInvestmentTransactionType(inv.Subtype, p.TransactionType); err != nil {
+		return nil, err
+	}
+	if err := validateInvestmentTransactionShape(p); err != nil {
+		return nil, err
+	}
+
+	txn, err := r.q.CreateInvestmentTransaction(ctx, db.CreateInvestmentTransactionParams{
+		ID:                   p.InvestmentID,
+		TransactionType:      p.TransactionType,
+		TransactionDate:      p.TransactionDate,
+		Currency:             p.Currency,
+		Description:          p.Description,
+		Amount:               p.Amount,
+		Quantity:             p.Quantity,
+		PricePerUnit:         p.PricePerUnit,
+		PrincipalAmount:      p.PrincipalAmount,
+		InterestAmount:       p.InterestAmount,
+		PrincipalDisposition: p.PrincipalDisposition,
+		InterestDisposition:  p.InterestDisposition,
+		CreatedBy:            &user,
+		HouseholdID:          hid,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("create investment transaction: %w", err)
+	}
+	return &txn, nil
+}
+
+func (r *InvestmentRepo) ListInvestmentTransactions(ctx context.Context, investmentID uuid.UUID) ([]db.InvestmentTransaction, error) {
+	_, hid, err := currentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.q.ListInvestmentTransactionsForInvestment(ctx, db.ListInvestmentTransactionsForInvestmentParams{
+		InvestmentID: investmentID,
+		HouseholdID:  hid,
+	})
+}
+
+func (r *InvestmentRepo) UpdateInvestmentTransaction(ctx context.Context, p UpdateInvestmentTransactionParams) (*db.InvestmentTransaction, error) {
+	user, hid, err := currentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Look up the existing row to validate the shape against its
+	// (immutable) transaction_type. Cross-tenant attempts reach the first
+	// ErrNotFound here since the query is household-scoped.
+	existing, err := r.q.GetInvestmentTransactionByID(ctx, db.GetInvestmentTransactionByIDParams{ID: p.TransactionID, HouseholdID: hid})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("get investment transaction: %w", err)
+	}
+	if err := validateInvestmentTransactionShape(CreateInvestmentTransactionParams{
+		TransactionType:      existing.TransactionType,
+		Amount:               p.Amount,
+		Quantity:             p.Quantity,
+		PricePerUnit:         p.PricePerUnit,
+		PrincipalAmount:      p.PrincipalAmount,
+		InterestAmount:       p.InterestAmount,
+		PrincipalDisposition: p.PrincipalDisposition,
+		InterestDisposition:  p.InterestDisposition,
+	}); err != nil {
+		return nil, err
+	}
+
+	txn, err := r.q.UpdateInvestmentTransaction(ctx, db.UpdateInvestmentTransactionParams{
+		ID:                   p.TransactionID,
+		HouseholdID:          hid,
+		TransactionDate:      p.TransactionDate,
+		Currency:             p.Currency,
+		Description:          p.Description,
+		Amount:               p.Amount,
+		Quantity:             p.Quantity,
+		PricePerUnit:         p.PricePerUnit,
+		PrincipalAmount:      p.PrincipalAmount,
+		InterestAmount:       p.InterestAmount,
+		PrincipalDisposition: p.PrincipalDisposition,
+		InterestDisposition:  p.InterestDisposition,
+		UpdatedBy:            &user,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("update investment transaction: %w", err)
+	}
+	return &txn, nil
+}
+
+func (r *InvestmentRepo) DeleteInvestmentTransaction(ctx context.Context, transactionID uuid.UUID) error {
+	user, hid, err := currentUser(ctx)
+	if err != nil {
+		return err
+	}
+	rows, err := r.q.SoftDeleteInvestmentTransaction(ctx, db.SoftDeleteInvestmentTransactionParams{
+		ID:          transactionID,
+		HouseholdID: hid,
+		UpdatedBy:   &user,
+	})
+	if err != nil {
+		return fmt.Errorf("soft delete investment transaction: %w", err)
+	}
+	if rows == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+// validateInvestmentTransactionType enforces the subtype→type matrix.
+// TimeDeposit only accepts Maturity (placement lives in the Create dialog).
+// Bond accepts the full equity-style trade plus Coupon and Maturity.
+// Other subtypes accept their natural cash-income type.
+func validateInvestmentTransactionType(subtype, txnType string) error {
+	allowed := map[string]map[string]bool{
+		"stock": {
+			TxnTypeBuy: true, TxnTypeSell: true,
+			TxnTypeDividend: true, TxnTypeFee: true,
+		},
+		"mutual_fund": {
+			TxnTypeBuy: true, TxnTypeSell: true,
+			TxnTypeDistribution: true, TxnTypeFee: true,
+		},
+		"bond": {
+			TxnTypeBuy: true, TxnTypeSell: true,
+			TxnTypeCoupon: true, TxnTypeFee: true, TxnTypeMaturity: true,
+		},
+		"gold": {
+			TxnTypeBuy: true, TxnTypeSell: true, TxnTypeFee: true,
+		},
+		"time_deposit": {
+			TxnTypeMaturity: true,
+		},
+	}
+	types, ok := allowed[subtype]
+	if !ok {
+		return fmt.Errorf("%w: unknown subtype %q", ErrInvalidTransactionType, subtype)
+	}
+	if !types[txnType] {
+		return fmt.Errorf("%w: %s does not accept transaction type %q", ErrInvalidTransactionType, subtype, txnType)
+	}
+	return nil
+}
+
+// validateInvestmentTransactionShape enforces that the value-column combo
+// matches the declared transaction_type. The DB CHECK enforces this too,
+// but catching here gives a friendlier error.
+func validateInvestmentTransactionShape(p CreateInvestmentTransactionParams) error {
+	switch p.TransactionType {
+	case TxnTypeBuy, TxnTypeSell:
+		if p.Amount == nil || p.Quantity == nil || p.PricePerUnit == nil {
+			return fmt.Errorf("%w: %s requires amount, quantity, and price_per_unit", ErrInvalidTransactionShape, p.TransactionType)
+		}
+		if p.PrincipalAmount != nil || p.InterestAmount != nil ||
+			p.PrincipalDisposition != nil || p.InterestDisposition != nil {
+			return fmt.Errorf("%w: %s must not have maturity columns", ErrInvalidTransactionShape, p.TransactionType)
+		}
+	case TxnTypeCoupon, TxnTypeDividend, TxnTypeDistribution:
+		if p.Amount == nil {
+			return fmt.Errorf("%w: %s requires amount", ErrInvalidTransactionShape, p.TransactionType)
+		}
+		if p.Quantity != nil || p.PricePerUnit != nil {
+			return fmt.Errorf("%w: %s must not have quantity or price_per_unit", ErrInvalidTransactionShape, p.TransactionType)
+		}
+		if p.PrincipalAmount != nil || p.InterestAmount != nil ||
+			p.PrincipalDisposition != nil || p.InterestDisposition != nil {
+			return fmt.Errorf("%w: %s must not have maturity columns", ErrInvalidTransactionShape, p.TransactionType)
+		}
+	case TxnTypeFee:
+		if p.Amount == nil {
+			return fmt.Errorf("%w: fee requires amount", ErrInvalidTransactionShape)
+		}
+		// quantity and price_per_unit are optional but must be paired.
+		if (p.Quantity == nil) != (p.PricePerUnit == nil) {
+			return fmt.Errorf("%w: fee quantity and price_per_unit must be set together", ErrInvalidTransactionShape)
+		}
+		if p.PrincipalAmount != nil || p.InterestAmount != nil ||
+			p.PrincipalDisposition != nil || p.InterestDisposition != nil {
+			return fmt.Errorf("%w: fee must not have maturity columns", ErrInvalidTransactionShape)
+		}
+	case TxnTypeMaturity:
+		if p.PrincipalAmount == nil || p.InterestAmount == nil ||
+			p.PrincipalDisposition == nil || p.InterestDisposition == nil {
+			return fmt.Errorf("%w: maturity requires principal_amount, interest_amount, and both dispositions", ErrInvalidTransactionShape)
+		}
+		if !isValidDisposition(*p.PrincipalDisposition) || !isValidDisposition(*p.InterestDisposition) {
+			return fmt.Errorf("%w: dispositions must be %s or %s", ErrInvalidTransactionShape, DispositionRolledToNew, DispositionCashOut)
+		}
+		if p.Amount != nil || p.Quantity != nil || p.PricePerUnit != nil {
+			return fmt.Errorf("%w: maturity must not have amount, quantity, or price_per_unit", ErrInvalidTransactionShape)
+		}
+	default:
+		return fmt.Errorf("%w: unknown transaction type %q", ErrInvalidTransactionShape, p.TransactionType)
+	}
+	return nil
+}
+
+func isValidDisposition(d string) bool {
+	return d == DispositionRolledToNew || d == DispositionCashOut
+}

@@ -340,3 +340,40 @@ export type TimeDepositListItem = {
   details: TimeDepositDetails
   latest_snapshot: InvestmentSnapshot | null
 }
+
+// ----- investment transaction (M4.4) ------------------------------------
+
+export type TransactionType =
+  | 'buy'
+  | 'sell'
+  | 'coupon'
+  | 'dividend'
+  | 'distribution'
+  | 'fee'
+  | 'maturity'
+
+export type Disposition = 'rolled_to_new' | 'cash_out'
+
+// Single polymorphic transaction row. The repo enforces subtype→type
+// compatibility; the DB CHECK enforces type→shape integrity (per
+// migration 00010). Frontend reads fields conditionally based on
+// transaction_type — fields irrelevant to the type are null.
+export type InvestmentTransaction = {
+  id: string
+  investment_id: string
+  transaction_type: TransactionType
+  transaction_date: string // YYYY-MM-DD
+  currency: string
+  description: string | null
+  amount: string | null
+  quantity: string | null
+  price_per_unit: string | null
+  principal_amount: string | null
+  interest_amount: string | null
+  principal_disposition: Disposition | null
+  interest_disposition: Disposition | null
+  created_by: string | null
+  created_at: string
+  updated_by: string | null
+  updated_at: string
+}

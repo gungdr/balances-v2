@@ -129,6 +129,27 @@ type InvestmentSnapshot struct {
 	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
 }
 
+type InvestmentTransaction struct {
+	ID                   uuid.UUID          `json:"id"`
+	InvestmentID         uuid.UUID          `json:"investment_id"`
+	TransactionType      string             `json:"transaction_type"`
+	TransactionDate      time.Time          `json:"transaction_date"`
+	Currency             string             `json:"currency"`
+	Description          *string            `json:"description"`
+	Amount               *decimal.Decimal   `json:"amount"`
+	Quantity             *decimal.Decimal   `json:"quantity"`
+	PricePerUnit         *decimal.Decimal   `json:"price_per_unit"`
+	PrincipalAmount      *decimal.Decimal   `json:"principal_amount"`
+	InterestAmount       *decimal.Decimal   `json:"interest_amount"`
+	PrincipalDisposition *string            `json:"principal_disposition"`
+	InterestDisposition  *string            `json:"interest_disposition"`
+	CreatedBy            *uuid.UUID         `json:"created_by"`
+	CreatedAt            pgtype.Timestamptz `json:"created_at"`
+	UpdatedBy            *uuid.UUID         `json:"updated_by"`
+	UpdatedAt            pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt            pgtype.Timestamptz `json:"deleted_at"`
+}
+
 type Liability struct {
 	ID               uuid.UUID          `json:"id"`
 	HouseholdID      uuid.UUID          `json:"household_id"`

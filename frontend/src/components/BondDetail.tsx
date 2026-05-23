@@ -22,7 +22,18 @@ import {
   useUpdateInvestmentSnapshot,
   useDeleteInvestmentSnapshot,
 } from '@/hooks/useInvestmentSnapshots'
+import {
+  useInvestmentTransactions,
+  useCreateInvestmentTransaction,
+  useUpdateInvestmentTransaction,
+  useDeleteInvestmentTransaction,
+} from '@/hooks/useInvestmentTransactions'
 import { CreateAccruedInterestSnapshotDialog } from '@/components/CreateAccruedInterestSnapshotDialog'
+import { CreateTradeTransactionDialog } from '@/components/CreateTradeTransactionDialog'
+import { CreateCashIncomeTransactionDialog } from '@/components/CreateCashIncomeTransactionDialog'
+import { CreateFeeTransactionDialog } from '@/components/CreateFeeTransactionDialog'
+import { CreateMaturityTransactionDialog } from '@/components/CreateMaturityTransactionDialog'
+import { TransactionRow } from '@/components/TransactionRow'
 import { EditBondDialog } from '@/components/EditBondDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { AccruedInterestSnapshotRow } from '@/components/AccruedInterestSnapshotRow'
@@ -54,6 +65,7 @@ function frequencyLabel(f: CouponFrequency): string {
 export function BondDetail({ investmentId, onBack }: Props) {
   const { data: bond, isPending, error } = useBond(investmentId)
   const { data: snapshots } = useInvestmentSnapshots(investmentId)
+  const { data: transactions } = useInvestmentTransactions(investmentId)
   const deleteMutation = useDeleteBond()
   const createSnapshotMutation = useCreateInvestmentSnapshot(
     investmentId,
@@ -67,16 +79,25 @@ export function BondDetail({ investmentId, onBack }: Props) {
     investmentId,
     'bonds',
   )
+  const createTransactionMutation = useCreateInvestmentTransaction(investmentId)
+  const updateTransactionMutation = useUpdateInvestmentTransaction(investmentId)
+  const deleteTransactionMutation = useDeleteInvestmentTransaction(investmentId)
 
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [page, setPage] = useState(1)
+  const [txnPage, setTxnPage] = useState(1)
 
   const totalPages = Math.max(
     1,
     Math.ceil((snapshots?.length ?? 0) / PAGE_SIZE),
   )
   const effectivePage = Math.min(page, totalPages)
+  const totalTxnPages = Math.max(
+    1,
+    Math.ceil((transactions?.length ?? 0) / PAGE_SIZE),
+  )
+  const effectiveTxnPage = Math.min(txnPage, totalTxnPages)
 
   function handleConfirmDelete() {
     deleteMutation.mutate(investmentId, {
@@ -102,6 +123,17 @@ export function BondDetail({ investmentId, onBack }: Props) {
   const pageSnapshots = (snapshots ?? []).slice(
     (effectivePage - 1) * PAGE_SIZE,
     effectivePage * PAGE_SIZE,
+  )
+  const pageTransactions = (transactions ?? []).slice(
+    (effectiveTxnPage - 1) * PAGE_SIZE,
+    effectiveTxnPage * PAGE_SIZE,
+  )
+  // Maturity is uniquely terminal — once recorded, the position is matured
+  // and no further transactions should land. The hard guard (status flip +
+  // "no transactions after matured" rule) lands with M4.8 lifecycle UI.
+  // This UI hide is a band-aid until then.
+  const hasMaturity = transactions?.some(
+    (t) => t.transaction_type === 'maturity',
   )
   const mInfo = maturityInfo(bond.details.maturity_date)
   const couponPct = Number(bond.details.coupon_rate).toFixed(2)
@@ -251,6 +283,93 @@ export function BondDetail({ investmentId, onBack }: Props) {
                     page={effectivePage}
                     totalPages={totalPages}
                     onPageChange={setPage}
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <CardTitle>Transactions</CardTitle>
+              <CardDescription>
+                Buys / sells (secondary market), coupons, fees, and the
+                terminal maturity event. For Indonesian govt-primary retail
+                bonds, log each coupon as received.
+              </CardDescription>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <CreateTradeTransactionDialog
+                currency={bond.investment.native_currency}
+                txnType="buy"
+                quantityUnit="lot"
+                mutation={createTransactionMutation}
+              />
+              <CreateTradeTransactionDialog
+                currency={bond.investment.native_currency}
+                txnType="sell"
+                quantityUnit="lot"
+                mutation={createTransactionMutation}
+              />
+              <CreateCashIncomeTransactionDialog
+                currency={bond.investment.native_currency}
+                txnType="coupon"
+                mutation={createTransactionMutation}
+              />
+              <CreateFeeTransactionDialog
+                currency={bond.investment.native_currency}
+                quantityUnit="lot"
+                mutation={createTransactionMutation}
+              />
+              {!hasMaturity && (
+                <CreateMaturityTransactionDialog
+                  currency={bond.investment.native_currency}
+                  mutation={createTransactionMutation}
+                />
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {!transactions || transactions.length === 0 ? (
+            <p className="p-6 text-sm text-muted-foreground">
+              No transactions yet. Record a Buy or Coupon to start the
+              ledger.
+            </p>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Cash impact</TableHead>
+                    <TableHead>Notes</TableHead>
+                    <TableHead className="w-12"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pageTransactions.map((t) => (
+                    <TransactionRow
+                      key={t.id}
+                      transaction={t}
+                      quantityUnit="lot"
+                      updateMutation={updateTransactionMutation}
+                      deleteMutation={deleteTransactionMutation}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+              {totalTxnPages > 1 && (
+                <div className="px-6 py-3 border-t">
+                  <PaginationControls
+                    page={effectiveTxnPage}
+                    totalPages={totalTxnPages}
+                    onPageChange={setTxnPage}
                   />
                 </div>
               )}

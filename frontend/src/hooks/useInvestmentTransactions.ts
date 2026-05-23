@@ -1,0 +1,108 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { api } from '@/api/client'
+import type {
+  InvestmentTransaction,
+  TransactionType,
+  Disposition,
+} from '@/api/types'
+
+// Transactions live under /api/investments/{id}/transactions. One shared
+// table per migration 00010; the repo's validateInvestmentTransactionType
+// enforces the subtype→type matrix (Stock → Buy/Sell/Dividend/Fee; Bond →
+// + Coupon, Maturity; TimeDeposit → Maturity only; etc.). Frontend dialogs
+// per shape fork (Trade / CashIncome / Fee / Maturity) supply the right
+// fields and leave the rest null.
+//
+// Mutations only invalidate the transactions list — unlike snapshots, the
+// parent subtype list does not denormalize transactions. If a future
+// "transaction count" or "last txn date" column lands on list rows, take
+// the useInvestmentSnapshots listKey pattern.
+
+export type CreateInvestmentTransactionPayload = {
+  transaction_type: TransactionType
+  transaction_date: string
+  currency: string
+  description: string | null
+  amount: string | null
+  quantity: string | null
+  price_per_unit: string | null
+  principal_amount: string | null
+  interest_amount: string | null
+  principal_disposition: Disposition | null
+  interest_disposition: Disposition | null
+}
+
+// transaction_type is immutable after creation — changing it would invalidate
+// the shape. The Update payload mirrors Create minus transaction_type.
+export type UpdateInvestmentTransactionPayload = Omit<
+  CreateInvestmentTransactionPayload,
+  'transaction_type'
+>
+
+export function useInvestmentTransactions(investmentId: string | null) {
+  return useQuery({
+    queryKey: ['investment-transactions', investmentId],
+    queryFn: () =>
+      api<InvestmentTransaction[]>(
+        `/api/investments/${investmentId}/transactions`,
+      ),
+    enabled: !!investmentId,
+  })
+}
+
+export function useCreateInvestmentTransaction(investmentId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: CreateInvestmentTransactionPayload) =>
+      api<InvestmentTransaction>(
+        `/api/investments/${investmentId}/transactions`,
+        {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({
+        queryKey: ['investment-transactions', investmentId],
+      })
+    },
+  })
+}
+
+export function useUpdateInvestmentTransaction(investmentId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (args: {
+      transactionId: string
+      payload: UpdateInvestmentTransactionPayload
+    }) =>
+      api<InvestmentTransaction>(
+        `/api/investments/${investmentId}/transactions/${args.transactionId}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify(args.payload),
+        },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({
+        queryKey: ['investment-transactions', investmentId],
+      })
+    },
+  })
+}
+
+export function useDeleteInvestmentTransaction(investmentId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (transactionId: string) =>
+      api(
+        `/api/investments/${investmentId}/transactions/${transactionId}`,
+        { method: 'DELETE' },
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({
+        queryKey: ['investment-transactions', investmentId],
+      })
+    },
+  })
+}

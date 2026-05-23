@@ -101,6 +101,13 @@ func (h *Handlers) Mount(r chi.Router) {
 			r.Patch("/{snapshotID}", h.handleUpdateSnapshot)
 			r.Delete("/{snapshotID}", h.handleDeleteSnapshot)
 		})
+
+		r.Route("/{id}/transactions", func(r chi.Router) {
+			r.Post("/", h.handleCreateTransaction)
+			r.Get("/", h.handleListTransactions)
+			r.Patch("/{transactionID}", h.handleUpdateTransaction)
+			r.Delete("/{transactionID}", h.handleDeleteTransaction)
+		})
 	})
 }
 
@@ -114,16 +121,19 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	}
 }
 
-// repoErrorStatus maps repo errors to HTTP statuses. ErrInvalidSnapshotShape
-// is a client-side mistake (wrong value-column combo for the subtype) so it
-// maps to 400 rather than 500.
+// repoErrorStatus maps repo errors to HTTP statuses. ErrInvalidSnapshotShape,
+// ErrInvalidTransactionType, and ErrInvalidTransactionShape are client-side
+// mistakes (wrong value-column combo, or wrong type for the subtype) so they
+// map to 400 rather than 500.
 func repoErrorStatus(err error) int {
 	switch {
 	case errors.Is(err, repo.ErrNotFound):
 		return http.StatusNotFound
 	case errors.Is(err, repo.ErrUnauthenticated):
 		return http.StatusUnauthorized
-	case errors.Is(err, repo.ErrInvalidSnapshotShape):
+	case errors.Is(err, repo.ErrInvalidSnapshotShape),
+		errors.Is(err, repo.ErrInvalidTransactionType),
+		errors.Is(err, repo.ErrInvalidTransactionShape):
 		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError

@@ -1,0 +1,159 @@
+package investments
+
+import (
+	"encoding/json"
+	"net/http"
+	"time"
+
+	"github.com/shopspring/decimal"
+
+	"github.com/kerti/balances-v2/backend/internal/repo"
+)
+
+// createTransactionReq carries all value-shape columns; the repo validates
+// which combination is required based on the declared transaction_type and
+// the parent investment's subtype. Wrong combos return
+// ErrInvalidTransactionType or ErrInvalidTransactionShape, both mapped to
+// 400 in repoErrorStatus.
+type createTransactionReq struct {
+	TransactionType      string           `json:"transaction_type" validate:"required,oneof=buy sell coupon dividend distribution fee maturity"`
+	TransactionDate      string           `json:"transaction_date" validate:"required"`
+	Currency             string           `json:"currency"         validate:"required,iso4217"`
+	Description          *string          `json:"description"`
+	Amount               *decimal.Decimal `json:"amount"`
+	Quantity             *decimal.Decimal `json:"quantity"`
+	PricePerUnit         *decimal.Decimal `json:"price_per_unit"`
+	PrincipalAmount      *decimal.Decimal `json:"principal_amount"`
+	InterestAmount       *decimal.Decimal `json:"interest_amount"`
+	PrincipalDisposition *string          `json:"principal_disposition" validate:"omitempty,oneof=rolled_to_new cash_out"`
+	InterestDisposition  *string          `json:"interest_disposition"  validate:"omitempty,oneof=rolled_to_new cash_out"`
+}
+
+// updateTransactionReq does not include transaction_type — it's immutable
+// on an existing row (changing the type would invalidate the shape).
+type updateTransactionReq struct {
+	TransactionDate      string           `json:"transaction_date" validate:"required"`
+	Currency             string           `json:"currency"         validate:"required,iso4217"`
+	Description          *string          `json:"description"`
+	Amount               *decimal.Decimal `json:"amount"`
+	Quantity             *decimal.Decimal `json:"quantity"`
+	PricePerUnit         *decimal.Decimal `json:"price_per_unit"`
+	PrincipalAmount      *decimal.Decimal `json:"principal_amount"`
+	InterestAmount       *decimal.Decimal `json:"interest_amount"`
+	PrincipalDisposition *string          `json:"principal_disposition" validate:"omitempty,oneof=rolled_to_new cash_out"`
+	InterestDisposition  *string          `json:"interest_disposition"  validate:"omitempty,oneof=rolled_to_new cash_out"`
+}
+
+func (h *Handlers) handleCreateTransaction(w http.ResponseWriter, r *http.Request) {
+	investmentID, err := parseIDParam(r, "id")
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	var req createTransactionReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json body", http.StatusBadRequest)
+		return
+	}
+	if err := h.validate.Struct(&req); err != nil {
+		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	txnDate, err := time.Parse("2006-01-02", req.TransactionDate)
+	if err != nil {
+		http.Error(w, "invalid transaction_date: expected YYYY-MM-DD", http.StatusBadRequest)
+		return
+	}
+
+	txn, err := h.repo.CreateInvestmentTransaction(r.Context(), repo.CreateInvestmentTransactionParams{
+		InvestmentID:         investmentID,
+		TransactionType:      req.TransactionType,
+		TransactionDate:      txnDate,
+		Currency:             req.Currency,
+		Description:          req.Description,
+		Amount:               req.Amount,
+		Quantity:             req.Quantity,
+		PricePerUnit:         req.PricePerUnit,
+		PrincipalAmount:      req.PrincipalAmount,
+		InterestAmount:       req.InterestAmount,
+		PrincipalDisposition: req.PrincipalDisposition,
+		InterestDisposition:  req.InterestDisposition,
+	})
+	if err != nil {
+		writeRepoError(w, "create investment transaction", err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, txn)
+}
+
+func (h *Handlers) handleListTransactions(w http.ResponseWriter, r *http.Request) {
+	investmentID, err := parseIDParam(r, "id")
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	txns, err := h.repo.ListInvestmentTransactions(r.Context(), investmentID)
+	if err != nil {
+		writeRepoError(w, "list investment transactions", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, txns)
+}
+
+func (h *Handlers) handleUpdateTransaction(w http.ResponseWriter, r *http.Request) {
+	transactionID, err := parseIDParam(r, "transactionID")
+	if err != nil {
+		http.Error(w, "invalid transaction id", http.StatusBadRequest)
+		return
+	}
+
+	var req updateTransactionReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json body", http.StatusBadRequest)
+		return
+	}
+	if err := h.validate.Struct(&req); err != nil {
+		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	txnDate, err := time.Parse("2006-01-02", req.TransactionDate)
+	if err != nil {
+		http.Error(w, "invalid transaction_date: expected YYYY-MM-DD", http.StatusBadRequest)
+		return
+	}
+
+	txn, err := h.repo.UpdateInvestmentTransaction(r.Context(), repo.UpdateInvestmentTransactionParams{
+		TransactionID:        transactionID,
+		TransactionDate:      txnDate,
+		Currency:             req.Currency,
+		Description:          req.Description,
+		Amount:               req.Amount,
+		Quantity:             req.Quantity,
+		PricePerUnit:         req.PricePerUnit,
+		PrincipalAmount:      req.PrincipalAmount,
+		InterestAmount:       req.InterestAmount,
+		PrincipalDisposition: req.PrincipalDisposition,
+		InterestDisposition:  req.InterestDisposition,
+	})
+	if err != nil {
+		writeRepoError(w, "update investment transaction", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, txn)
+}
+
+func (h *Handlers) handleDeleteTransaction(w http.ResponseWriter, r *http.Request) {
+	transactionID, err := parseIDParam(r, "transactionID")
+	if err != nil {
+		http.Error(w, "invalid transaction id", http.StatusBadRequest)
+		return
+	}
+	if err := h.repo.DeleteInvestmentTransaction(r.Context(), transactionID); err != nil {
+		writeRepoError(w, "delete investment transaction", err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
