@@ -7,7 +7,7 @@ Read these first, in order:
 2. `docs/ROADMAP.md` (six milestones)
 3. `CONTEXT.md` (domain language)
 4. This document
-5. `docs/adr/*` (twenty-two design decisions; skim the index, read the ones touching your task)
+5. `docs/adr/*` (twenty-three design decisions; skim the index, read the ones touching your task)
 6. `git log --oneline -20` (most recent direction)
 
 ## Where we are
@@ -91,6 +91,12 @@ Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:
 - All 5 detail pages (`StockDetail`/`MutualFundDetail`/`BondDetail`/`GoldDetail`/`TimeDepositDetail`) gained a Transactions Card below Snapshots, with subtype-appropriate "+ Type" buttons, a separate transaction-page state (PAGE_SIZE = 12, same as snapshots), and a row layout (Date / Type / Cash impact / Notes / Actions).
 
 ## M4.4 design decisions (settled during the pre-implementation grilling)
+
+The architectural core of these is captured in **ADR-0023** (investment
+transaction table strategy: single polymorphic table, type→shape CHECK,
+subtype→type matrix in the repo). The tactical decisions below sit on
+top of that ADR.
+
 
 1. **Single polymorphic `investment_transactions` table** with type enum + nullable per-shape columns + DB-level CHECK on type→shape (mirrors `investment_snapshots` per ADR-0022). Per-type tables were rejected — chronological "all transactions for instrument X" queries are natural in one table; cross-type sqlc queries would be 7-way UNIONs.
 2. **TimeDeposit gets Maturity only.** Initial placement lives in `time_deposit_details.principal` via the Create dialog; no redundant "Buy" placement transaction. Bond gets the full set (Buy + Sell + Coupon + Fee + Maturity) because secondary-market trades exist.
