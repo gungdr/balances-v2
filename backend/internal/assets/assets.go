@@ -93,12 +93,12 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 }
 
 // repoErrorStatus maps repo errors to appropriate HTTP statuses.
+// repo.ErrUnauthenticated is unreachable here — RequireAuth gates every
+// route in Mount, so the repo's currentUser() helper always finds a user.
 func repoErrorStatus(err error) int {
 	switch {
 	case errors.Is(err, repo.ErrNotFound):
 		return http.StatusNotFound
-	case errors.Is(err, repo.ErrUnauthenticated):
-		return http.StatusUnauthorized
 	default:
 		return http.StatusInternalServerError
 	}

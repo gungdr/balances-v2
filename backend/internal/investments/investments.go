@@ -124,13 +124,13 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 // repoErrorStatus maps repo errors to HTTP statuses. ErrInvalidSnapshotShape,
 // ErrInvalidTransactionType, and ErrInvalidTransactionShape are client-side
 // mistakes (wrong value-column combo, or wrong type for the subtype) so they
-// map to 400 rather than 500.
+// map to 400 rather than 500. repo.ErrUnauthenticated is unreachable —
+// RequireAuth gates every route in Mount, so the repo's currentUser() helper
+// always finds a user.
 func repoErrorStatus(err error) int {
 	switch {
 	case errors.Is(err, repo.ErrNotFound):
 		return http.StatusNotFound
-	case errors.Is(err, repo.ErrUnauthenticated):
-		return http.StatusUnauthorized
 	case errors.Is(err, repo.ErrInvalidSnapshotShape),
 		errors.Is(err, repo.ErrInvalidTransactionType),
 		errors.Is(err, repo.ErrInvalidTransactionShape):

@@ -9,8 +9,11 @@ import "errors"
 
 var (
 	// ErrUnauthenticated is returned when a repository method runs without a
-	// user attached to the request context. Handlers should already be guarded
-	// by RequireAuth, so seeing this in practice means a misconfigured route.
+	// user attached to the request context. Handlers are gated by RequireAuth,
+	// so this is unreachable through the HTTP path — HTTP packages intentionally
+	// don't map it and let it fall through to 500 (a misconfigured route is a
+	// server bug, not a client error). Kept here for defense in depth in case
+	// the repo is ever called from a non-HTTP entrypoint.
 	ErrUnauthenticated = errors.New("repo: no user in request context")
 
 	// ErrNotFound is returned when a query that expected a single row found

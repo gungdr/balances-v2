@@ -306,13 +306,14 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	}
 }
 
+// writeRepoError maps a repo error to an HTTP response. repo.ErrUnauthenticated
+// is unreachable here — RequireAuth gates every route in Mount, so the repo's
+// currentUser() helper always finds a user.
 func writeRepoError(w http.ResponseWriter, op string, err error) {
 	var status int
 	switch {
 	case errors.Is(err, repo.ErrNotFound):
 		status = http.StatusNotFound
-	case errors.Is(err, repo.ErrUnauthenticated):
-		status = http.StatusUnauthorized
 	default:
 		status = http.StatusInternalServerError
 	}

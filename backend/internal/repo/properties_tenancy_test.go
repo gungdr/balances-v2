@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
+
+	"github.com/shopspring/decimal"
 
 	"github.com/kerti/balances-v2/backend/internal/auth"
 	"github.com/kerti/balances-v2/backend/internal/db"
@@ -97,6 +100,41 @@ func TestPropertyRepo_TenancyIsolation(t *testing.T) {
 		}
 		if updated.Asset.DisplayName != "Alice House renamed" {
 			t.Errorf("DisplayName: got %q, want %q", updated.Asset.DisplayName, "Alice House renamed")
+		}
+	})
+
+	t.Run("alice list returns property with details and latest snapshot", func(t *testing.T) {
+		// Snapshot exercises the latest-snapshot join branch in ListProperties.
+		// Without this subtest, only the len==0 early return is covered.
+		_, err := r.CreateAssetSnapshot(aliceCtx, repo.CreateAssetSnapshotParams{
+			AssetID:   aliceProperty.Asset.ID,
+			YearMonth: time.Date(2026, time.May, 1, 0, 0, 0, 0, time.UTC),
+			Amount:    decimal.NewFromInt(2_500_000_000),
+			Currency:  "IDR",
+		})
+		if err != nil {
+			t.Fatalf("alice CreateAssetSnapshot: %v", err)
+		}
+
+		list, err := r.ListProperties(aliceCtx)
+		if err != nil {
+			t.Fatalf("ListProperties: %v", err)
+		}
+		if len(list) != 1 {
+			t.Fatalf("ListProperties: got %d, want 1", len(list))
+		}
+		item := list[0]
+		if item.Asset.ID != aliceProperty.Asset.ID {
+			t.Errorf("Asset.ID: got %v, want %v", item.Asset.ID, aliceProperty.Asset.ID)
+		}
+		if item.Details.PropertyType != "house" {
+			t.Errorf("Details.PropertyType: got %q, want %q", item.Details.PropertyType, "house")
+		}
+		if item.LatestSnapshot == nil {
+			t.Fatal("LatestSnapshot: got nil, want populated")
+		}
+		if !item.LatestSnapshot.Amount.Equal(decimal.NewFromInt(2_500_000_000)) {
+			t.Errorf("LatestSnapshot.Amount: got %s, want 2500000000", item.LatestSnapshot.Amount)
 		}
 	})
 

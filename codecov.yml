@@ -10,6 +10,16 @@ coverage:
       default:
         informational: true
 
+# Paths excluded from coverage tabulation. These are either generated code
+# (sqlc), test-support code that can't sensibly test itself, or thin
+# entrypoint glue covered only by integration. Local `go test -cover` is
+# unaffected — only the reported Codecov metric.
+ignore:
+  - "backend/internal/db/**"
+  - "backend/internal/testutil/**"
+  - "backend/cmd/balances/**"
+  - "backend/internal/migrations/**"
+
 flags:
   backend:
     paths:
