@@ -36,7 +36,7 @@ type Config struct {
 
 type Handlers struct {
 	q            *db.Queries
-	googleOAuth  *googleOAuth
+	googleOAuth  googleOAuthClient
 	mailer       email.Mailer
 	validate     *validator.Validate
 	sessionTTL   time.Duration
@@ -109,7 +109,7 @@ func (h *Handlers) handleStart(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	http.Redirect(w, r, h.googleOAuth.cfg.AuthCodeURL(state), http.StatusFound)
+	http.Redirect(w, r, h.googleOAuth.authCodeURL(state), http.StatusFound)
 }
 
 func (h *Handlers) handleCallback(w http.ResponseWriter, r *http.Request) {

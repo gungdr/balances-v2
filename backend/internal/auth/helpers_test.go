@@ -160,3 +160,33 @@ func findCookie(rec *httptest.ResponseRecorder, name string) *http.Cookie {
 	}
 	return nil
 }
+
+// stubOAuthClient is a googleOAuthClient that returns canned claims (or a
+// canned error) without contacting Google. Tests construct one per scenario.
+type stubOAuthClient struct {
+	authURL string
+	claims  *googleClaims
+	err     error
+
+	lastCode string
+}
+
+func (s *stubOAuthClient) authCodeURL(state string) string {
+	if s.authURL == "" {
+		return "https://stub/oauth?state=" + state
+	}
+	return s.authURL + "?state=" + state
+}
+
+func (s *stubOAuthClient) exchange(_ context.Context, code string) (*googleClaims, error) {
+	s.lastCode = code
+	return s.claims, s.err
+}
+
+// installStubOAuth swaps the harness's googleOAuth client for a stub and
+// returns it so the test can assert on lastCode or mutate the canned claims.
+func (h *authHarness) installStubOAuth(claims *googleClaims, err error) *stubOAuthClient {
+	s := &stubOAuthClient{claims: claims, err: err}
+	h.h.googleOAuth = s
+	return s
+}

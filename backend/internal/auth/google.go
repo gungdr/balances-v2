@@ -18,9 +18,22 @@ type GoogleConfig struct {
 	RedirectURL  string
 }
 
+// googleOAuthClient is the seam between Handlers and the Google OAuth +
+// OIDC machinery. Production wires the concrete *googleOAuth (real network
+// calls); tests substitute a stub that returns pre-baked claims so the
+// callback flow can be exercised without contacting Google.
+type googleOAuthClient interface {
+	authCodeURL(state string) string
+	exchange(ctx context.Context, code string) (*googleClaims, error)
+}
+
 type googleOAuth struct {
 	cfg      oauth2.Config
 	verifier *oidc.IDTokenVerifier
+}
+
+func (g *googleOAuth) authCodeURL(state string) string {
+	return g.cfg.AuthCodeURL(state)
 }
 
 func newGoogleOAuth(ctx context.Context, gc GoogleConfig) (*googleOAuth, error) {
