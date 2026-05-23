@@ -47,7 +47,7 @@ func (h *Handlers) handleCreateInvitation(w http.ResponseWriter, r *http.Request
 		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
 		return
 	}
-	if req.Email == inviter.Email {
+	if req.Email == strings.ToLower(inviter.Email) {
 		http.Error(w, "cannot invite yourself", http.StatusBadRequest)
 		return
 	}
