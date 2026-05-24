@@ -109,3 +109,44 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 	)
 	return i, err
 }
+
+const listUsersByHousehold = `-- name: ListUsersByHousehold :many
+SELECT id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at
+FROM users
+WHERE household_id = $1
+  AND deleted_at IS NULL
+ORDER BY display_name ASC
+`
+
+func (q *Queries) ListUsersByHousehold(ctx context.Context, householdID uuid.UUID) ([]User, error) {
+	rows, err := q.db.Query(ctx, listUsersByHousehold, householdID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.HouseholdID,
+			&i.DisplayName,
+			&i.Email,
+			&i.GoogleSub,
+			&i.Locale,
+			&i.TimeZone,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.UpdatedBy,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

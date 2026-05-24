@@ -1,12 +1,5 @@
 import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import { useSession } from '@/hooks/useSession'
 import { SignInScreen } from '@/components/SignInScreen'
 import { AppShell } from '@/components/AppShell'
@@ -31,6 +24,7 @@ import { BondsScreen } from '@/components/BondsScreen'
 import { BondDetail } from '@/components/BondDetail'
 import { TimeDepositsScreen } from '@/components/TimeDepositsScreen'
 import { TimeDepositDetail } from '@/components/TimeDepositDetail'
+import { IncomeScreen } from '@/components/IncomeScreen'
 
 type Group = 'assets' | 'liabilities' | 'receivables' | 'investments' | 'income'
 type AssetSubtype = 'bank_account' | 'property' | 'vehicle'
@@ -280,39 +274,13 @@ function App() {
             </Tabs>
           </TabsContent>
           <TabsContent value="income" className="mt-6">
-            <ComingSoonCard title="Income" milestone="M4.7" />
+            <IncomeScreen />
           </TabsContent>
         </Tabs>
 
         <InviteForm />
       </div>
     </AppShell>
-  )
-}
-
-function ComingSoonCard({
-  title,
-  milestone,
-}: {
-  title: string
-  milestone: string
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>
-          Coming in {milestone}. The data model is already designed in{' '}
-          <code>CONTEXT.md</code> and the relevant ADRs — only the screens
-          are pending.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">
-          See <code>docs/ROADMAP.md</code> for the implementation timeline.
-        </p>
-      </CardContent>
-    </Card>
   )
 }
 

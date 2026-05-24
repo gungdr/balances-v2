@@ -15,3 +15,10 @@ INSERT INTO users (
     $1, $2, $3, $4, $5, $6, $7, $7
 )
 RETURNING *;
+
+-- name: ListUsersByHousehold :many
+SELECT *
+FROM users
+WHERE household_id = $1
+  AND deleted_at IS NULL
+ORDER BY display_name ASC;

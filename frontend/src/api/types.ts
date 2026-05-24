@@ -377,3 +377,42 @@ export type InvestmentTransaction = {
   updated_by: string | null
   updated_at: string
 }
+
+// ----- household members ------------------------------------------------
+//
+// Returned by GET /api/household/members. Public shape only — no google_sub,
+// no audit columns. Used by the sole-owner picker on Income create/edit
+// (M4.5); will be reused by position dialogs in a follow-up sweep.
+
+export type HouseholdMember = {
+  id: string
+  display_name: string
+  email: string
+}
+
+// ----- income (M4.5) ----------------------------------------------------
+
+export type IncomeCategory =
+  | 'salary'
+  | 'business_income'
+  | 'rental_income'
+  | 'gift'
+  | 'tax_refund'
+  | 'insurance_payout'
+  | 'other'
+
+export type Income = {
+  id: string
+  household_id: string
+  date: string // YYYY-MM-DD
+  amount: string
+  currency: string
+  category: IncomeCategory
+  description: string | null
+  ownership_type: 'sole' | 'joint'
+  sole_owner_user_id: string | null
+  created_by: string | null
+  created_at: string
+  updated_by: string | null
+  updated_at: string
+}

@@ -92,6 +92,23 @@ type HouseholdInvitation struct {
 	UsedAt       pgtype.Timestamptz `json:"used_at"`
 }
 
+type Income struct {
+	ID              uuid.UUID          `json:"id"`
+	HouseholdID     uuid.UUID          `json:"household_id"`
+	Date            time.Time          `json:"date"`
+	Amount          decimal.Decimal    `json:"amount"`
+	Currency        string             `json:"currency"`
+	Category        string             `json:"category"`
+	Description     *string            `json:"description"`
+	OwnershipType   string             `json:"ownership_type"`
+	SoleOwnerUserID *uuid.UUID         `json:"sole_owner_user_id"`
+	CreatedBy       *uuid.UUID         `json:"created_by"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedBy       *uuid.UUID         `json:"updated_by"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
+}
+
 type Investment struct {
 	ID              uuid.UUID          `json:"id"`
 	HouseholdID     uuid.UUID          `json:"household_id"`

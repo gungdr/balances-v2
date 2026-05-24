@@ -92,6 +92,85 @@ func TestHandleMe(t *testing.T) {
 	})
 }
 
+func TestHandleListHouseholdMembers(t *testing.T) {
+	h := newAuthHarness(t)
+
+	// Add a second member to alice's household so the list has multiple rows
+	// and we can verify sort order. CreateUser via the generated query keeps
+	// us household-scoped (CreateHouseholdWithUser would build a new one).
+	bob, err := h.q.CreateUser(context.Background(), db.CreateUserParams{
+		HouseholdID: h.user.HouseholdID,
+		DisplayName: "Bob",
+		Email:       "bob@example.com",
+		GoogleSub:   "test-sub-bob",
+		Locale:      "id-ID",
+		TimeZone:    "Asia/Jakarta",
+		CreatedBy:   &h.user.ID,
+	})
+	if err != nil {
+		t.Fatalf("seed second household member: %v", err)
+	}
+
+	t.Run("200 returns both household members sorted by display_name", func(t *testing.T) {
+		rec := h.do(t, "GET", "/household/members", nil)
+		requireStatus(t, rec, http.StatusOK)
+		body := decodeBody[[]householdMember](t, rec)
+		if len(body) != 2 {
+			t.Fatalf("members count: want 2, got %d", len(body))
+		}
+		// Alice → Bob: alphabetical
+		if body[0].ID != h.user.ID {
+			t.Errorf("members[0]: want alice, got %s", body[0].DisplayName)
+		}
+		if body[1].ID != bob.ID {
+			t.Errorf("members[1]: want bob, got %s", body[1].DisplayName)
+		}
+		// Response shape: must not leak internal fields. We decode into
+		// householdMember which only has ID/DisplayName/Email — if the
+		// handler sent more, the decoder would silently drop it. Spot-check
+		// via raw body that google_sub isn't present.
+		if strings.Contains(rec.Body.String(), "google_sub") {
+			t.Errorf("response leaked google_sub: %s", rec.Body.String())
+		}
+	})
+
+	t.Run("401 without user in context", func(t *testing.T) {
+		rec := h.doRaw(t, "GET", "/household/members", nil, nil)
+		requireStatus(t, rec, http.StatusUnauthorized)
+	})
+
+	t.Run("tenancy: separate household sees only its own members", func(t *testing.T) {
+		// Carol lives in a different household; she should see only herself.
+		carolPool := h.pool
+		carolQ := db.New(carolPool)
+		carolHH, err := carolQ.CreateHousehold(context.Background(), db.CreateHouseholdParams{
+			DisplayName:       "Carol's Household",
+			ReportingCurrency: "IDR",
+		})
+		if err != nil {
+			t.Fatalf("create carol household: %v", err)
+		}
+		carol, err := carolQ.CreateUser(context.Background(), db.CreateUserParams{
+			HouseholdID: carolHH.ID,
+			DisplayName: "Carol",
+			Email:       "carol@example.com",
+			GoogleSub:   "test-sub-carol",
+			Locale:      "id-ID",
+			TimeZone:    "Asia/Jakarta",
+		})
+		if err != nil {
+			t.Fatalf("create carol: %v", err)
+		}
+
+		rec := h.doRaw(t, "GET", "/household/members", nil, &carol)
+		requireStatus(t, rec, http.StatusOK)
+		body := decodeBody[[]householdMember](t, rec)
+		if len(body) != 1 || body[0].ID != carol.ID {
+			t.Errorf("carol should see only herself, got %+v", body)
+		}
+	})
+}
+
 func TestHandleLogout(t *testing.T) {
 	h := newAuthHarness(t)
 

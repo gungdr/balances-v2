@@ -77,6 +77,7 @@ func (h *Handlers) Mount(r chi.Router) {
 	r.Get("/auth/google/callback", h.handleCallback)
 	r.Post("/auth/logout", h.handleLogout)
 	r.With(RequireAuth).Get("/me", h.handleMe)
+	r.With(RequireAuth).Get("/household/members", h.handleListHouseholdMembers)
 	r.With(RequireAuth).Post("/invitations", h.handleCreateInvitation)
 }
 
@@ -297,4 +298,36 @@ func (h *Handlers) handleMe(w http.ResponseWriter, r *http.Request) {
 		Locale:      user.Locale,
 		TimeZone:    user.TimeZone,
 	})
+}
+
+// householdMember is the public shape — only fields the frontend needs for
+// the sole-owner picker. Deliberately omits google_sub, audit cols, etc.
+type householdMember struct {
+	ID          uuid.UUID `json:"id"`
+	DisplayName string    `json:"display_name"`
+	Email       string    `json:"email"`
+}
+
+func (h *Handlers) handleListHouseholdMembers(w http.ResponseWriter, r *http.Request) {
+	user, ok := UserFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	rows, err := h.q.ListUsersByHousehold(r.Context(), user.HouseholdID)
+	if err != nil {
+		slog.Error("list household members", "err", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	out := make([]householdMember, 0, len(rows))
+	for _, u := range rows {
+		out = append(out, householdMember{
+			ID:          u.ID,
+			DisplayName: u.DisplayName,
+			Email:       u.Email,
+		})
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(out)
 }
