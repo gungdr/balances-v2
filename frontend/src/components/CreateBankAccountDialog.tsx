@@ -13,12 +13,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useCreateBankAccount } from '@/hooks/useBankAccounts'
 import { useSession } from '@/hooks/useSession'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { ApiError } from '@/api/client'
 
 const empty = {
   display_name: '',
   description: '',
   ownership_type: 'joint' as 'sole' | 'joint',
+  sole_owner_user_id: null as string | null,
   native_currency: 'IDR',
   bank_name: '',
   account_number: '',
@@ -29,7 +31,10 @@ export function CreateBankAccountDialog() {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(empty)
   const { data: user } = useSession()
+  const { data: members } = useHouseholdMembers()
   const mutation = useCreateBankAccount()
+
+  const effectiveSoleOwnerID = form.sole_owner_user_id ?? user?.id ?? null
 
   function close() {
     setOpen(false)
@@ -45,9 +50,8 @@ export function CreateBankAccountDialog() {
         display_name: form.display_name,
         description: form.description || null,
         ownership_type: form.ownership_type,
-        // v1 simplification: sole = the current user. A user picker is
-        // added later when M4 brings in a household-members endpoint.
-        sole_owner_user_id: form.ownership_type === 'sole' ? user.id : null,
+        sole_owner_user_id:
+          form.ownership_type === 'sole' ? effectiveSoleOwnerID : null,
         native_currency: form.native_currency,
         bank_name: form.bank_name,
         account_number: form.account_number,
@@ -165,9 +169,26 @@ export function CreateBankAccountDialog() {
                   checked={form.ownership_type === 'sole'}
                   onChange={() => setForm({ ...form, ownership_type: 'sole' })}
                 />
-                Mine
+                Sole owner
               </label>
             </div>
+            {form.ownership_type === 'sole' && (
+              <select
+                aria-label="Sole owner"
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                value={effectiveSoleOwnerID ?? ''}
+                onChange={(e) =>
+                  setForm({ ...form, sole_owner_user_id: e.target.value })
+                }
+              >
+                {(members ?? []).map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.display_name}
+                    {user && m.id === user.id ? ' (you)' : ''}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="grid gap-2">

@@ -13,12 +13,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useCreateProperty } from '@/hooks/useProperties'
 import { useSession } from '@/hooks/useSession'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { ApiError } from '@/api/client'
 
 const empty = {
   display_name: '',
   description: '',
   ownership_type: 'joint' as 'sole' | 'joint',
+  sole_owner_user_id: null as string | null,
   native_currency: 'IDR',
   property_type: 'house' as 'house' | 'apartment' | 'land' | 'commercial',
   address: '',
@@ -31,7 +33,10 @@ export function CreatePropertyDialog() {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(empty)
   const { data: user } = useSession()
+  const { data: members } = useHouseholdMembers()
   const mutation = useCreateProperty()
+
+  const effectiveSoleOwnerID = form.sole_owner_user_id ?? user?.id ?? null
 
   function close() {
     setOpen(false)
@@ -47,7 +52,8 @@ export function CreatePropertyDialog() {
         display_name: form.display_name,
         description: form.description || null,
         ownership_type: form.ownership_type,
-        sole_owner_user_id: form.ownership_type === 'sole' ? user.id : null,
+        sole_owner_user_id:
+          form.ownership_type === 'sole' ? effectiveSoleOwnerID : null,
         native_currency: form.native_currency,
         property_type: form.property_type,
         address: form.address || null,
@@ -199,9 +205,26 @@ export function CreatePropertyDialog() {
                   checked={form.ownership_type === 'sole'}
                   onChange={() => setForm({ ...form, ownership_type: 'sole' })}
                 />
-                Mine
+                Sole owner
               </label>
             </div>
+            {form.ownership_type === 'sole' && (
+              <select
+                aria-label="Sole owner"
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                value={effectiveSoleOwnerID ?? ''}
+                onChange={(e) =>
+                  setForm({ ...form, sole_owner_user_id: e.target.value })
+                }
+              >
+                {(members ?? []).map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.display_name}
+                    {user && m.id === user.id ? ' (you)' : ''}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="grid gap-2">
