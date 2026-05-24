@@ -261,6 +261,7 @@ func TestLiabilityHandlers_Update(t *testing.T) {
 	t.Run("200 happy path", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/liabilities/"+created.ID.String(), map[string]any{
 			"display_name":      "Renamed",
+			"ownership_type":    "joint",
 			"counterparty_name": "New Bank",
 			"interest_rate":     "6.25",
 		})
@@ -274,6 +275,7 @@ func TestLiabilityHandlers_Update(t *testing.T) {
 	t.Run("404 unknown id", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/liabilities/"+uuid.NewString(), map[string]any{
 			"display_name":      "x",
+			"ownership_type":    "joint",
 			"counterparty_name": "y",
 		})
 		requireStatus(t, rec, http.StatusNotFound)

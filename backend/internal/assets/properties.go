@@ -30,6 +30,8 @@ type createPropertyReq struct {
 type updatePropertyReq struct {
 	DisplayName            string           `json:"display_name"             validate:"required"`
 	Description            *string          `json:"description"`
+	OwnershipType          string           `json:"ownership_type"           validate:"required,oneof=sole joint"`
+	SoleOwnerUserID        *uuid.UUID       `json:"sole_owner_user_id"       validate:"required_if=OwnershipType sole"`
 	PropertyType           string           `json:"property_type"            validate:"required,oneof=house apartment land commercial"`
 	Address                *string          `json:"address"`
 	AcquisitionDate        *string          `json:"acquisition_date"`
@@ -122,6 +124,8 @@ func (h *Handlers) handleUpdateProperty(w http.ResponseWriter, r *http.Request) 
 	property, err := h.repo.UpdateProperty(r.Context(), id, repo.UpdatePropertyParams{
 		DisplayName:            req.DisplayName,
 		Description:            req.Description,
+		OwnershipType:          req.OwnershipType,
+		SoleOwnerUserID:        req.SoleOwnerUserID,
 		PropertyType:           req.PropertyType,
 		Address:                req.Address,
 		AcquisitionDate:        acquisitionDate,

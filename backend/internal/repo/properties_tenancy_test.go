@@ -92,14 +92,33 @@ func TestPropertyRepo_TenancyIsolation(t *testing.T) {
 
 	t.Run("alice update property persists new display_name", func(t *testing.T) {
 		updated, err := r.UpdateProperty(aliceCtx, aliceProperty.Asset.ID, repo.UpdatePropertyParams{
-			DisplayName:  "Alice House renamed",
-			PropertyType: "house",
+			DisplayName:   "Alice House renamed",
+			OwnershipType: "joint",
+			PropertyType:  "house",
 		})
 		if err != nil {
 			t.Fatalf("UpdateProperty: %v", err)
 		}
 		if updated.Asset.DisplayName != "Alice House renamed" {
 			t.Errorf("DisplayName: got %q, want %q", updated.Asset.DisplayName, "Alice House renamed")
+		}
+	})
+
+	t.Run("alice update property flips ownership joint→sole with owner picker", func(t *testing.T) {
+		updated, err := r.UpdateProperty(aliceCtx, aliceProperty.Asset.ID, repo.UpdatePropertyParams{
+			DisplayName:     "Alice House renamed",
+			OwnershipType:   "sole",
+			SoleOwnerUserID: &aliceUser.ID,
+			PropertyType:    "house",
+		})
+		if err != nil {
+			t.Fatalf("UpdateProperty sole: %v", err)
+		}
+		if updated.Asset.OwnershipType != "sole" {
+			t.Errorf("OwnershipType: got %q, want sole", updated.Asset.OwnershipType)
+		}
+		if updated.Asset.SoleOwnerUserID == nil || *updated.Asset.SoleOwnerUserID != aliceUser.ID {
+			t.Errorf("SoleOwnerUserID: got %v, want %v", updated.Asset.SoleOwnerUserID, aliceUser.ID)
 		}
 	})
 

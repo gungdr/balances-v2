@@ -116,9 +116,10 @@ func TestVehicleHandlers_Update(t *testing.T) {
 
 	t.Run("200 happy path", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/vehicles/"+created.Asset.ID.String(), map[string]any{
-			"display_name": "Renamed",
-			"vehicle_type": "motorcycle",
-			"make":         "Honda",
+			"display_name":   "Renamed",
+			"ownership_type": "joint",
+			"vehicle_type":   "motorcycle",
+			"make":           "Honda",
 		})
 		requireStatus(t, rec, http.StatusOK)
 		body := decodeBody[*repo.Vehicle](t, rec)
@@ -132,8 +133,9 @@ func TestVehicleHandlers_Update(t *testing.T) {
 
 	t.Run("404 unknown id", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/vehicles/"+uuid.NewString(), map[string]any{
-			"display_name": "x",
-			"vehicle_type": "car",
+			"display_name":   "x",
+			"ownership_type": "joint",
+			"vehicle_type":   "car",
 		})
 		requireStatus(t, rec, http.StatusNotFound)
 	})

@@ -45,6 +45,8 @@ type CreateReceivableParams struct {
 type UpdateReceivableParams struct {
 	DisplayName      string
 	Description      *string
+	OwnershipType    string
+	SoleOwnerUserID  *uuid.UUID
 	CounterpartyName string
 	DueDate          *time.Time
 }
@@ -135,6 +137,8 @@ func (r *ReceivableRepo) UpdateReceivable(ctx context.Context, id uuid.UUID, p U
 		HouseholdID:      hid,
 		DisplayName:      p.DisplayName,
 		Description:      p.Description,
+		OwnershipType:    p.OwnershipType,
+		SoleOwnerUserID:  p.SoleOwnerUserID,
 		CounterpartyName: p.CounterpartyName,
 		DueDate:          p.DueDate,
 		UpdatedBy:        &user,

@@ -35,10 +35,12 @@ type CreateMutualFundParams struct {
 }
 
 type UpdateMutualFundParams struct {
-	DisplayName string
-	Description *string
-	FundCode    string
-	FundManager *string
+	DisplayName     string
+	Description     *string
+	OwnershipType   string
+	SoleOwnerUserID *uuid.UUID
+	FundCode        string
+	FundManager     *string
 }
 
 func (r *InvestmentRepo) CreateMutualFund(ctx context.Context, p CreateMutualFundParams) (*MutualFund, error) {
@@ -176,11 +178,13 @@ func (r *InvestmentRepo) UpdateMutualFund(ctx context.Context, id uuid.UUID, p U
 
 	qtx := r.q.WithTx(tx)
 	inv, err := qtx.UpdateInvestment(ctx, db.UpdateInvestmentParams{
-		ID:          id,
-		HouseholdID: hid,
-		DisplayName: p.DisplayName,
-		Description: p.Description,
-		UpdatedBy:   &user,
+		ID:              id,
+		HouseholdID:     hid,
+		DisplayName:     p.DisplayName,
+		Description:     p.Description,
+		OwnershipType:   p.OwnershipType,
+		SoleOwnerUserID: p.SoleOwnerUserID,
+		UpdatedBy:       &user,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

@@ -38,8 +38,11 @@ import { EditTimeDepositDialog } from '@/components/EditTimeDepositDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { AccruedInterestSnapshotRow } from '@/components/AccruedInterestSnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { maturityClass, maturityInfo } from '@/lib/maturity'
+import { ownershipLabel } from '@/lib/ownership'
 import type { RolloverPolicy } from '@/api/types'
 
 type Props = {
@@ -80,6 +83,8 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
   const createTransactionMutation = useCreateInvestmentTransaction(investmentId)
   const updateTransactionMutation = useUpdateInvestmentTransaction(investmentId)
   const deleteTransactionMutation = useDeleteInvestmentTransaction(investmentId)
+  const { data: members } = useHouseholdMembers()
+  const { data: currentUser } = useSession()
 
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -178,7 +183,12 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
           <CardTitle>Time Deposit Details</CardTitle>
           <CardDescription>
             Ownership:{' '}
-            <span className="capitalize">{td.investment.ownership_type}</span>{' '}
+            {ownershipLabel(
+              td.investment.ownership_type,
+              td.investment.sole_owner_user_id,
+              members,
+              currentUser,
+            )}{' '}
             · Currency: {td.investment.native_currency} · Status:{' '}
             {td.investment.status}
           </CardDescription>

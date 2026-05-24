@@ -27,15 +27,17 @@ type createBondReq struct {
 }
 
 type updateBondReq struct {
-	DisplayName     string           `json:"display_name"     validate:"required"`
+	DisplayName     string           `json:"display_name"       validate:"required"`
 	Description     *string          `json:"description"`
-	BondType        string           `json:"bond_type"        validate:"required,oneof=govt_primary secondary_market"`
+	OwnershipType   string           `json:"ownership_type"     validate:"required,oneof=sole joint"`
+	SoleOwnerUserID *uuid.UUID       `json:"sole_owner_user_id" validate:"required_if=OwnershipType sole"`
+	BondType        string           `json:"bond_type"          validate:"required,oneof=govt_primary secondary_market"`
 	SeriesCode      *string          `json:"series_code"`
-	Issuer          string           `json:"issuer"           validate:"required"`
-	FaceValue       *decimal.Decimal `json:"face_value"       validate:"required"`
-	CouponRate      *decimal.Decimal `json:"coupon_rate"      validate:"required"`
-	CouponFrequency string           `json:"coupon_frequency" validate:"required,oneof=monthly quarterly semi_annual annual"`
-	MaturityDate    string           `json:"maturity_date"    validate:"required"`
+	Issuer          string           `json:"issuer"             validate:"required"`
+	FaceValue       *decimal.Decimal `json:"face_value"         validate:"required"`
+	CouponRate      *decimal.Decimal `json:"coupon_rate"        validate:"required"`
+	CouponFrequency string           `json:"coupon_frequency"   validate:"required,oneof=monthly quarterly semi_annual annual"`
+	MaturityDate    string           `json:"maturity_date"      validate:"required"`
 }
 
 func (h *Handlers) handleCreateBond(w http.ResponseWriter, r *http.Request) {
@@ -122,6 +124,8 @@ func (h *Handlers) handleUpdateBond(w http.ResponseWriter, r *http.Request) {
 	b, err := h.repo.UpdateBond(r.Context(), id, repo.UpdateBondParams{
 		DisplayName:     req.DisplayName,
 		Description:     req.Description,
+		OwnershipType:   req.OwnershipType,
+		SoleOwnerUserID: req.SoleOwnerUserID,
 		BondType:        req.BondType,
 		SeriesCode:      req.SeriesCode,
 		Issuer:          req.Issuer,

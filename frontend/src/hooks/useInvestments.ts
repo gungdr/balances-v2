@@ -31,6 +31,8 @@ export type CreateStockPayload = {
 export type UpdateStockPayload = {
   display_name: string
   description: string | null
+  ownership_type: 'sole' | 'joint'
+  sole_owner_user_id: string | null
   ticker: string
   exchange: string
 }
@@ -106,6 +108,8 @@ export type CreateMutualFundPayload = {
 export type UpdateMutualFundPayload = {
   display_name: string
   description: string | null
+  ownership_type: 'sole' | 'joint'
+  sole_owner_user_id: string | null
   fund_code: string
   fund_manager: string | null
 }
@@ -183,6 +187,8 @@ export type CreateGoldPayload = {
 export type UpdateGoldPayload = {
   display_name: string
   description: string | null
+  ownership_type: 'sole' | 'joint'
+  sole_owner_user_id: string | null
   form: GoldForm
   purity: string
 }
@@ -263,6 +269,8 @@ export type CreateBondPayload = {
 export type UpdateBondPayload = {
   display_name: string
   description: string | null
+  ownership_type: 'sole' | 'joint'
+  sole_owner_user_id: string | null
   bond_type: BondType
   series_code: string | null
   issuer: string
@@ -348,6 +356,8 @@ export type CreateTimeDepositPayload = {
 export type UpdateTimeDepositPayload = {
   display_name: string
   description: string | null
+  ownership_type: 'sole' | 'joint'
+  sole_owner_user_id: string | null
   bank_name: string
   principal: string
   interest_rate: string

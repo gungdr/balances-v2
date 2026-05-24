@@ -37,10 +37,12 @@ type CreateStockParams struct {
 }
 
 type UpdateStockParams struct {
-	DisplayName string
-	Description *string
-	Ticker      string
-	Exchange    string
+	DisplayName     string
+	Description     *string
+	OwnershipType   string
+	SoleOwnerUserID *uuid.UUID
+	Ticker          string
+	Exchange        string
 }
 
 func (r *InvestmentRepo) CreateStock(ctx context.Context, p CreateStockParams) (*Stock, error) {
@@ -178,11 +180,13 @@ func (r *InvestmentRepo) UpdateStock(ctx context.Context, id uuid.UUID, p Update
 
 	qtx := r.q.WithTx(tx)
 	inv, err := qtx.UpdateInvestment(ctx, db.UpdateInvestmentParams{
-		ID:          id,
-		HouseholdID: hid,
-		DisplayName: p.DisplayName,
-		Description: p.Description,
-		UpdatedBy:   &user,
+		ID:              id,
+		HouseholdID:     hid,
+		DisplayName:     p.DisplayName,
+		Description:     p.Description,
+		OwnershipType:   p.OwnershipType,
+		SoleOwnerUserID: p.SoleOwnerUserID,
+		UpdatedBy:       &user,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

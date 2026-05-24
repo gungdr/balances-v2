@@ -11,6 +11,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useUpdateBankAccount } from '@/hooks/useBankAccounts'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { useSession } from '@/hooks/useSession'
 import { ApiError } from '@/api/client'
 import type { BankAccount } from '@/api/types'
 
@@ -24,14 +26,20 @@ type Props = {
 // parent passes open/onOpenChange and the account row to pre-fill from.
 export function EditBankAccountDialog({ open, onOpenChange, account }: Props) {
   const mutation = useUpdateBankAccount(account.asset.id)
+  const { data: user } = useSession()
+  const { data: members } = useHouseholdMembers()
 
   const [form, setForm] = useState({
     display_name: account.asset.display_name,
     description: account.asset.description ?? '',
+    ownership_type: account.asset.ownership_type,
+    sole_owner_user_id: account.asset.sole_owner_user_id,
     bank_name: account.details.bank_name,
     account_number: account.details.account_number,
     account_type: account.details.account_type,
   })
+
+  const effectiveSoleOwnerID = form.sole_owner_user_id ?? user?.id ?? null
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -39,6 +47,9 @@ export function EditBankAccountDialog({ open, onOpenChange, account }: Props) {
       {
         display_name: form.display_name,
         description: form.description || null,
+        ownership_type: form.ownership_type,
+        sole_owner_user_id:
+          form.ownership_type === 'sole' ? effectiveSoleOwnerID : null,
         bank_name: form.bank_name,
         account_number: form.account_number,
         account_type: form.account_type,
@@ -53,8 +64,8 @@ export function EditBankAccountDialog({ open, onOpenChange, account }: Props) {
         <DialogHeader>
           <DialogTitle>Edit bank account</DialogTitle>
           <DialogDescription>
-            Update the account's display name, bank details, or description.
-            Currency and ownership are not editable yet.
+            Update the account's display name, bank details, description, or
+            ownership. Currency is not editable yet.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
@@ -109,6 +120,49 @@ export function EditBankAccountDialog({ open, onOpenChange, account }: Props) {
               <option value="current">Current</option>
               <option value="other">Other</option>
             </select>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Ownership</Label>
+            <div className="flex gap-4 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="edit_ba_ownership_type"
+                  value="joint"
+                  checked={form.ownership_type === 'joint'}
+                  onChange={() => setForm({ ...form, ownership_type: 'joint' })}
+                />
+                Joint
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="edit_ba_ownership_type"
+                  value="sole"
+                  checked={form.ownership_type === 'sole'}
+                  onChange={() => setForm({ ...form, ownership_type: 'sole' })}
+                />
+                Sole owner
+              </label>
+            </div>
+            {form.ownership_type === 'sole' && (
+              <select
+                aria-label="Sole owner"
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                value={effectiveSoleOwnerID ?? ''}
+                onChange={(e) =>
+                  setForm({ ...form, sole_owner_user_id: e.target.value })
+                }
+              >
+                {(members ?? []).map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.display_name}
+                    {user && m.id === user.id ? ' (you)' : ''}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="grid gap-2">

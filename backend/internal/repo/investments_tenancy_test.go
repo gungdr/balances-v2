@@ -365,9 +365,10 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 
 	t.Run("alice update stock persists new display_name", func(t *testing.T) {
 		updated, err := r.UpdateStock(aliceCtx, aliceStock.Investment.ID, repo.UpdateStockParams{
-			DisplayName: "Alice BBCA renamed",
-			Ticker:      "BBCA",
-			Exchange:    "IDX",
+			DisplayName:   "Alice BBCA renamed",
+			OwnershipType: "joint",
+			Ticker:        "BBCA",
+			Exchange:      "IDX",
 		})
 		if err != nil {
 			t.Fatalf("UpdateStock: %v", err)
@@ -377,10 +378,30 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 		}
 	})
 
+	t.Run("alice update stock flips ownership joint→sole with owner picker", func(t *testing.T) {
+		updated, err := r.UpdateStock(aliceCtx, aliceStock.Investment.ID, repo.UpdateStockParams{
+			DisplayName:     "Alice BBCA renamed",
+			OwnershipType:   "sole",
+			SoleOwnerUserID: &aliceUser.ID,
+			Ticker:          "BBCA",
+			Exchange:        "IDX",
+		})
+		if err != nil {
+			t.Fatalf("UpdateStock sole: %v", err)
+		}
+		if updated.Investment.OwnershipType != "sole" {
+			t.Errorf("OwnershipType: got %q, want sole", updated.Investment.OwnershipType)
+		}
+		if updated.Investment.SoleOwnerUserID == nil || *updated.Investment.SoleOwnerUserID != aliceUser.ID {
+			t.Errorf("SoleOwnerUserID: got %v, want %v", updated.Investment.SoleOwnerUserID, aliceUser.ID)
+		}
+	})
+
 	t.Run("alice update mutual fund persists new display_name", func(t *testing.T) {
 		updated, err := r.UpdateMutualFund(aliceCtx, aliceMF.Investment.ID, repo.UpdateMutualFundParams{
-			DisplayName: "Alice Sucorinvest renamed",
-			FundCode:    "SCMUS",
+			DisplayName:   "Alice Sucorinvest renamed",
+			OwnershipType: "joint",
+			FundCode:      "SCMUS",
 		})
 		if err != nil {
 			t.Fatalf("UpdateMutualFund: %v", err)
@@ -392,9 +413,10 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 
 	t.Run("alice update gold persists new display_name", func(t *testing.T) {
 		updated, err := r.UpdateGold(aliceCtx, aliceGold.Investment.ID, repo.UpdateGoldParams{
-			DisplayName: "Alice Antam Bar renamed",
-			Form:        "bar",
-			Purity:      purity,
+			DisplayName:   "Alice Antam Bar renamed",
+			OwnershipType: "joint",
+			Form:          "bar",
+			Purity:        purity,
 		})
 		if err != nil {
 			t.Fatalf("UpdateGold: %v", err)
@@ -407,6 +429,7 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 	t.Run("alice update bond persists new display_name", func(t *testing.T) {
 		updated, err := r.UpdateBond(aliceCtx, aliceBond.Investment.ID, repo.UpdateBondParams{
 			DisplayName:     "Alice ORI024 renamed",
+			OwnershipType:   "joint",
 			BondType:        "govt_primary",
 			Issuer:          "Republik Indonesia",
 			FaceValue:       decimal.NewFromInt(10_000_000),
@@ -425,6 +448,7 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 	t.Run("alice update time deposit persists new display_name", func(t *testing.T) {
 		updated, err := r.UpdateTimeDeposit(aliceCtx, aliceTD.Investment.ID, repo.UpdateTimeDepositParams{
 			DisplayName:    "Alice BCA TD renamed",
+			OwnershipType:  "joint",
 			BankName:       "BCA",
 			Principal:      decimal.NewFromInt(50_000_000),
 			InterestRate:   interestRate,

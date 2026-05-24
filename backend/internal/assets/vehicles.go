@@ -29,6 +29,8 @@ type createVehicleReq struct {
 type updateVehicleReq struct {
 	DisplayName            string           `json:"display_name"             validate:"required"`
 	Description            *string          `json:"description"`
+	OwnershipType          string           `json:"ownership_type"           validate:"required,oneof=sole joint"`
+	SoleOwnerUserID        *uuid.UUID       `json:"sole_owner_user_id"       validate:"required_if=OwnershipType sole"`
 	VehicleType            string           `json:"vehicle_type"             validate:"required,oneof=car motorcycle other"`
 	Make                   *string          `json:"make"`
 	Model                  *string          `json:"model"`
@@ -111,6 +113,8 @@ func (h *Handlers) handleUpdateVehicle(w http.ResponseWriter, r *http.Request) {
 	vehicle, err := h.repo.UpdateVehicle(r.Context(), id, repo.UpdateVehicleParams{
 		DisplayName:            req.DisplayName,
 		Description:            req.Description,
+		OwnershipType:          req.OwnershipType,
+		SoleOwnerUserID:        req.SoleOwnerUserID,
 		VehicleType:            req.VehicleType,
 		Make:                   req.Make,
 		Model:                  req.Model,

@@ -37,6 +37,9 @@ import { EditMutualFundDialog } from '@/components/EditMutualFundDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { QuantityPriceSnapshotRow } from '@/components/QuantityPriceSnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { useSession } from '@/hooks/useSession'
+import { ownershipLabel } from '@/lib/ownership'
 import { reconcileQuantity } from '@/lib/reconciliation'
 
 type Props = {
@@ -66,6 +69,8 @@ export function MutualFundDetail({ investmentId, onBack }: Props) {
   const createTransactionMutation = useCreateInvestmentTransaction(investmentId)
   const updateTransactionMutation = useUpdateInvestmentTransaction(investmentId)
   const deleteTransactionMutation = useDeleteInvestmentTransaction(investmentId)
+  const { data: members } = useHouseholdMembers()
+  const { data: currentUser } = useSession()
 
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -158,7 +163,12 @@ export function MutualFundDetail({ investmentId, onBack }: Props) {
           <CardTitle>Mutual Fund Details</CardTitle>
           <CardDescription>
             Ownership:{' '}
-            <span className="capitalize">{mf.investment.ownership_type}</span>{' '}
+            {ownershipLabel(
+              mf.investment.ownership_type,
+              mf.investment.sole_owner_user_id,
+              members,
+              currentUser,
+            )}{' '}
             · Currency: {mf.investment.native_currency} · Status:{' '}
             {mf.investment.status}
           </CardDescription>

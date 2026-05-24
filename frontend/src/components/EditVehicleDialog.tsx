@@ -11,6 +11,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useUpdateVehicle } from '@/hooks/useVehicles'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { useSession } from '@/hooks/useSession'
 import { ApiError } from '@/api/client'
 import type { Vehicle } from '@/api/types'
 
@@ -22,10 +24,14 @@ type Props = {
 
 export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
   const mutation = useUpdateVehicle(vehicle.asset.id)
+  const { data: user } = useSession()
+  const { data: members } = useHouseholdMembers()
 
   const [form, setForm] = useState({
     display_name: vehicle.asset.display_name,
     description: vehicle.asset.description ?? '',
+    ownership_type: vehicle.asset.ownership_type,
+    sole_owner_user_id: vehicle.asset.sole_owner_user_id,
     vehicle_type: vehicle.details.vehicle_type,
     make: vehicle.details.make ?? '',
     model: vehicle.details.model ?? '',
@@ -34,12 +40,17 @@ export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
     annual_depreciation_rate: vehicle.details.annual_depreciation_rate ?? '',
   })
 
+  const effectiveSoleOwnerID = form.sole_owner_user_id ?? user?.id ?? null
+
   function submit(e: React.FormEvent) {
     e.preventDefault()
     mutation.mutate(
       {
         display_name: form.display_name,
         description: form.description || null,
+        ownership_type: form.ownership_type,
+        sole_owner_user_id:
+          form.ownership_type === 'sole' ? effectiveSoleOwnerID : null,
         vehicle_type: form.vehicle_type,
         make: form.make || null,
         model: form.model || null,
@@ -57,7 +68,7 @@ export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
         <DialogHeader>
           <DialogTitle>Edit vehicle</DialogTitle>
           <DialogDescription>
-            Update the vehicle's details. Currency and ownership are not
+            Update the vehicle's details or ownership. Currency is not
             editable yet.
           </DialogDescription>
         </DialogHeader>
@@ -147,6 +158,49 @@ export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
                 })
               }
             />
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Ownership</Label>
+            <div className="flex gap-4 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="edit_v_ownership_type"
+                  value="joint"
+                  checked={form.ownership_type === 'joint'}
+                  onChange={() => setForm({ ...form, ownership_type: 'joint' })}
+                />
+                Joint
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="edit_v_ownership_type"
+                  value="sole"
+                  checked={form.ownership_type === 'sole'}
+                  onChange={() => setForm({ ...form, ownership_type: 'sole' })}
+                />
+                Sole owner
+              </label>
+            </div>
+            {form.ownership_type === 'sole' && (
+              <select
+                aria-label="Sole owner"
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                value={effectiveSoleOwnerID ?? ''}
+                onChange={(e) =>
+                  setForm({ ...form, sole_owner_user_id: e.target.value })
+                }
+              >
+                {(members ?? []).map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.display_name}
+                    {user && m.id === user.id ? ' (you)' : ''}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="grid gap-2">

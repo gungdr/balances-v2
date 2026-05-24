@@ -11,6 +11,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useUpdateTimeDeposit } from '@/hooks/useInvestments'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { useSession } from '@/hooks/useSession'
 import { ApiError } from '@/api/client'
 import type {
   RolloverPolicy,
@@ -30,6 +32,8 @@ function toForm(td: TimeDeposit | TimeDepositListItem) {
   return {
     display_name: i.display_name,
     description: i.description ?? '',
+    ownership_type: i.ownership_type,
+    sole_owner_user_id: i.sole_owner_user_id,
     bank_name: d.bank_name,
     principal: d.principal,
     interest_rate: d.interest_rate,
@@ -46,7 +50,11 @@ export function EditTimeDepositDialog({
   timeDeposit,
 }: Props) {
   const [form, setForm] = useState(() => toForm(timeDeposit))
+  const { data: user } = useSession()
+  const { data: members } = useHouseholdMembers()
   const mutation = useUpdateTimeDeposit(timeDeposit.investment.id)
+
+  const effectiveSoleOwnerID = form.sole_owner_user_id ?? user?.id ?? null
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -54,6 +62,9 @@ export function EditTimeDepositDialog({
       {
         display_name: form.display_name,
         description: form.description || null,
+        ownership_type: form.ownership_type,
+        sole_owner_user_id:
+          form.ownership_type === 'sole' ? effectiveSoleOwnerID : null,
         bank_name: form.bank_name,
         principal: form.principal,
         interest_rate: form.interest_rate,
@@ -72,7 +83,7 @@ export function EditTimeDepositDialog({
         <DialogHeader>
           <DialogTitle>Edit time deposit</DialogTitle>
           <DialogDescription>
-            Ownership and currency are fixed at creation.
+            Currency is fixed at creation. Ownership is editable.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
@@ -207,6 +218,55 @@ export function EditTimeDepositDialog({
                 </option>
                 <option value="no_rollover">No rollover</option>
               </select>
+            </div>
+          </div>
+
+          <div className="space-y-3 border-t pt-4">
+            <div className="grid gap-2">
+              <Label>Ownership</Label>
+              <div className="flex gap-4 text-sm">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="edit_td_ownership_type"
+                    value="joint"
+                    checked={form.ownership_type === 'joint'}
+                    onChange={() =>
+                      setForm({ ...form, ownership_type: 'joint' })
+                    }
+                  />
+                  Joint
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="edit_td_ownership_type"
+                    value="sole"
+                    checked={form.ownership_type === 'sole'}
+                    onChange={() =>
+                      setForm({ ...form, ownership_type: 'sole' })
+                    }
+                  />
+                  Sole owner
+                </label>
+              </div>
+              {form.ownership_type === 'sole' && (
+                <select
+                  aria-label="Sole owner"
+                  className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                  value={effectiveSoleOwnerID ?? ''}
+                  onChange={(e) =>
+                    setForm({ ...form, sole_owner_user_id: e.target.value })
+                  }
+                >
+                  {(members ?? []).map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.display_name}
+                      {user && m.id === user.id ? ' (you)' : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
 

@@ -132,6 +132,7 @@ func TestBankAccountHandlers_Update(t *testing.T) {
 	t.Run("200 happy path", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/bank-accounts/"+created.Asset.ID.String(), map[string]any{
 			"display_name":   "Renamed",
+			"ownership_type": "joint",
 			"bank_name":      "Mandiri",
 			"account_number": "555555",
 			"account_type":   "current",
@@ -149,6 +150,7 @@ func TestBankAccountHandlers_Update(t *testing.T) {
 	t.Run("404 unknown id", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/bank-accounts/"+uuid.NewString(), map[string]any{
 			"display_name":   "x",
+			"ownership_type": "joint",
 			"bank_name":      "y",
 			"account_number": "1",
 			"account_type":   "savings",

@@ -40,6 +40,8 @@ type CreatePropertyParams struct {
 type UpdatePropertyParams struct {
 	DisplayName            string
 	Description            *string
+	OwnershipType          string
+	SoleOwnerUserID        *uuid.UUID
 	PropertyType           string
 	Address                *string
 	AcquisitionDate        *time.Time
@@ -185,11 +187,13 @@ func (r *AssetRepo) UpdateProperty(ctx context.Context, id uuid.UUID, p UpdatePr
 
 	qtx := r.q.WithTx(tx)
 	asset, err := qtx.UpdateAsset(ctx, db.UpdateAssetParams{
-		ID:          id,
-		HouseholdID: hid,
-		DisplayName: p.DisplayName,
-		Description: p.Description,
-		UpdatedBy:   &user,
+		ID:              id,
+		HouseholdID:     hid,
+		DisplayName:     p.DisplayName,
+		Description:     p.Description,
+		OwnershipType:   p.OwnershipType,
+		SoleOwnerUserID: p.SoleOwnerUserID,
+		UpdatedBy:       &user,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

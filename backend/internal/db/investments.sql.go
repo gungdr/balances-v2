@@ -176,20 +176,24 @@ func (q *Queries) SoftDeleteInvestment(ctx context.Context, arg SoftDeleteInvest
 
 const updateInvestment = `-- name: UpdateInvestment :one
 UPDATE investments
-SET display_name = $3,
-    description  = $4,
-    updated_by   = $5,
-    updated_at   = now()
+SET display_name       = $3,
+    description        = $4,
+    ownership_type     = $5,
+    sole_owner_user_id = $6,
+    updated_by         = $7,
+    updated_at         = now()
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
 RETURNING id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at
 `
 
 type UpdateInvestmentParams struct {
-	ID          uuid.UUID  `json:"id"`
-	HouseholdID uuid.UUID  `json:"household_id"`
-	DisplayName string     `json:"display_name"`
-	Description *string    `json:"description"`
-	UpdatedBy   *uuid.UUID `json:"updated_by"`
+	ID              uuid.UUID  `json:"id"`
+	HouseholdID     uuid.UUID  `json:"household_id"`
+	DisplayName     string     `json:"display_name"`
+	Description     *string    `json:"description"`
+	OwnershipType   string     `json:"ownership_type"`
+	SoleOwnerUserID *uuid.UUID `json:"sole_owner_user_id"`
+	UpdatedBy       *uuid.UUID `json:"updated_by"`
 }
 
 func (q *Queries) UpdateInvestment(ctx context.Context, arg UpdateInvestmentParams) (Investment, error) {
@@ -198,6 +202,8 @@ func (q *Queries) UpdateInvestment(ctx context.Context, arg UpdateInvestmentPara
 		arg.HouseholdID,
 		arg.DisplayName,
 		arg.Description,
+		arg.OwnershipType,
+		arg.SoleOwnerUserID,
 		arg.UpdatedBy,
 	)
 	var i Investment

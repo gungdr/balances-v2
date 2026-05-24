@@ -82,6 +82,7 @@ func TestAssetRepo_TenancyIsolation(t *testing.T) {
 	t.Run("bob update returns ErrNotFound", func(t *testing.T) {
 		_, err := r.UpdateBankAccount(bobCtx, aliceAccount.Asset.ID, repo.UpdateBankAccountParams{
 			DisplayName:   "stolen!",
+			OwnershipType: "joint",
 			BankName:      "BCA",
 			AccountNumber: "111",
 			AccountType:   "savings",
@@ -163,6 +164,7 @@ func TestAssetRepo_TenancyIsolation(t *testing.T) {
 	t.Run("alice update account persists new display_name", func(t *testing.T) {
 		updated, err := r.UpdateBankAccount(aliceCtx, aliceAccount.Asset.ID, repo.UpdateBankAccountParams{
 			DisplayName:   "Alice BCA renamed",
+			OwnershipType: "joint",
 			BankName:      "BCA",
 			AccountNumber: "111",
 			AccountType:   "savings",
@@ -172,6 +174,26 @@ func TestAssetRepo_TenancyIsolation(t *testing.T) {
 		}
 		if updated.Asset.DisplayName != "Alice BCA renamed" {
 			t.Errorf("DisplayName: got %q, want %q", updated.Asset.DisplayName, "Alice BCA renamed")
+		}
+	})
+
+	t.Run("alice update account flips ownership joint→sole with owner picker", func(t *testing.T) {
+		updated, err := r.UpdateBankAccount(aliceCtx, aliceAccount.Asset.ID, repo.UpdateBankAccountParams{
+			DisplayName:     "Alice BCA renamed",
+			OwnershipType:   "sole",
+			SoleOwnerUserID: &aliceUser.ID,
+			BankName:        "BCA",
+			AccountNumber:   "111",
+			AccountType:     "savings",
+		})
+		if err != nil {
+			t.Fatalf("UpdateBankAccount sole: %v", err)
+		}
+		if updated.Asset.OwnershipType != "sole" {
+			t.Errorf("OwnershipType: got %q, want sole", updated.Asset.OwnershipType)
+		}
+		if updated.Asset.SoleOwnerUserID == nil || *updated.Asset.SoleOwnerUserID != aliceUser.ID {
+			t.Errorf("SoleOwnerUserID: got %v, want %v", updated.Asset.SoleOwnerUserID, aliceUser.ID)
 		}
 	})
 

@@ -74,6 +74,8 @@ type createReq struct {
 type updateReq struct {
 	DisplayName      string           `json:"display_name"            validate:"required"`
 	Description      *string          `json:"description"`
+	OwnershipType    string           `json:"ownership_type"          validate:"required,oneof=sole joint"`
+	SoleOwnerUserID  *uuid.UUID       `json:"sole_owner_user_id"      validate:"required_if=OwnershipType sole"`
 	CounterpartyName string           `json:"counterparty_name"       validate:"required"`
 	Principal        *decimal.Decimal `json:"principal"`
 	InterestRate     *decimal.Decimal `json:"interest_rate"`
@@ -183,6 +185,8 @@ func (h *Handlers) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	row, err := h.repo.UpdateLiability(r.Context(), id, repo.UpdateLiabilityParams{
 		DisplayName:      req.DisplayName,
 		Description:      req.Description,
+		OwnershipType:    req.OwnershipType,
+		SoleOwnerUserID:  req.SoleOwnerUserID,
 		CounterpartyName: req.CounterpartyName,
 		Principal:        req.Principal,
 		InterestRate:     req.InterestRate,

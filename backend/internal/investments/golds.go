@@ -21,10 +21,12 @@ type createGoldReq struct {
 }
 
 type updateGoldReq struct {
-	DisplayName string           `json:"display_name" validate:"required"`
-	Description *string          `json:"description"`
-	Form        string           `json:"form"         validate:"required,oneof=bar coin digital jewelry"`
-	Purity      *decimal.Decimal `json:"purity"       validate:"required"`
+	DisplayName     string           `json:"display_name"       validate:"required"`
+	Description     *string          `json:"description"`
+	OwnershipType   string           `json:"ownership_type"     validate:"required,oneof=sole joint"`
+	SoleOwnerUserID *uuid.UUID       `json:"sole_owner_user_id" validate:"required_if=OwnershipType sole"`
+	Form            string           `json:"form"               validate:"required,oneof=bar coin digital jewelry"`
+	Purity          *decimal.Decimal `json:"purity"             validate:"required"`
 }
 
 func (h *Handlers) handleCreateGold(w http.ResponseWriter, r *http.Request) {
@@ -94,10 +96,12 @@ func (h *Handlers) handleUpdateGold(w http.ResponseWriter, r *http.Request) {
 	}
 
 	g, err := h.repo.UpdateGold(r.Context(), id, repo.UpdateGoldParams{
-		DisplayName: req.DisplayName,
-		Description: req.Description,
-		Form:        req.Form,
-		Purity:      *req.Purity,
+		DisplayName:     req.DisplayName,
+		Description:     req.Description,
+		OwnershipType:   req.OwnershipType,
+		SoleOwnerUserID: req.SoleOwnerUserID,
+		Form:            req.Form,
+		Purity:          *req.Purity,
 	})
 	if err != nil {
 		writeRepoError(w, "update gold", err)

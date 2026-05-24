@@ -11,7 +11,10 @@ import { TableCell, TableRow } from '@/components/ui/table'
 import { EditBankAccountDialog } from '@/components/EditBankAccountDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useDeleteBankAccount } from '@/hooks/useBankAccounts'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatYearMonth } from '@/lib/format'
+import { ownershipLabel } from '@/lib/ownership'
 import type { BankAccountListItem } from '@/api/types'
 
 type Props = {
@@ -23,6 +26,14 @@ export function BankAccountListRow({ item, onSelect }: Props) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const deleteMutation = useDeleteBankAccount()
+  const { data: members } = useHouseholdMembers()
+  const { data: currentUser } = useSession()
+  const ownerLabel = ownershipLabel(
+    item.asset.ownership_type,
+    item.asset.sole_owner_user_id,
+    members,
+    currentUser,
+  )
 
   // EditBankAccountDialog wants a {asset, details} BankAccount shape; the
   // list-item also carries latest_snapshot, which the dialog ignores.
@@ -47,9 +58,7 @@ export function BankAccountListRow({ item, onSelect }: Props) {
             {item.details.account_type}
           </div>
         </TableCell>
-        <TableCell className="capitalize">
-          {item.asset.ownership_type}
-        </TableCell>
+        <TableCell>{ownerLabel}</TableCell>
         <TableCell>
           {item.latest_snapshot ? (
             <>

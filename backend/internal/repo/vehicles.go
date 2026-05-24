@@ -40,6 +40,8 @@ type CreateVehicleParams struct {
 type UpdateVehicleParams struct {
 	DisplayName            string
 	Description            *string
+	OwnershipType          string
+	SoleOwnerUserID        *uuid.UUID
 	VehicleType            string
 	Make                   *string
 	Model                  *string
@@ -187,11 +189,13 @@ func (r *AssetRepo) UpdateVehicle(ctx context.Context, id uuid.UUID, p UpdateVeh
 
 	qtx := r.q.WithTx(tx)
 	asset, err := qtx.UpdateAsset(ctx, db.UpdateAssetParams{
-		ID:          id,
-		HouseholdID: hid,
-		DisplayName: p.DisplayName,
-		Description: p.Description,
-		UpdatedBy:   &user,
+		ID:              id,
+		HouseholdID:     hid,
+		DisplayName:     p.DisplayName,
+		Description:     p.Description,
+		OwnershipType:   p.OwnershipType,
+		SoleOwnerUserID: p.SoleOwnerUserID,
+		UpdatedBy:       &user,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

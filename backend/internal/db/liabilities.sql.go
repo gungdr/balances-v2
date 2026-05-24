@@ -210,16 +210,18 @@ func (q *Queries) SoftDeleteLiability(ctx context.Context, arg SoftDeleteLiabili
 
 const updateLiability = `-- name: UpdateLiability :one
 UPDATE liabilities
-SET display_name      = $3,
-    description       = $4,
-    counterparty_name = $5,
-    principal         = $6,
-    interest_rate     = $7,
-    term_months       = $8,
-    start_date        = $9,
-    maturity_date     = $10,
-    updated_by        = $11,
-    updated_at        = now()
+SET display_name       = $3,
+    description        = $4,
+    ownership_type     = $5,
+    sole_owner_user_id = $6,
+    counterparty_name  = $7,
+    principal          = $8,
+    interest_rate      = $9,
+    term_months        = $10,
+    start_date         = $11,
+    maturity_date      = $12,
+    updated_by         = $13,
+    updated_at         = now()
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
 RETURNING id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, counterparty_name, principal, interest_rate, term_months, start_date, maturity_date, created_by, created_at, updated_by, updated_at, deleted_at
 `
@@ -229,6 +231,8 @@ type UpdateLiabilityParams struct {
 	HouseholdID      uuid.UUID        `json:"household_id"`
 	DisplayName      string           `json:"display_name"`
 	Description      *string          `json:"description"`
+	OwnershipType    string           `json:"ownership_type"`
+	SoleOwnerUserID  *uuid.UUID       `json:"sole_owner_user_id"`
 	CounterpartyName string           `json:"counterparty_name"`
 	Principal        *decimal.Decimal `json:"principal"`
 	InterestRate     *decimal.Decimal `json:"interest_rate"`
@@ -244,6 +248,8 @@ func (q *Queries) UpdateLiability(ctx context.Context, arg UpdateLiabilityParams
 		arg.HouseholdID,
 		arg.DisplayName,
 		arg.Description,
+		arg.OwnershipType,
+		arg.SoleOwnerUserID,
 		arg.CounterpartyName,
 		arg.Principal,
 		arg.InterestRate,

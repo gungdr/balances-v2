@@ -44,6 +44,8 @@ type CreateBondParams struct {
 type UpdateBondParams struct {
 	DisplayName     string
 	Description     *string
+	OwnershipType   string
+	SoleOwnerUserID *uuid.UUID
 	BondType        string
 	SeriesCode      *string
 	Issuer          string
@@ -193,11 +195,13 @@ func (r *InvestmentRepo) UpdateBond(ctx context.Context, id uuid.UUID, p UpdateB
 
 	qtx := r.q.WithTx(tx)
 	inv, err := qtx.UpdateInvestment(ctx, db.UpdateInvestmentParams{
-		ID:          id,
-		HouseholdID: hid,
-		DisplayName: p.DisplayName,
-		Description: p.Description,
-		UpdatedBy:   &user,
+		ID:              id,
+		HouseholdID:     hid,
+		DisplayName:     p.DisplayName,
+		Description:     p.Description,
+		OwnershipType:   p.OwnershipType,
+		SoleOwnerUserID: p.SoleOwnerUserID,
+		UpdatedBy:       &user,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

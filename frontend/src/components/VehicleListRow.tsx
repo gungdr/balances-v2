@@ -11,7 +11,10 @@ import { TableCell, TableRow } from '@/components/ui/table'
 import { EditVehicleDialog } from '@/components/EditVehicleDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useDeleteVehicle } from '@/hooks/useVehicles'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatYearMonth } from '@/lib/format'
+import { ownershipLabel } from '@/lib/ownership'
 import type { VehicleListItem } from '@/api/types'
 
 type Props = {
@@ -23,6 +26,14 @@ export function VehicleListRow({ item, onSelect }: Props) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const deleteMutation = useDeleteVehicle()
+  const { data: members } = useHouseholdMembers()
+  const { data: currentUser } = useSession()
+  const ownerLabel = ownershipLabel(
+    item.asset.ownership_type,
+    item.asset.sole_owner_user_id,
+    members,
+    currentUser,
+  )
 
   const vehicleForEdit = { asset: item.asset, details: item.details }
 
@@ -56,9 +67,7 @@ export function VehicleListRow({ item, onSelect }: Props) {
             {secondary || '—'}
           </div>
         </TableCell>
-        <TableCell className="capitalize">
-          {item.asset.ownership_type}
-        </TableCell>
+        <TableCell>{ownerLabel}</TableCell>
         <TableCell>
           {item.latest_snapshot ? (
             <>

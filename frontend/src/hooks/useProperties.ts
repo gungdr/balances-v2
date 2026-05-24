@@ -18,6 +18,8 @@ export type CreatePropertyPayload = {
 export type UpdatePropertyPayload = {
   display_name: string
   description: string | null
+  ownership_type: 'sole' | 'joint'
+  sole_owner_user_id: string | null
   property_type: 'house' | 'apartment' | 'land' | 'commercial'
   address: string | null
   acquisition_date: string | null

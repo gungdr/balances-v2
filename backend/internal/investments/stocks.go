@@ -20,10 +20,12 @@ type createStockReq struct {
 }
 
 type updateStockReq struct {
-	DisplayName string  `json:"display_name" validate:"required"`
-	Description *string `json:"description"`
-	Ticker      string  `json:"ticker"       validate:"required"`
-	Exchange    string  `json:"exchange"     validate:"required"`
+	DisplayName     string     `json:"display_name"       validate:"required"`
+	Description     *string    `json:"description"`
+	OwnershipType   string     `json:"ownership_type"     validate:"required,oneof=sole joint"`
+	SoleOwnerUserID *uuid.UUID `json:"sole_owner_user_id" validate:"required_if=OwnershipType sole"`
+	Ticker          string     `json:"ticker"             validate:"required"`
+	Exchange        string     `json:"exchange"           validate:"required"`
 }
 
 func (h *Handlers) handleCreateStock(w http.ResponseWriter, r *http.Request) {
@@ -93,10 +95,12 @@ func (h *Handlers) handleUpdateStock(w http.ResponseWriter, r *http.Request) {
 	}
 
 	stock, err := h.repo.UpdateStock(r.Context(), id, repo.UpdateStockParams{
-		DisplayName: req.DisplayName,
-		Description: req.Description,
-		Ticker:      req.Ticker,
-		Exchange:    req.Exchange,
+		DisplayName:     req.DisplayName,
+		Description:     req.Description,
+		OwnershipType:   req.OwnershipType,
+		SoleOwnerUserID: req.SoleOwnerUserID,
+		Ticker:          req.Ticker,
+		Exchange:        req.Exchange,
 	})
 	if err != nil {
 		writeRepoError(w, "update stock", err)

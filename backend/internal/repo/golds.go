@@ -36,10 +36,12 @@ type CreateGoldParams struct {
 }
 
 type UpdateGoldParams struct {
-	DisplayName string
-	Description *string
-	Form        string
-	Purity      decimal.Decimal
+	DisplayName     string
+	Description     *string
+	OwnershipType   string
+	SoleOwnerUserID *uuid.UUID
+	Form            string
+	Purity          decimal.Decimal
 }
 
 func (r *InvestmentRepo) CreateGold(ctx context.Context, p CreateGoldParams) (*Gold, error) {
@@ -177,11 +179,13 @@ func (r *InvestmentRepo) UpdateGold(ctx context.Context, id uuid.UUID, p UpdateG
 
 	qtx := r.q.WithTx(tx)
 	inv, err := qtx.UpdateInvestment(ctx, db.UpdateInvestmentParams{
-		ID:          id,
-		HouseholdID: hid,
-		DisplayName: p.DisplayName,
-		Description: p.Description,
-		UpdatedBy:   &user,
+		ID:              id,
+		HouseholdID:     hid,
+		DisplayName:     p.DisplayName,
+		Description:     p.Description,
+		OwnershipType:   p.OwnershipType,
+		SoleOwnerUserID: p.SoleOwnerUserID,
+		UpdatedBy:       &user,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

@@ -100,9 +100,10 @@ func TestGoldHandlers_Update(t *testing.T) {
 
 	t.Run("200 happy path", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/investments/golds/"+created.Investment.ID.String(), map[string]any{
-			"display_name": "Renamed",
-			"form":         "coin",
-			"purity":       "0.9999",
+			"display_name":   "Renamed",
+			"ownership_type": "joint",
+			"form":           "coin",
+			"purity":         "0.9999",
 		})
 		requireStatus(t, rec, http.StatusOK)
 		body := decodeBody[*repo.Gold](t, rec)
@@ -113,9 +114,10 @@ func TestGoldHandlers_Update(t *testing.T) {
 
 	t.Run("404 unknown id", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/investments/golds/"+uuid.NewString(), map[string]any{
-			"display_name": "x",
-			"form":         "bar",
-			"purity":       "0.99",
+			"display_name":   "x",
+			"ownership_type": "joint",
+			"form":           "bar",
+			"purity":         "0.99",
 		})
 		requireStatus(t, rec, http.StatusNotFound)
 	})

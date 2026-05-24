@@ -117,9 +117,10 @@ func TestPropertyHandlers_Update(t *testing.T) {
 
 	t.Run("200 happy path", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/properties/"+created.Asset.ID.String(), map[string]any{
-			"display_name":  "Renamed",
-			"property_type": "apartment",
-			"address":       "New address",
+			"display_name":   "Renamed",
+			"ownership_type": "joint",
+			"property_type":  "apartment",
+			"address":        "New address",
 		})
 		requireStatus(t, rec, http.StatusOK)
 		body := decodeBody[*repo.Property](t, rec)
@@ -133,8 +134,9 @@ func TestPropertyHandlers_Update(t *testing.T) {
 
 	t.Run("404 unknown id", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/properties/"+uuid.NewString(), map[string]any{
-			"display_name":  "x",
-			"property_type": "land",
+			"display_name":   "x",
+			"ownership_type": "joint",
+			"property_type":  "land",
 		})
 		requireStatus(t, rec, http.StatusNotFound)
 	})

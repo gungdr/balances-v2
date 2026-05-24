@@ -38,11 +38,13 @@ type CreateBankAccountParams struct {
 }
 
 type UpdateBankAccountParams struct {
-	DisplayName   string
-	Description   *string
-	BankName      string
-	AccountNumber string
-	AccountType   string
+	DisplayName     string
+	Description     *string
+	OwnershipType   string
+	SoleOwnerUserID *uuid.UUID
+	BankName        string
+	AccountNumber   string
+	AccountType     string
 }
 
 func (r *AssetRepo) CreateBankAccount(ctx context.Context, p CreateBankAccountParams) (*BankAccount, error) {
@@ -183,11 +185,13 @@ func (r *AssetRepo) UpdateBankAccount(ctx context.Context, id uuid.UUID, p Updat
 
 	qtx := r.q.WithTx(tx)
 	asset, err := qtx.UpdateAsset(ctx, db.UpdateAssetParams{
-		ID:          id,
-		HouseholdID: hid,
-		DisplayName: p.DisplayName,
-		Description: p.Description,
-		UpdatedBy:   &user,
+		ID:              id,
+		HouseholdID:     hid,
+		DisplayName:     p.DisplayName,
+		Description:     p.Description,
+		OwnershipType:   p.OwnershipType,
+		SoleOwnerUserID: p.SoleOwnerUserID,
+		UpdatedBy:       &user,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

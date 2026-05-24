@@ -11,6 +11,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useUpdateProperty } from '@/hooks/useProperties'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { useSession } from '@/hooks/useSession'
 import { ApiError } from '@/api/client'
 import type { Property } from '@/api/types'
 
@@ -22,10 +24,14 @@ type Props = {
 
 export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
   const mutation = useUpdateProperty(property.asset.id)
+  const { data: user } = useSession()
+  const { data: members } = useHouseholdMembers()
 
   const [form, setForm] = useState({
     display_name: property.asset.display_name,
     description: property.asset.description ?? '',
+    ownership_type: property.asset.ownership_type,
+    sole_owner_user_id: property.asset.sole_owner_user_id,
     property_type: property.details.property_type,
     address: property.details.address ?? '',
     acquisition_date: property.details.acquisition_date
@@ -36,12 +42,17 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
       property.details.annual_amortization_rate ?? '',
   })
 
+  const effectiveSoleOwnerID = form.sole_owner_user_id ?? user?.id ?? null
+
   function submit(e: React.FormEvent) {
     e.preventDefault()
     mutation.mutate(
       {
         display_name: form.display_name,
         description: form.description || null,
+        ownership_type: form.ownership_type,
+        sole_owner_user_id:
+          form.ownership_type === 'sole' ? effectiveSoleOwnerID : null,
         property_type: form.property_type,
         address: form.address || null,
         acquisition_date: form.acquisition_date || null,
@@ -58,7 +69,7 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
         <DialogHeader>
           <DialogTitle>Edit property</DialogTitle>
           <DialogDescription>
-            Update the property's details. Currency and ownership are not
+            Update the property's details or ownership. Currency is not
             editable yet.
           </DialogDescription>
         </DialogHeader>
@@ -142,6 +153,49 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
                 })
               }
             />
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Ownership</Label>
+            <div className="flex gap-4 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="edit_p_ownership_type"
+                  value="joint"
+                  checked={form.ownership_type === 'joint'}
+                  onChange={() => setForm({ ...form, ownership_type: 'joint' })}
+                />
+                Joint
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="edit_p_ownership_type"
+                  value="sole"
+                  checked={form.ownership_type === 'sole'}
+                  onChange={() => setForm({ ...form, ownership_type: 'sole' })}
+                />
+                Sole owner
+              </label>
+            </div>
+            {form.ownership_type === 'sole' && (
+              <select
+                aria-label="Sole owner"
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                value={effectiveSoleOwnerID ?? ''}
+                onChange={(e) =>
+                  setForm({ ...form, sole_owner_user_id: e.target.value })
+                }
+              >
+                {(members ?? []).map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.display_name}
+                    {user && m.id === user.id ? ' (you)' : ''}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="grid gap-2">

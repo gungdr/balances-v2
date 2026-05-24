@@ -27,7 +27,10 @@ import { EditReceivableDialog } from '@/components/EditReceivableDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { SnapshotRow } from '@/components/SnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { useSession } from '@/hooks/useSession'
 import { formatDate } from '@/lib/format'
+import { ownershipLabel } from '@/lib/ownership'
 
 type Props = {
   receivableId: string
@@ -43,6 +46,8 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
   const createSnapshotMutation = useCreateReceivableSnapshot(receivableId)
   const updateSnapshotMutation = useUpdateReceivableSnapshot(receivableId)
   const deleteSnapshotMutation = useDeleteReceivableSnapshot(receivableId)
+  const { data: members } = useHouseholdMembers()
+  const { data: currentUser } = useSession()
 
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -125,8 +130,14 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
           <CardTitle>Receivable Details</CardTitle>
           <CardDescription>
             Ownership:{' '}
-            <span className="capitalize">{receivable.ownership_type}</span> ·
-            Currency: {receivable.native_currency} · Status: {receivable.status}
+            {ownershipLabel(
+              receivable.ownership_type,
+              receivable.sole_owner_user_id,
+              members,
+              currentUser,
+            )}{' '}
+            · Currency: {receivable.native_currency} · Status:{' '}
+            {receivable.status}
           </CardDescription>
         </CardHeader>
         {receivable.description && (

@@ -20,6 +20,8 @@ export type CreateLiabilityPayload = {
 export type UpdateLiabilityPayload = {
   display_name: string
   description: string | null
+  ownership_type: 'sole' | 'joint'
+  sole_owner_user_id: string | null
   counterparty_name: string
   principal: string | null
   interest_rate: string | null

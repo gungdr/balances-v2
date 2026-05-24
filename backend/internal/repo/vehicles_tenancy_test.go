@@ -76,14 +76,33 @@ func TestVehicleRepo_TenancyIsolation(t *testing.T) {
 
 	t.Run("alice update vehicle persists new display_name", func(t *testing.T) {
 		updated, err := r.UpdateVehicle(aliceCtx, aliceVehicle.Asset.ID, repo.UpdateVehicleParams{
-			DisplayName: "Alice Car renamed",
-			VehicleType: "car",
+			DisplayName:   "Alice Car renamed",
+			OwnershipType: "joint",
+			VehicleType:   "car",
 		})
 		if err != nil {
 			t.Fatalf("UpdateVehicle: %v", err)
 		}
 		if updated.Asset.DisplayName != "Alice Car renamed" {
 			t.Errorf("DisplayName: got %q, want %q", updated.Asset.DisplayName, "Alice Car renamed")
+		}
+	})
+
+	t.Run("alice update vehicle flips ownership joint→sole with owner picker", func(t *testing.T) {
+		updated, err := r.UpdateVehicle(aliceCtx, aliceVehicle.Asset.ID, repo.UpdateVehicleParams{
+			DisplayName:     "Alice Car renamed",
+			OwnershipType:   "sole",
+			SoleOwnerUserID: &aliceUser.ID,
+			VehicleType:     "car",
+		})
+		if err != nil {
+			t.Fatalf("UpdateVehicle sole: %v", err)
+		}
+		if updated.Asset.OwnershipType != "sole" {
+			t.Errorf("OwnershipType: got %q, want sole", updated.Asset.OwnershipType)
+		}
+		if updated.Asset.SoleOwnerUserID == nil || *updated.Asset.SoleOwnerUserID != aliceUser.ID {
+			t.Errorf("SoleOwnerUserID: got %v, want %v", updated.Asset.SoleOwnerUserID, aliceUser.ID)
 		}
 	})
 

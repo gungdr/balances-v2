@@ -11,6 +11,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useUpdateGold, type GoldForm } from '@/hooks/useInvestments'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { useSession } from '@/hooks/useSession'
 import { ApiError } from '@/api/client'
 import type { Gold, GoldListItem } from '@/api/types'
 
@@ -24,6 +26,8 @@ function toForm(g: Gold | GoldListItem) {
   return {
     display_name: g.investment.display_name,
     description: g.investment.description ?? '',
+    ownership_type: g.investment.ownership_type,
+    sole_owner_user_id: g.investment.sole_owner_user_id,
     form: g.details.form as GoldForm,
     purity: g.details.purity,
   }
@@ -31,7 +35,11 @@ function toForm(g: Gold | GoldListItem) {
 
 export function EditGoldDialog({ open, onOpenChange, gold }: Props) {
   const mutation = useUpdateGold(gold.investment.id)
+  const { data: user } = useSession()
+  const { data: members } = useHouseholdMembers()
   const [form, setForm] = useState(() => toForm(gold))
+
+  const effectiveSoleOwnerID = form.sole_owner_user_id ?? user?.id ?? null
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -39,6 +47,9 @@ export function EditGoldDialog({ open, onOpenChange, gold }: Props) {
       {
         display_name: form.display_name,
         description: form.description || null,
+        ownership_type: form.ownership_type,
+        sole_owner_user_id:
+          form.ownership_type === 'sole' ? effectiveSoleOwnerID : null,
         form: form.form,
         purity: form.purity,
       },
@@ -52,8 +63,8 @@ export function EditGoldDialog({ open, onOpenChange, gold }: Props) {
         <DialogHeader>
           <DialogTitle>Edit gold</DialogTitle>
           <DialogDescription>
-            Currency and ownership are not editable. Create a new position if
-            those need to change.
+            Currency is not editable — create a new position if it needs to
+            change. Ownership is editable.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
@@ -96,6 +107,49 @@ export function EditGoldDialog({ open, onOpenChange, gold }: Props) {
                 onChange={(e) => setForm({ ...form, purity: e.target.value })}
               />
             </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Ownership</Label>
+            <div className="flex gap-4 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="edit_gold_ownership_type"
+                  value="joint"
+                  checked={form.ownership_type === 'joint'}
+                  onChange={() => setForm({ ...form, ownership_type: 'joint' })}
+                />
+                Joint
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="edit_gold_ownership_type"
+                  value="sole"
+                  checked={form.ownership_type === 'sole'}
+                  onChange={() => setForm({ ...form, ownership_type: 'sole' })}
+                />
+                Sole owner
+              </label>
+            </div>
+            {form.ownership_type === 'sole' && (
+              <select
+                aria-label="Sole owner"
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                value={effectiveSoleOwnerID ?? ''}
+                onChange={(e) =>
+                  setForm({ ...form, sole_owner_user_id: e.target.value })
+                }
+              >
+                {(members ?? []).map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.display_name}
+                    {user && m.id === user.id ? ' (you)' : ''}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="grid gap-2">

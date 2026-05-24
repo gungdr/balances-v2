@@ -133,6 +133,7 @@ func TestBondHandlers_Update(t *testing.T) {
 	t.Run("200 happy path", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/investments/bonds/"+created.Investment.ID.String(), map[string]any{
 			"display_name":     "Renamed",
+			"ownership_type":   "joint",
 			"bond_type":        "secondary_market",
 			"issuer":           "Govt of Indonesia",
 			"face_value":       "10000000",
@@ -150,6 +151,7 @@ func TestBondHandlers_Update(t *testing.T) {
 	t.Run("404 unknown id", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/investments/bonds/"+uuid.NewString(), map[string]any{
 			"display_name":     "x",
+			"ownership_type":   "joint",
 			"bond_type":        "govt_primary",
 			"issuer":           "y",
 			"face_value":       "1",

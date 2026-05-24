@@ -42,15 +42,17 @@ type CreateTimeDepositParams struct {
 }
 
 type UpdateTimeDepositParams struct {
-	DisplayName    string
-	Description    *string
-	BankName       string
-	Principal      decimal.Decimal
-	InterestRate   decimal.Decimal
-	TermMonths     int32
-	PlacementDate  time.Time
-	MaturityDate   time.Time
-	RolloverPolicy string
+	DisplayName     string
+	Description     *string
+	OwnershipType   string
+	SoleOwnerUserID *uuid.UUID
+	BankName        string
+	Principal       decimal.Decimal
+	InterestRate    decimal.Decimal
+	TermMonths      int32
+	PlacementDate   time.Time
+	MaturityDate    time.Time
+	RolloverPolicy  string
 }
 
 func (r *InvestmentRepo) CreateTimeDeposit(ctx context.Context, p CreateTimeDepositParams) (*TimeDeposit, error) {
@@ -193,11 +195,13 @@ func (r *InvestmentRepo) UpdateTimeDeposit(ctx context.Context, id uuid.UUID, p 
 
 	qtx := r.q.WithTx(tx)
 	inv, err := qtx.UpdateInvestment(ctx, db.UpdateInvestmentParams{
-		ID:          id,
-		HouseholdID: hid,
-		DisplayName: p.DisplayName,
-		Description: p.Description,
-		UpdatedBy:   &user,
+		ID:              id,
+		HouseholdID:     hid,
+		DisplayName:     p.DisplayName,
+		Description:     p.Description,
+		OwnershipType:   p.OwnershipType,
+		SoleOwnerUserID: p.SoleOwnerUserID,
+		UpdatedBy:       &user,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

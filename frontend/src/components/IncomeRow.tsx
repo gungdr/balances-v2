@@ -18,6 +18,7 @@ import { useDeleteIncome } from '@/hooks/useIncome'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatDate } from '@/lib/format'
+import { ownershipLabel } from '@/lib/ownership'
 import type { Income, IncomeCategory } from '@/api/types'
 
 const CATEGORY_LABEL: Record<IncomeCategory, string> = {
@@ -42,22 +43,12 @@ export function IncomeRow({ income }: Props) {
   const { data: members } = useHouseholdMembers()
   const { data: currentUser } = useSession()
 
-  // Render the actual owner name for sole rows. Falls back to "Sole" if the
-  // member can't be resolved (still loading, or the user was soft-deleted).
-  let ownershipLabel = 'Joint'
-  if (income.ownership_type === 'sole') {
-    const owner = (members ?? []).find(
-      (m) => m.id === income.sole_owner_user_id,
-    )
-    if (owner) {
-      ownershipLabel =
-        currentUser && owner.id === currentUser.id
-          ? `${owner.display_name} (you)`
-          : owner.display_name
-    } else {
-      ownershipLabel = 'Sole'
-    }
-  }
+  const ownerLabel = ownershipLabel(
+    income.ownership_type,
+    income.sole_owner_user_id,
+    members,
+    currentUser,
+  )
 
   function handleConfirmDelete() {
     deleteMutation.mutate(income.id, {
@@ -92,7 +83,7 @@ export function IncomeRow({ income }: Props) {
           {income.description || <span className="text-muted-foreground/60">—</span>}
         </TableCell>
         <TableCell className="text-xs text-muted-foreground">
-          {ownershipLabel}
+          {ownerLabel}
         </TableCell>
         <TableCell className="text-right">
           <DropdownMenu>

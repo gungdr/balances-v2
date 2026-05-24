@@ -156,6 +156,7 @@ func TestLiabilityRepo_TenancyIsolation(t *testing.T) {
 	t.Run("alice update liability persists new display_name", func(t *testing.T) {
 		updated, err := r.UpdateLiability(aliceCtx, aliceLiability.ID, repo.UpdateLiabilityParams{
 			DisplayName:      "Alice KPR renamed",
+			OwnershipType:    "joint",
 			CounterpartyName: "Bank BCA",
 		})
 		if err != nil {
@@ -163,6 +164,24 @@ func TestLiabilityRepo_TenancyIsolation(t *testing.T) {
 		}
 		if updated.DisplayName != "Alice KPR renamed" {
 			t.Errorf("DisplayName: got %q, want %q", updated.DisplayName, "Alice KPR renamed")
+		}
+	})
+
+	t.Run("alice update liability flips ownership joint→sole with owner picker", func(t *testing.T) {
+		updated, err := r.UpdateLiability(aliceCtx, aliceLiability.ID, repo.UpdateLiabilityParams{
+			DisplayName:      "Alice KPR renamed",
+			OwnershipType:    "sole",
+			SoleOwnerUserID:  &aliceUser.ID,
+			CounterpartyName: "Bank BCA",
+		})
+		if err != nil {
+			t.Fatalf("UpdateLiability sole: %v", err)
+		}
+		if updated.OwnershipType != "sole" {
+			t.Errorf("OwnershipType: got %q, want sole", updated.OwnershipType)
+		}
+		if updated.SoleOwnerUserID == nil || *updated.SoleOwnerUserID != aliceUser.ID {
+			t.Errorf("SoleOwnerUserID: got %v, want %v", updated.SoleOwnerUserID, aliceUser.ID)
 		}
 	})
 

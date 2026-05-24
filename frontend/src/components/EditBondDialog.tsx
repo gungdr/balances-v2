@@ -11,6 +11,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useUpdateBond } from '@/hooks/useInvestments'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { useSession } from '@/hooks/useSession'
 import { ApiError } from '@/api/client'
 import type {
   Bond,
@@ -31,6 +33,8 @@ function toForm(bond: Bond | BondListItem) {
   return {
     display_name: i.display_name,
     description: i.description ?? '',
+    ownership_type: i.ownership_type,
+    sole_owner_user_id: i.sole_owner_user_id,
     bond_type: d.bond_type,
     series_code: d.series_code ?? '',
     issuer: d.issuer,
@@ -43,7 +47,11 @@ function toForm(bond: Bond | BondListItem) {
 
 export function EditBondDialog({ open, onOpenChange, bond }: Props) {
   const [form, setForm] = useState(() => toForm(bond))
+  const { data: user } = useSession()
+  const { data: members } = useHouseholdMembers()
   const mutation = useUpdateBond(bond.investment.id)
+
+  const effectiveSoleOwnerID = form.sole_owner_user_id ?? user?.id ?? null
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -51,6 +59,9 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
       {
         display_name: form.display_name,
         description: form.description || null,
+        ownership_type: form.ownership_type,
+        sole_owner_user_id:
+          form.ownership_type === 'sole' ? effectiveSoleOwnerID : null,
         bond_type: form.bond_type,
         series_code: form.series_code.trim() || null,
         issuer: form.issuer,
@@ -69,7 +80,7 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
         <DialogHeader>
           <DialogTitle>Edit bond</DialogTitle>
           <DialogDescription>
-            Ownership and currency are fixed at creation.
+            Currency is fixed at creation. Ownership is editable.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
@@ -204,6 +215,55 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
                   setForm({ ...form, maturity_date: e.target.value })
                 }
               />
+            </div>
+          </div>
+
+          <div className="space-y-3 border-t pt-4">
+            <div className="grid gap-2">
+              <Label>Ownership</Label>
+              <div className="flex gap-4 text-sm">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="edit_bond_ownership_type"
+                    value="joint"
+                    checked={form.ownership_type === 'joint'}
+                    onChange={() =>
+                      setForm({ ...form, ownership_type: 'joint' })
+                    }
+                  />
+                  Joint
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="edit_bond_ownership_type"
+                    value="sole"
+                    checked={form.ownership_type === 'sole'}
+                    onChange={() =>
+                      setForm({ ...form, ownership_type: 'sole' })
+                    }
+                  />
+                  Sole owner
+                </label>
+              </div>
+              {form.ownership_type === 'sole' && (
+                <select
+                  aria-label="Sole owner"
+                  className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                  value={effectiveSoleOwnerID ?? ''}
+                  onChange={(e) =>
+                    setForm({ ...form, sole_owner_user_id: e.target.value })
+                  }
+                >
+                  {(members ?? []).map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.display_name}
+                      {user && m.id === user.id ? ' (you)' : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
 

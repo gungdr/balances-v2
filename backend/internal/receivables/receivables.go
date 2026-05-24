@@ -66,10 +66,12 @@ type createReq struct {
 }
 
 type updateReq struct {
-	DisplayName      string  `json:"display_name"            validate:"required"`
-	Description      *string `json:"description"`
-	CounterpartyName string  `json:"counterparty_name"       validate:"required"`
-	DueDate          *string `json:"due_date"`
+	DisplayName      string     `json:"display_name"            validate:"required"`
+	Description      *string    `json:"description"`
+	OwnershipType    string     `json:"ownership_type"          validate:"required,oneof=sole joint"`
+	SoleOwnerUserID  *uuid.UUID `json:"sole_owner_user_id"      validate:"required_if=OwnershipType sole"`
+	CounterpartyName string     `json:"counterparty_name"       validate:"required"`
+	DueDate          *string    `json:"due_date"`
 }
 
 // ----- core CRUD ----------------------------------------------------------
@@ -153,6 +155,8 @@ func (h *Handlers) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	row, err := h.repo.UpdateReceivable(r.Context(), id, repo.UpdateReceivableParams{
 		DisplayName:      req.DisplayName,
 		Description:      req.Description,
+		OwnershipType:    req.OwnershipType,
+		SoleOwnerUserID:  req.SoleOwnerUserID,
 		CounterpartyName: req.CounterpartyName,
 		DueDate:          dueDate,
 	})

@@ -11,7 +11,10 @@ import { TableCell, TableRow } from '@/components/ui/table'
 import { EditPropertyDialog } from '@/components/EditPropertyDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useDeleteProperty } from '@/hooks/useProperties'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatYearMonth } from '@/lib/format'
+import { ownershipLabel } from '@/lib/ownership'
 import type { PropertyListItem } from '@/api/types'
 
 type Props = {
@@ -23,6 +26,14 @@ export function PropertyListRow({ item, onSelect }: Props) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const deleteMutation = useDeleteProperty()
+  const { data: members } = useHouseholdMembers()
+  const { data: currentUser } = useSession()
+  const ownerLabel = ownershipLabel(
+    item.asset.ownership_type,
+    item.asset.sole_owner_user_id,
+    members,
+    currentUser,
+  )
 
   const propertyForEdit = { asset: item.asset, details: item.details }
 
@@ -48,9 +59,7 @@ export function PropertyListRow({ item, onSelect }: Props) {
             {secondary || '—'}
           </div>
         </TableCell>
-        <TableCell className="capitalize">
-          {item.asset.ownership_type}
-        </TableCell>
+        <TableCell>{ownerLabel}</TableCell>
         <TableCell>
           {item.latest_snapshot ? (
             <>

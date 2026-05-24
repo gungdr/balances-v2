@@ -177,12 +177,14 @@ func (q *Queries) SoftDeleteReceivable(ctx context.Context, arg SoftDeleteReceiv
 
 const updateReceivable = `-- name: UpdateReceivable :one
 UPDATE receivables
-SET display_name      = $3,
-    description       = $4,
-    counterparty_name = $5,
-    due_date          = $6,
-    updated_by        = $7,
-    updated_at        = now()
+SET display_name       = $3,
+    description        = $4,
+    ownership_type     = $5,
+    sole_owner_user_id = $6,
+    counterparty_name  = $7,
+    due_date           = $8,
+    updated_by         = $9,
+    updated_at         = now()
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
 RETURNING id, household_id, display_name, description, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, counterparty_name, due_date, created_by, created_at, updated_by, updated_at, deleted_at
 `
@@ -192,6 +194,8 @@ type UpdateReceivableParams struct {
 	HouseholdID      uuid.UUID  `json:"household_id"`
 	DisplayName      string     `json:"display_name"`
 	Description      *string    `json:"description"`
+	OwnershipType    string     `json:"ownership_type"`
+	SoleOwnerUserID  *uuid.UUID `json:"sole_owner_user_id"`
 	CounterpartyName string     `json:"counterparty_name"`
 	DueDate          *time.Time `json:"due_date"`
 	UpdatedBy        *uuid.UUID `json:"updated_by"`
@@ -203,6 +207,8 @@ func (q *Queries) UpdateReceivable(ctx context.Context, arg UpdateReceivablePara
 		arg.HouseholdID,
 		arg.DisplayName,
 		arg.Description,
+		arg.OwnershipType,
+		arg.SoleOwnerUserID,
 		arg.CounterpartyName,
 		arg.DueDate,
 		arg.UpdatedBy,

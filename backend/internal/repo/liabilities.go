@@ -53,6 +53,8 @@ type CreateLiabilityParams struct {
 type UpdateLiabilityParams struct {
 	DisplayName      string
 	Description      *string
+	OwnershipType    string
+	SoleOwnerUserID  *uuid.UUID
 	CounterpartyName string
 	Principal        *decimal.Decimal
 	InterestRate     *decimal.Decimal
@@ -156,6 +158,8 @@ func (r *LiabilityRepo) UpdateLiability(ctx context.Context, id uuid.UUID, p Upd
 		HouseholdID:      hid,
 		DisplayName:      p.DisplayName,
 		Description:      p.Description,
+		OwnershipType:    p.OwnershipType,
+		SoleOwnerUserID:  p.SoleOwnerUserID,
 		CounterpartyName: p.CounterpartyName,
 		Principal:        p.Principal,
 		InterestRate:     p.InterestRate,

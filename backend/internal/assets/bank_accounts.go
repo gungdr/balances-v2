@@ -23,11 +23,13 @@ type createBankAccountReq struct {
 }
 
 type updateBankAccountReq struct {
-	DisplayName   string  `json:"display_name"   validate:"required"`
-	Description   *string `json:"description"`
-	BankName      string  `json:"bank_name"      validate:"required"`
-	AccountNumber string  `json:"account_number" validate:"required"`
-	AccountType   string  `json:"account_type"   validate:"required,oneof=savings current other"`
+	DisplayName     string     `json:"display_name"       validate:"required"`
+	Description     *string    `json:"description"`
+	OwnershipType   string     `json:"ownership_type"     validate:"required,oneof=sole joint"`
+	SoleOwnerUserID *uuid.UUID `json:"sole_owner_user_id" validate:"required_if=OwnershipType sole"`
+	BankName        string     `json:"bank_name"          validate:"required"`
+	AccountNumber   string     `json:"account_number"     validate:"required"`
+	AccountType     string     `json:"account_type"       validate:"required,oneof=savings current other"`
 }
 
 // ----- handlers -----------------------------------------------------------
@@ -100,11 +102,13 @@ func (h *Handlers) handleUpdateBankAccount(w http.ResponseWriter, r *http.Reques
 	}
 
 	account, err := h.repo.UpdateBankAccount(r.Context(), id, repo.UpdateBankAccountParams{
-		DisplayName:   req.DisplayName,
-		Description:   req.Description,
-		BankName:      req.BankName,
-		AccountNumber: req.AccountNumber,
-		AccountType:   req.AccountType,
+		DisplayName:     req.DisplayName,
+		Description:     req.Description,
+		OwnershipType:   req.OwnershipType,
+		SoleOwnerUserID: req.SoleOwnerUserID,
+		BankName:        req.BankName,
+		AccountNumber:   req.AccountNumber,
+		AccountType:     req.AccountType,
 	})
 	if err != nil {
 		writeRepoError(w, "update bank account", err)

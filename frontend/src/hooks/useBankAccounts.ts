@@ -16,6 +16,8 @@ export type CreateBankAccountPayload = {
 export type UpdateBankAccountPayload = {
   display_name: string
   description: string | null
+  ownership_type: 'sole' | 'joint'
+  sole_owner_user_id: string | null
   bank_name: string
   account_number: string
   account_type: 'savings' | 'current' | 'other'

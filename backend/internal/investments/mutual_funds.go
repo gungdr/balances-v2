@@ -20,10 +20,12 @@ type createMutualFundReq struct {
 }
 
 type updateMutualFundReq struct {
-	DisplayName string  `json:"display_name" validate:"required"`
-	Description *string `json:"description"`
-	FundCode    string  `json:"fund_code"    validate:"required"`
-	FundManager *string `json:"fund_manager"`
+	DisplayName     string     `json:"display_name"       validate:"required"`
+	Description     *string    `json:"description"`
+	OwnershipType   string     `json:"ownership_type"     validate:"required,oneof=sole joint"`
+	SoleOwnerUserID *uuid.UUID `json:"sole_owner_user_id" validate:"required_if=OwnershipType sole"`
+	FundCode        string     `json:"fund_code"          validate:"required"`
+	FundManager     *string    `json:"fund_manager"`
 }
 
 func (h *Handlers) handleCreateMutualFund(w http.ResponseWriter, r *http.Request) {
@@ -93,10 +95,12 @@ func (h *Handlers) handleUpdateMutualFund(w http.ResponseWriter, r *http.Request
 	}
 
 	mf, err := h.repo.UpdateMutualFund(r.Context(), id, repo.UpdateMutualFundParams{
-		DisplayName: req.DisplayName,
-		Description: req.Description,
-		FundCode:    req.FundCode,
-		FundManager: req.FundManager,
+		DisplayName:     req.DisplayName,
+		Description:     req.Description,
+		OwnershipType:   req.OwnershipType,
+		SoleOwnerUserID: req.SoleOwnerUserID,
+		FundCode:        req.FundCode,
+		FundManager:     req.FundManager,
 	})
 	if err != nil {
 		writeRepoError(w, "update mutual fund", err)

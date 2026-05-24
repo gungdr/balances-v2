@@ -27,7 +27,10 @@ import { EditPropertyDialog } from '@/components/EditPropertyDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { SnapshotRow } from '@/components/SnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatDate } from '@/lib/format'
+import { ownershipLabel } from '@/lib/ownership'
 
 type Props = {
   assetId: string
@@ -43,6 +46,8 @@ export function PropertyDetail({ assetId, onBack }: Props) {
   const createSnapshotMutation = useCreateSnapshot(assetId)
   const updateSnapshotMutation = useUpdateSnapshot(assetId)
   const deleteSnapshotMutation = useDeleteSnapshot(assetId)
+  const { data: members } = useHouseholdMembers()
+  const { data: currentUser } = useSession()
 
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -76,6 +81,12 @@ export function PropertyDetail({ assetId, onBack }: Props) {
   if (!property) return null
 
   const { asset, details } = property
+  const ownerLabel = ownershipLabel(
+    asset.ownership_type,
+    asset.sole_owner_user_id,
+    members,
+    currentUser,
+  )
   const pageSnapshots = (snapshots ?? []).slice(
     (effectivePage - 1) * PAGE_SIZE,
     effectivePage * PAGE_SIZE,
@@ -123,8 +134,8 @@ export function PropertyDetail({ assetId, onBack }: Props) {
         <CardHeader>
           <CardTitle>Property Details</CardTitle>
           <CardDescription>
-            Ownership: <span className="capitalize">{asset.ownership_type}</span>{' '}
-            · Currency: {asset.native_currency} · Status: {asset.status}
+            Ownership: {ownerLabel} · Currency: {asset.native_currency} ·
+            Status: {asset.status}
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm space-y-1">

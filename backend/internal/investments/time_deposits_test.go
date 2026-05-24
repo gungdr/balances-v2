@@ -138,6 +138,7 @@ func TestTimeDepositHandlers_Update(t *testing.T) {
 	t.Run("200 happy path", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/investments/time-deposits/"+created.Investment.ID.String(), map[string]any{
 			"display_name":    "Renamed",
+			"ownership_type":  "joint",
 			"bank_name":       "Mandiri",
 			"principal":       "100000000",
 			"interest_rate":   "5.0",
@@ -156,6 +157,7 @@ func TestTimeDepositHandlers_Update(t *testing.T) {
 	t.Run("404 unknown id", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/investments/time-deposits/"+uuid.NewString(), map[string]any{
 			"display_name":    "x",
+			"ownership_type":  "joint",
 			"bank_name":       "y",
 			"principal":       "1",
 			"interest_rate":   "1",

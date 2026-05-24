@@ -38,8 +38,11 @@ import { EditBondDialog } from '@/components/EditBondDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { AccruedInterestSnapshotRow } from '@/components/AccruedInterestSnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { maturityClass, maturityInfo } from '@/lib/maturity'
+import { ownershipLabel } from '@/lib/ownership'
 import type { CouponFrequency } from '@/api/types'
 
 type Props = {
@@ -82,6 +85,8 @@ export function BondDetail({ investmentId, onBack }: Props) {
   const createTransactionMutation = useCreateInvestmentTransaction(investmentId)
   const updateTransactionMutation = useUpdateInvestmentTransaction(investmentId)
   const deleteTransactionMutation = useDeleteInvestmentTransaction(investmentId)
+  const { data: members } = useHouseholdMembers()
+  const { data: currentUser } = useSession()
 
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -187,9 +192,12 @@ export function BondDetail({ investmentId, onBack }: Props) {
           <CardTitle>Bond Details</CardTitle>
           <CardDescription>
             Ownership:{' '}
-            <span className="capitalize">
-              {bond.investment.ownership_type}
-            </span>{' '}
+            {ownershipLabel(
+              bond.investment.ownership_type,
+              bond.investment.sole_owner_user_id,
+              members,
+              currentUser,
+            )}{' '}
             · Currency: {bond.investment.native_currency} · Status:{' '}
             {bond.investment.status}
           </CardDescription>

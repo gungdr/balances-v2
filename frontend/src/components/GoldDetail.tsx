@@ -36,7 +36,10 @@ import { EditGoldDialog } from '@/components/EditGoldDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { QuantityPriceSnapshotRow } from '@/components/QuantityPriceSnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { useSession } from '@/hooks/useSession'
 import { formatGoldPurity } from '@/lib/gold'
+import { ownershipLabel } from '@/lib/ownership'
 import { reconcileQuantity } from '@/lib/reconciliation'
 
 type Props = {
@@ -66,6 +69,8 @@ export function GoldDetail({ investmentId, onBack }: Props) {
   const createTransactionMutation = useCreateInvestmentTransaction(investmentId)
   const updateTransactionMutation = useUpdateInvestmentTransaction(investmentId)
   const deleteTransactionMutation = useDeleteInvestmentTransaction(investmentId)
+  const { data: members } = useHouseholdMembers()
+  const { data: currentUser } = useSession()
 
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -157,9 +162,12 @@ export function GoldDetail({ investmentId, onBack }: Props) {
           <CardTitle>Gold Details</CardTitle>
           <CardDescription>
             Ownership:{' '}
-            <span className="capitalize">
-              {gold.investment.ownership_type}
-            </span>{' '}
+            {ownershipLabel(
+              gold.investment.ownership_type,
+              gold.investment.sole_owner_user_id,
+              members,
+              currentUser,
+            )}{' '}
             · Currency: {gold.investment.native_currency} · Status:{' '}
             {gold.investment.status}
           </CardDescription>

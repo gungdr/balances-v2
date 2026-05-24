@@ -11,7 +11,10 @@ import { TableCell, TableRow } from '@/components/ui/table'
 import { EditLiabilityDialog } from '@/components/EditLiabilityDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useDeleteLiability } from '@/hooks/useLiabilities'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatYearMonth } from '@/lib/format'
+import { ownershipLabel } from '@/lib/ownership'
 import type { LiabilityListItem } from '@/api/types'
 
 type Props = {
@@ -23,6 +26,14 @@ export function LiabilityListRow({ item, onSelect }: Props) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const deleteMutation = useDeleteLiability()
+  const { data: members } = useHouseholdMembers()
+  const { data: currentUser } = useSession()
+  const ownerLabel = ownershipLabel(
+    item.liability.ownership_type,
+    item.liability.sole_owner_user_id,
+    members,
+    currentUser,
+  )
 
   function handleConfirmDelete() {
     deleteMutation.mutate(item.liability.id, {
@@ -42,9 +53,7 @@ export function LiabilityListRow({ item, onSelect }: Props) {
             {item.liability.counterparty_name}
           </div>
         </TableCell>
-        <TableCell className="capitalize">
-          {item.liability.ownership_type}
-        </TableCell>
+        <TableCell>{ownerLabel}</TableCell>
         <TableCell>
           {item.latest_snapshot ? (
             <>

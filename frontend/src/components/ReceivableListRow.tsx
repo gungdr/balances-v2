@@ -11,7 +11,10 @@ import { TableCell, TableRow } from '@/components/ui/table'
 import { EditReceivableDialog } from '@/components/EditReceivableDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useDeleteReceivable } from '@/hooks/useReceivables'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatYearMonth, formatDate } from '@/lib/format'
+import { ownershipLabel } from '@/lib/ownership'
 import type { ReceivableListItem } from '@/api/types'
 
 type Props = {
@@ -23,6 +26,14 @@ export function ReceivableListRow({ item, onSelect }: Props) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const deleteMutation = useDeleteReceivable()
+  const { data: members } = useHouseholdMembers()
+  const { data: currentUser } = useSession()
+  const ownerLabel = ownershipLabel(
+    item.receivable.ownership_type,
+    item.receivable.sole_owner_user_id,
+    members,
+    currentUser,
+  )
 
   function handleConfirmDelete() {
     deleteMutation.mutate(item.receivable.id, {
@@ -45,9 +56,7 @@ export function ReceivableListRow({ item, onSelect }: Props) {
             )}
           </div>
         </TableCell>
-        <TableCell className="capitalize">
-          {item.receivable.ownership_type}
-        </TableCell>
+        <TableCell>{ownerLabel}</TableCell>
         <TableCell>
           {item.latest_snapshot ? (
             <>

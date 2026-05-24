@@ -23,10 +23,12 @@ ORDER BY created_at DESC;
 
 -- name: UpdateAsset :one
 UPDATE assets
-SET display_name = $3,
-    description  = $4,
-    updated_by   = $5,
-    updated_at   = now()
+SET display_name       = $3,
+    description        = $4,
+    ownership_type     = $5,
+    sole_owner_user_id = $6,
+    updated_by         = $7,
+    updated_at         = now()
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
 RETURNING *;
 

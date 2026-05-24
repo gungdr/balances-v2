@@ -23,12 +23,14 @@ ORDER BY created_at DESC;
 
 -- name: UpdateReceivable :one
 UPDATE receivables
-SET display_name      = $3,
-    description       = $4,
-    counterparty_name = $5,
-    due_date          = $6,
-    updated_by        = $7,
-    updated_at        = now()
+SET display_name       = $3,
+    description        = $4,
+    ownership_type     = $5,
+    sole_owner_user_id = $6,
+    counterparty_name  = $7,
+    due_date           = $8,
+    updated_by         = $9,
+    updated_at         = now()
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
 RETURNING *;
 

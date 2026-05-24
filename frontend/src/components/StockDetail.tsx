@@ -37,6 +37,9 @@ import { EditStockDialog } from '@/components/EditStockDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { QuantityPriceSnapshotRow } from '@/components/QuantityPriceSnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
+import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { useSession } from '@/hooks/useSession'
+import { ownershipLabel } from '@/lib/ownership'
 import { reconcileQuantity } from '@/lib/reconciliation'
 
 type Props = {
@@ -66,6 +69,8 @@ export function StockDetail({ investmentId, onBack }: Props) {
   const createTransactionMutation = useCreateInvestmentTransaction(investmentId)
   const updateTransactionMutation = useUpdateInvestmentTransaction(investmentId)
   const deleteTransactionMutation = useDeleteInvestmentTransaction(investmentId)
+  const { data: members } = useHouseholdMembers()
+  const { data: currentUser } = useSession()
 
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -157,9 +162,12 @@ export function StockDetail({ investmentId, onBack }: Props) {
           <CardTitle>Stock Details</CardTitle>
           <CardDescription>
             Ownership:{' '}
-            <span className="capitalize">
-              {stock.investment.ownership_type}
-            </span>{' '}
+            {ownershipLabel(
+              stock.investment.ownership_type,
+              stock.investment.sole_owner_user_id,
+              members,
+              currentUser,
+            )}{' '}
             · Currency: {stock.investment.native_currency} · Status:{' '}
             {stock.investment.status}
           </CardDescription>

@@ -154,6 +154,7 @@ func TestReceivableRepo_TenancyIsolation(t *testing.T) {
 	t.Run("alice update receivable persists new display_name", func(t *testing.T) {
 		updated, err := r.UpdateReceivable(aliceCtx, aliceReceivable.ID, repo.UpdateReceivableParams{
 			DisplayName:      "Loan to brother renamed",
+			OwnershipType:    "joint",
 			CounterpartyName: "Brother",
 		})
 		if err != nil {
@@ -161,6 +162,24 @@ func TestReceivableRepo_TenancyIsolation(t *testing.T) {
 		}
 		if updated.DisplayName != "Loan to brother renamed" {
 			t.Errorf("DisplayName: got %q, want %q", updated.DisplayName, "Loan to brother renamed")
+		}
+	})
+
+	t.Run("alice update receivable flips ownership joint→sole with owner picker", func(t *testing.T) {
+		updated, err := r.UpdateReceivable(aliceCtx, aliceReceivable.ID, repo.UpdateReceivableParams{
+			DisplayName:      "Loan to brother renamed",
+			OwnershipType:    "sole",
+			SoleOwnerUserID:  &aliceUser.ID,
+			CounterpartyName: "Brother",
+		})
+		if err != nil {
+			t.Fatalf("UpdateReceivable sole: %v", err)
+		}
+		if updated.OwnershipType != "sole" {
+			t.Errorf("OwnershipType: got %q, want sole", updated.OwnershipType)
+		}
+		if updated.SoleOwnerUserID == nil || *updated.SoleOwnerUserID != aliceUser.ID {
+			t.Errorf("SoleOwnerUserID: got %v, want %v", updated.SoleOwnerUserID, aliceUser.ID)
 		}
 	})
 

@@ -95,8 +95,9 @@ func TestMutualFundHandlers_Update(t *testing.T) {
 
 	t.Run("200 happy path", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/investments/mutual-funds/"+created.Investment.ID.String(), map[string]any{
-			"display_name": "Renamed",
-			"fund_code":    "NEWCODE",
+			"display_name":   "Renamed",
+			"ownership_type": "joint",
+			"fund_code":      "NEWCODE",
 		})
 		requireStatus(t, rec, http.StatusOK)
 		body := decodeBody[*repo.MutualFund](t, rec)
@@ -107,8 +108,9 @@ func TestMutualFundHandlers_Update(t *testing.T) {
 
 	t.Run("404 unknown id", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/investments/mutual-funds/"+uuid.NewString(), map[string]any{
-			"display_name": "x",
-			"fund_code":    "x",
+			"display_name":   "x",
+			"ownership_type": "joint",
+			"fund_code":      "x",
 		})
 		requireStatus(t, rec, http.StatusNotFound)
 	})

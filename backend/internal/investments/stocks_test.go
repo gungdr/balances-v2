@@ -101,9 +101,10 @@ func TestStockHandlers_Update(t *testing.T) {
 
 	t.Run("200 happy path", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/investments/stocks/"+created.Investment.ID.String(), map[string]any{
-			"display_name": "Renamed",
-			"ticker":       "BBRI",
-			"exchange":     "IDX",
+			"display_name":   "Renamed",
+			"ownership_type": "joint",
+			"ticker":         "BBRI",
+			"exchange":       "IDX",
 		})
 		requireStatus(t, rec, http.StatusOK)
 		body := decodeBody[*repo.Stock](t, rec)
@@ -114,9 +115,10 @@ func TestStockHandlers_Update(t *testing.T) {
 
 	t.Run("404 unknown id", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/investments/stocks/"+uuid.NewString(), map[string]any{
-			"display_name": "x",
-			"ticker":       "x",
-			"exchange":     "x",
+			"display_name":   "x",
+			"ownership_type": "joint",
+			"ticker":         "x",
+			"exchange":       "x",
 		})
 		requireStatus(t, rec, http.StatusNotFound)
 	})

@@ -19,6 +19,8 @@ export type CreateVehiclePayload = {
 export type UpdateVehiclePayload = {
   display_name: string
   description: string | null
+  ownership_type: 'sole' | 'joint'
+  sole_owner_user_id: string | null
   vehicle_type: 'car' | 'motorcycle' | 'other'
   make: string | null
   model: string | null

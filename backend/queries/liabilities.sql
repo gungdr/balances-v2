@@ -25,16 +25,18 @@ ORDER BY created_at DESC;
 
 -- name: UpdateLiability :one
 UPDATE liabilities
-SET display_name      = $3,
-    description       = $4,
-    counterparty_name = $5,
-    principal         = $6,
-    interest_rate     = $7,
-    term_months       = $8,
-    start_date        = $9,
-    maturity_date     = $10,
-    updated_by        = $11,
-    updated_at        = now()
+SET display_name       = $3,
+    description        = $4,
+    ownership_type     = $5,
+    sole_owner_user_id = $6,
+    counterparty_name  = $7,
+    principal          = $8,
+    interest_rate      = $9,
+    term_months        = $10,
+    start_date         = $11,
+    maturity_date      = $12,
+    updated_by         = $13,
+    updated_at         = now()
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
 RETURNING *;
 
