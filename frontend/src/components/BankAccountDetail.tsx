@@ -26,6 +26,9 @@ import {
   useDeleteSnapshot,
 } from '@/hooks/useAssetSnapshots'
 import { CreateSnapshotDialog } from '@/components/CreateSnapshotDialog'
+import { TerminatePositionDialog } from '@/components/TerminatePositionDialog'
+import { StatusBadge } from '@/components/StatusBadge'
+import { isActiveStatus } from '@/lib/lifecycle'
 import { EditBankAccountDialog } from '@/components/EditBankAccountDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { SnapshotRow } from '@/components/SnapshotRow'
@@ -118,13 +121,23 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
           </p>
         </div>
         <div className="flex gap-2">
-          <CreateSnapshotDialog
-            currency={asset.native_currency}
-            mutation={createSnapshotMutation}
-          />
+          {isActiveStatus(asset.status) && (
+            <CreateSnapshotDialog
+              currency={asset.native_currency}
+              mutation={createSnapshotMutation}
+            />
+          )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             Edit
           </Button>
+          <TerminatePositionDialog
+            group="assets"
+            id={asset.id}
+            listKey="bank-accounts"
+            currentStatus={asset.status}
+            currentTerminatedAt={asset.terminated_at}
+            currentNote={asset.termination_note}
+          />
           <Button
             variant="outline"
             size="sm"
@@ -140,7 +153,7 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
           <CardTitle>Account Details</CardTitle>
           <CardDescription>
             Ownership: {ownerLabel} · Currency: {asset.native_currency} ·
-            Status: {asset.status}
+            Status: <StatusBadge group="assets" status={asset.status} />
           </CardDescription>
         </CardHeader>
         {asset.description && (

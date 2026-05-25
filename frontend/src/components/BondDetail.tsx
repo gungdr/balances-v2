@@ -34,6 +34,9 @@ import { CreateCashIncomeTransactionDialog } from '@/components/CreateCashIncome
 import { CreateFeeTransactionDialog } from '@/components/CreateFeeTransactionDialog'
 import { CreateMaturityTransactionDialog } from '@/components/CreateMaturityTransactionDialog'
 import { TransactionRow } from '@/components/TransactionRow'
+import { TerminatePositionDialog } from '@/components/TerminatePositionDialog'
+import { StatusBadge } from '@/components/StatusBadge'
+import { isActiveStatus } from '@/lib/lifecycle'
 import { EditBondDialog } from '@/components/EditBondDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { AccruedInterestSnapshotRow } from '@/components/AccruedInterestSnapshotRow'
@@ -82,7 +85,10 @@ export function BondDetail({ investmentId, onBack }: Props) {
     investmentId,
     'bonds',
   )
-  const createTransactionMutation = useCreateInvestmentTransaction(investmentId)
+  const createTransactionMutation = useCreateInvestmentTransaction(
+    investmentId,
+    'bonds',
+  )
   const updateTransactionMutation = useUpdateInvestmentTransaction(investmentId)
   const deleteTransactionMutation = useDeleteInvestmentTransaction(investmentId)
   const { data: members } = useHouseholdMembers()
@@ -133,13 +139,9 @@ export function BondDetail({ investmentId, onBack }: Props) {
     (effectiveTxnPage - 1) * PAGE_SIZE,
     effectiveTxnPage * PAGE_SIZE,
   )
-  // Maturity is uniquely terminal — once recorded, the position is matured
-  // and no further transactions should land. The hard guard (status flip +
-  // "no transactions after matured" rule) lands with M4.8 lifecycle UI.
-  // This UI hide is a band-aid until then.
-  const hasMaturity = transactions?.some(
-    (t) => t.transaction_type === 'maturity',
-  )
+  // Maturity is uniquely terminal: posting it flips the position to 'matured'
+  // (backend hard guard, ADR-0009), after which the transaction-create row is
+  // gated off entirely by isActiveStatus below.
   const mInfo = maturityInfo(bond.details.maturity_date)
   const couponPct = Number(bond.details.coupon_rate).toFixed(2)
   const subtitleBits = [
@@ -170,13 +172,23 @@ export function BondDetail({ investmentId, onBack }: Props) {
           </p>
         </div>
         <div className="flex gap-2">
-          <CreateAccruedInterestSnapshotDialog
-            currency={bond.investment.native_currency}
-            mutation={createSnapshotMutation}
-          />
+          {isActiveStatus(bond.investment.status) && (
+            <CreateAccruedInterestSnapshotDialog
+              currency={bond.investment.native_currency}
+              mutation={createSnapshotMutation}
+            />
+          )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             Edit
           </Button>
+          <TerminatePositionDialog
+            group="investments"
+            id={bond.investment.id}
+            listKey="bonds"
+            currentStatus={bond.investment.status}
+            currentTerminatedAt={bond.investment.terminated_at}
+            currentNote={bond.investment.termination_note}
+          />
           <Button
             variant="outline"
             size="sm"
@@ -199,7 +211,7 @@ export function BondDetail({ investmentId, onBack }: Props) {
               currentUser,
             )}{' '}
             · Currency: {bond.investment.native_currency} · Status:{' '}
-            {bond.investment.status}
+            <StatusBadge group="investments" status={bond.investment.status} />
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm space-y-1">
@@ -310,36 +322,36 @@ export function BondDetail({ investmentId, onBack }: Props) {
                 bonds, log each coupon as received.
               </CardDescription>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <CreateTradeTransactionDialog
-                currency={bond.investment.native_currency}
-                txnType="buy"
-                quantityUnit="lot"
-                mutation={createTransactionMutation}
-              />
-              <CreateTradeTransactionDialog
-                currency={bond.investment.native_currency}
-                txnType="sell"
-                quantityUnit="lot"
-                mutation={createTransactionMutation}
-              />
-              <CreateCashIncomeTransactionDialog
-                currency={bond.investment.native_currency}
-                txnType="coupon"
-                mutation={createTransactionMutation}
-              />
-              <CreateFeeTransactionDialog
-                currency={bond.investment.native_currency}
-                quantityUnit="lot"
-                mutation={createTransactionMutation}
-              />
-              {!hasMaturity && (
+            {isActiveStatus(bond.investment.status) && (
+              <div className="flex flex-wrap gap-2">
+                <CreateTradeTransactionDialog
+                  currency={bond.investment.native_currency}
+                  txnType="buy"
+                  quantityUnit="lot"
+                  mutation={createTransactionMutation}
+                />
+                <CreateTradeTransactionDialog
+                  currency={bond.investment.native_currency}
+                  txnType="sell"
+                  quantityUnit="lot"
+                  mutation={createTransactionMutation}
+                />
+                <CreateCashIncomeTransactionDialog
+                  currency={bond.investment.native_currency}
+                  txnType="coupon"
+                  mutation={createTransactionMutation}
+                />
+                <CreateFeeTransactionDialog
+                  currency={bond.investment.native_currency}
+                  quantityUnit="lot"
+                  mutation={createTransactionMutation}
+                />
                 <CreateMaturityTransactionDialog
                   currency={bond.investment.native_currency}
                   mutation={createTransactionMutation}
                 />
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-0">

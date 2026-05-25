@@ -34,6 +34,16 @@ SET display_name       = $3,
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
 RETURNING *;
 
+-- name: UpdateReceivableLifecycle :one
+UPDATE receivables
+SET status           = $3,
+    terminated_at    = $4,
+    termination_note = $5,
+    updated_by       = $6,
+    updated_at       = now()
+WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
+RETURNING *;
+
 -- name: SoftDeleteReceivable :execrows
 UPDATE receivables
 SET deleted_at = now(),

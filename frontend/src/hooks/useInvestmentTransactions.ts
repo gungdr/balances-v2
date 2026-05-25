@@ -17,6 +17,11 @@ import type {
 // parent subtype list does not denormalize transactions. If a future
 // "transaction count" or "last txn date" column lands on list rows, take
 // the useInvestmentSnapshots listKey pattern.
+//
+// Exception: a Maturity transaction flips the parent investment to 'matured'
+// server-side (ADR-0009 hard guard). Bond/TimeDeposit detail pages pass their
+// subtype `detailKey` so create also invalidates [detailKey, id], refreshing
+// the status badge and re-gating the (now-hidden) transaction-create row.
 
 export type CreateInvestmentTransactionPayload = {
   transaction_type: TransactionType
@@ -50,7 +55,10 @@ export function useInvestmentTransactions(investmentId: string | null) {
   })
 }
 
-export function useCreateInvestmentTransaction(investmentId: string) {
+export function useCreateInvestmentTransaction(
+  investmentId: string,
+  detailKey?: string,
+) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (payload: CreateInvestmentTransactionPayload) =>
@@ -65,6 +73,10 @@ export function useCreateInvestmentTransaction(investmentId: string) {
       qc.invalidateQueries({
         queryKey: ['investment-transactions', investmentId],
       })
+      // Maturity may have flipped the parent to 'matured' — refresh the detail.
+      if (detailKey) {
+        qc.invalidateQueries({ queryKey: [detailKey, investmentId] })
+      }
     },
   })
 }

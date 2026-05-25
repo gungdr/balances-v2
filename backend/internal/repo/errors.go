@@ -45,4 +45,19 @@ var (
 	// human-readable message; the DB CHECK would also reject these but
 	// later in the call.
 	ErrInvalidTransactionShape = errors.New("repo: invalid transaction shape for type")
+
+	// ErrInvalidLifecycle is returned when a Position lifecycle mutation
+	// supplies a status the group doesn't define, or violates the
+	// status/terminated_at biconditional (per ADR-0009: a non-active Position
+	// must carry a terminated_at, an active one must not). The DB CHECK
+	// (migration 00012) backs the date half; this error catches both halves
+	// at the repo layer with a human-readable message and a clean 400.
+	ErrInvalidLifecycle = errors.New("repo: invalid position lifecycle")
+
+	// ErrPositionNotActive is returned when a transaction is created against an
+	// Investment whose status is no longer 'active' — most notably after a
+	// Maturity transaction flips it to 'matured' (ADR-0009: Maturity is
+	// terminal). Mapped to 409 Conflict: the request is well-formed but the
+	// position's state forbids it.
+	ErrPositionNotActive = errors.New("repo: position is not active")
 )

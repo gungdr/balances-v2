@@ -32,6 +32,9 @@ import { CreateQuantityPriceSnapshotDialog } from '@/components/CreateQuantityPr
 import { CreateTradeTransactionDialog } from '@/components/CreateTradeTransactionDialog'
 import { CreateFeeTransactionDialog } from '@/components/CreateFeeTransactionDialog'
 import { TransactionRow } from '@/components/TransactionRow'
+import { TerminatePositionDialog } from '@/components/TerminatePositionDialog'
+import { StatusBadge } from '@/components/StatusBadge'
+import { isActiveStatus } from '@/lib/lifecycle'
 import { EditGoldDialog } from '@/components/EditGoldDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { QuantityPriceSnapshotRow } from '@/components/QuantityPriceSnapshotRow'
@@ -140,13 +143,23 @@ export function GoldDetail({ investmentId, onBack }: Props) {
           </p>
         </div>
         <div className="flex gap-2">
-          <CreateQuantityPriceSnapshotDialog
-            currency={gold.investment.native_currency}
-            mutation={createSnapshotMutation}
-          />
+          {isActiveStatus(gold.investment.status) && (
+            <CreateQuantityPriceSnapshotDialog
+              currency={gold.investment.native_currency}
+              mutation={createSnapshotMutation}
+            />
+          )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             Edit
           </Button>
+          <TerminatePositionDialog
+            group="investments"
+            id={gold.investment.id}
+            listKey="golds"
+            currentStatus={gold.investment.status}
+            currentTerminatedAt={gold.investment.terminated_at}
+            currentNote={gold.investment.termination_note}
+          />
           <Button
             variant="outline"
             size="sm"
@@ -169,7 +182,7 @@ export function GoldDetail({ investmentId, onBack }: Props) {
               currentUser,
             )}{' '}
             · Currency: {gold.investment.native_currency} · Status:{' '}
-            {gold.investment.status}
+            <StatusBadge group="investments" status={gold.investment.status} />
           </CardDescription>
         </CardHeader>
         {gold.investment.description && (
@@ -258,25 +271,27 @@ export function GoldDetail({ investmentId, onBack }: Props) {
                 next snapshot's quantity.
               </CardDescription>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <CreateTradeTransactionDialog
-                currency={gold.investment.native_currency}
-                txnType="buy"
-                quantityUnit="g"
-                mutation={createTransactionMutation}
-              />
-              <CreateTradeTransactionDialog
-                currency={gold.investment.native_currency}
-                txnType="sell"
-                quantityUnit="g"
-                mutation={createTransactionMutation}
-              />
-              <CreateFeeTransactionDialog
-                currency={gold.investment.native_currency}
-                quantityUnit="g"
-                mutation={createTransactionMutation}
-              />
-            </div>
+            {isActiveStatus(gold.investment.status) && (
+              <div className="flex flex-wrap gap-2">
+                <CreateTradeTransactionDialog
+                  currency={gold.investment.native_currency}
+                  txnType="buy"
+                  quantityUnit="g"
+                  mutation={createTransactionMutation}
+                />
+                <CreateTradeTransactionDialog
+                  currency={gold.investment.native_currency}
+                  txnType="sell"
+                  quantityUnit="g"
+                  mutation={createTransactionMutation}
+                />
+                <CreateFeeTransactionDialog
+                  currency={gold.investment.native_currency}
+                  quantityUnit="g"
+                  mutation={createTransactionMutation}
+                />
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-0">

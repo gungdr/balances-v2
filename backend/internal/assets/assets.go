@@ -80,6 +80,14 @@ func (h *Handlers) Mount(r chi.Router) {
 		r.Patch("/{snapshotID}", h.handleUpdateSnapshot)
 		r.Delete("/{snapshotID}", h.handleDeleteSnapshot)
 	})
+
+	// Lifecycle (status/terminated_at/termination_note) lives at the parent
+	// /assets level — like snapshots — because it operates on the shared
+	// `assets` table, not on subtype-specific fields (ADR-0009).
+	r.Route("/assets/{id}/lifecycle", func(r chi.Router) {
+		r.Use(auth.RequireAuth)
+		r.Patch("/", h.handleUpdateLifecycle)
+	})
 }
 
 // ----- helpers shared across handlers -------------------------------------
@@ -99,6 +107,8 @@ func repoErrorStatus(err error) int {
 	switch {
 	case errors.Is(err, repo.ErrNotFound):
 		return http.StatusNotFound
+	case errors.Is(err, repo.ErrInvalidLifecycle):
+		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError
 	}

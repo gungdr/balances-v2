@@ -52,6 +52,13 @@ A Position contributes to month M's net worth only if `terminated_at IS NULL OR 
 
 **Reactivation creates a new Position row** rather than flipping `terminated_at` back to NULL. This keeps periods of non-ownership unambiguous in the audit history. Applies uniformly, including to TimeDeposit auto-rollovers: each rollover creates a fresh TimeDeposit row with a new `placement_date`. The chain is implicit, not modelled as a parent-child link (consistent with CONTEXT.md).
 
+### M4.6 implementation notes (lifecycle UI)
+
+- **Status and `terminated_at` are kept in lockstep by a DB biconditional CHECK** (`(status = 'active') = (terminated_at IS NULL)`, migration 00012, on all four core tables). A non-active status *must* carry a termination date; an active status *must not*. The repo's `validatePositionLifecycle` mirrors this for friendlier 400s, and the API requires `terminated_at` whenever the status is non-active (the UI defaults it to today).
+- **Lifecycle is a dedicated action, not part of Edit.** It operates on the *parent* table, so there are 4 endpoints (`PATCH /api/{assets,liabilities,receivables,investments}/{id}/lifecycle`), 4 repo methods, and 4 SQL queries — not one per subtype. The 10 subtype Edit dialogs/Update paths are untouched.
+- **Maturity is enforced as terminal by a hard guard, not just UI.** A Maturity transaction flips the investment to `matured` + sets `terminated_at` atomically (one pgx tx), and any subsequent transaction on a non-active investment is rejected with `ErrPositionNotActive` → 409. This replaces the earlier frontend-only "hide the Maturity button once one exists" band-aid.
+- **Same-row un-terminate is a *correction* affordance, not reactivation.** The terminate dialog lets a user switch a mis-set status back to Active (clearing `terminated_at` on the same row) to undo a mistake. This does **not** contradict the "reactivation creates a new row" rule above: genuine re-acquisition of a sold/closed position is still modelled as a fresh Create. The DB does not distinguish the two; the distinction is procedural. *(Flagged for revisit if audit-gap ambiguity ever bites — pre-alpha, accepted.)*
+
 ## Maturity transaction extension
 
 The Maturity transaction carries explicit disposition fields so it can express all real-world maturity events:

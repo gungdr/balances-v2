@@ -235,3 +235,55 @@ func (q *Queries) UpdateReceivable(ctx context.Context, arg UpdateReceivablePara
 	)
 	return i, err
 }
+
+const updateReceivableLifecycle = `-- name: UpdateReceivableLifecycle :one
+UPDATE receivables
+SET status           = $3,
+    terminated_at    = $4,
+    termination_note = $5,
+    updated_by       = $6,
+    updated_at       = now()
+WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
+RETURNING id, household_id, display_name, description, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, counterparty_name, due_date, created_by, created_at, updated_by, updated_at, deleted_at
+`
+
+type UpdateReceivableLifecycleParams struct {
+	ID              uuid.UUID  `json:"id"`
+	HouseholdID     uuid.UUID  `json:"household_id"`
+	Status          string     `json:"status"`
+	TerminatedAt    *time.Time `json:"terminated_at"`
+	TerminationNote *string    `json:"termination_note"`
+	UpdatedBy       *uuid.UUID `json:"updated_by"`
+}
+
+func (q *Queries) UpdateReceivableLifecycle(ctx context.Context, arg UpdateReceivableLifecycleParams) (Receivable, error) {
+	row := q.db.QueryRow(ctx, updateReceivableLifecycle,
+		arg.ID,
+		arg.HouseholdID,
+		arg.Status,
+		arg.TerminatedAt,
+		arg.TerminationNote,
+		arg.UpdatedBy,
+	)
+	var i Receivable
+	err := row.Scan(
+		&i.ID,
+		&i.HouseholdID,
+		&i.DisplayName,
+		&i.Description,
+		&i.OwnershipType,
+		&i.SoleOwnerUserID,
+		&i.NativeCurrency,
+		&i.Status,
+		&i.TerminatedAt,
+		&i.TerminationNote,
+		&i.CounterpartyName,
+		&i.DueDate,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedBy,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}

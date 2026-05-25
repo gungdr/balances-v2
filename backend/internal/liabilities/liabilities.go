@@ -44,6 +44,7 @@ func (h *Handlers) Mount(r chi.Router) {
 			r.Get("/", h.handleGet)
 			r.Patch("/", h.handleUpdate)
 			r.Delete("/", h.handleDelete)
+			r.Patch("/lifecycle", h.handleUpdateLifecycle)
 			r.Route("/snapshots", func(r chi.Router) {
 				r.Post("/", h.handleCreateSnapshot)
 				r.Get("/", h.handleListSnapshots)
@@ -352,6 +353,8 @@ func writeRepoError(w http.ResponseWriter, op string, err error) {
 	switch {
 	case errors.Is(err, repo.ErrNotFound):
 		status = http.StatusNotFound
+	case errors.Is(err, repo.ErrInvalidLifecycle):
+		status = http.StatusBadRequest
 	default:
 		status = http.StatusInternalServerError
 	}

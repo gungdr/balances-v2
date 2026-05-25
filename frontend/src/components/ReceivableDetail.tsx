@@ -23,6 +23,9 @@ import {
   useDeleteReceivableSnapshot,
 } from '@/hooks/useReceivableSnapshots'
 import { CreateSnapshotDialog } from '@/components/CreateSnapshotDialog'
+import { TerminatePositionDialog } from '@/components/TerminatePositionDialog'
+import { StatusBadge } from '@/components/StatusBadge'
+import { isActiveStatus } from '@/lib/lifecycle'
 import { EditReceivableDialog } from '@/components/EditReceivableDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { SnapshotRow } from '@/components/SnapshotRow'
@@ -108,13 +111,23 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
           </p>
         </div>
         <div className="flex gap-2">
-          <CreateSnapshotDialog
-            currency={receivable.native_currency}
-            mutation={createSnapshotMutation}
-          />
+          {isActiveStatus(receivable.status) && (
+            <CreateSnapshotDialog
+              currency={receivable.native_currency}
+              mutation={createSnapshotMutation}
+            />
+          )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             Edit
           </Button>
+          <TerminatePositionDialog
+            group="receivables"
+            id={receivable.id}
+            listKey="receivables"
+            currentStatus={receivable.status}
+            currentTerminatedAt={receivable.terminated_at}
+            currentNote={receivable.termination_note}
+          />
           <Button
             variant="outline"
             size="sm"
@@ -137,7 +150,7 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
               currentUser,
             )}{' '}
             · Currency: {receivable.native_currency} · Status:{' '}
-            {receivable.status}
+            <StatusBadge group="receivables" status={receivable.status} />
           </CardDescription>
         </CardHeader>
         {receivable.description && (

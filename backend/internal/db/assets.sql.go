@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -204,6 +205,57 @@ func (q *Queries) UpdateAsset(ctx context.Context, arg UpdateAssetParams) (Asset
 		arg.Description,
 		arg.OwnershipType,
 		arg.SoleOwnerUserID,
+		arg.UpdatedBy,
+	)
+	var i Asset
+	err := row.Scan(
+		&i.ID,
+		&i.HouseholdID,
+		&i.DisplayName,
+		&i.Description,
+		&i.Subtype,
+		&i.OwnershipType,
+		&i.SoleOwnerUserID,
+		&i.NativeCurrency,
+		&i.Status,
+		&i.TerminatedAt,
+		&i.TerminationNote,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedBy,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const updateAssetLifecycle = `-- name: UpdateAssetLifecycle :one
+UPDATE assets
+SET status           = $3,
+    terminated_at    = $4,
+    termination_note = $5,
+    updated_by       = $6,
+    updated_at       = now()
+WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
+RETURNING id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at
+`
+
+type UpdateAssetLifecycleParams struct {
+	ID              uuid.UUID  `json:"id"`
+	HouseholdID     uuid.UUID  `json:"household_id"`
+	Status          string     `json:"status"`
+	TerminatedAt    *time.Time `json:"terminated_at"`
+	TerminationNote *string    `json:"termination_note"`
+	UpdatedBy       *uuid.UUID `json:"updated_by"`
+}
+
+func (q *Queries) UpdateAssetLifecycle(ctx context.Context, arg UpdateAssetLifecycleParams) (Asset, error) {
+	row := q.db.QueryRow(ctx, updateAssetLifecycle,
+		arg.ID,
+		arg.HouseholdID,
+		arg.Status,
+		arg.TerminatedAt,
+		arg.TerminationNote,
 		arg.UpdatedBy,
 	)
 	var i Asset

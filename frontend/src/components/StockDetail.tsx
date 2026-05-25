@@ -33,6 +33,9 @@ import { CreateTradeTransactionDialog } from '@/components/CreateTradeTransactio
 import { CreateCashIncomeTransactionDialog } from '@/components/CreateCashIncomeTransactionDialog'
 import { CreateFeeTransactionDialog } from '@/components/CreateFeeTransactionDialog'
 import { TransactionRow } from '@/components/TransactionRow'
+import { TerminatePositionDialog } from '@/components/TerminatePositionDialog'
+import { StatusBadge } from '@/components/StatusBadge'
+import { isActiveStatus } from '@/lib/lifecycle'
 import { EditStockDialog } from '@/components/EditStockDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { QuantityPriceSnapshotRow } from '@/components/QuantityPriceSnapshotRow'
@@ -140,13 +143,23 @@ export function StockDetail({ investmentId, onBack }: Props) {
           </p>
         </div>
         <div className="flex gap-2">
-          <CreateQuantityPriceSnapshotDialog
-            currency={stock.investment.native_currency}
-            mutation={createSnapshotMutation}
-          />
+          {isActiveStatus(stock.investment.status) && (
+            <CreateQuantityPriceSnapshotDialog
+              currency={stock.investment.native_currency}
+              mutation={createSnapshotMutation}
+            />
+          )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             Edit
           </Button>
+          <TerminatePositionDialog
+            group="investments"
+            id={stock.investment.id}
+            listKey="stocks"
+            currentStatus={stock.investment.status}
+            currentTerminatedAt={stock.investment.terminated_at}
+            currentNote={stock.investment.termination_note}
+          />
           <Button
             variant="outline"
             size="sm"
@@ -169,7 +182,7 @@ export function StockDetail({ investmentId, onBack }: Props) {
               currentUser,
             )}{' '}
             · Currency: {stock.investment.native_currency} · Status:{' '}
-            {stock.investment.status}
+            <StatusBadge group="investments" status={stock.investment.status} />
           </CardDescription>
         </CardHeader>
         {stock.investment.description && (
@@ -258,30 +271,32 @@ export function StockDetail({ investmentId, onBack }: Props) {
                 bank balances.
               </CardDescription>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <CreateTradeTransactionDialog
-                currency={stock.investment.native_currency}
-                txnType="buy"
-                quantityUnit="sh"
-                mutation={createTransactionMutation}
-              />
-              <CreateTradeTransactionDialog
-                currency={stock.investment.native_currency}
-                txnType="sell"
-                quantityUnit="sh"
-                mutation={createTransactionMutation}
-              />
-              <CreateCashIncomeTransactionDialog
-                currency={stock.investment.native_currency}
-                txnType="dividend"
-                mutation={createTransactionMutation}
-              />
-              <CreateFeeTransactionDialog
-                currency={stock.investment.native_currency}
-                quantityUnit="sh"
-                mutation={createTransactionMutation}
-              />
-            </div>
+            {isActiveStatus(stock.investment.status) && (
+              <div className="flex flex-wrap gap-2">
+                <CreateTradeTransactionDialog
+                  currency={stock.investment.native_currency}
+                  txnType="buy"
+                  quantityUnit="sh"
+                  mutation={createTransactionMutation}
+                />
+                <CreateTradeTransactionDialog
+                  currency={stock.investment.native_currency}
+                  txnType="sell"
+                  quantityUnit="sh"
+                  mutation={createTransactionMutation}
+                />
+                <CreateCashIncomeTransactionDialog
+                  currency={stock.investment.native_currency}
+                  txnType="dividend"
+                  mutation={createTransactionMutation}
+                />
+                <CreateFeeTransactionDialog
+                  currency={stock.investment.native_currency}
+                  quantityUnit="sh"
+                  mutation={createTransactionMutation}
+                />
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-0">

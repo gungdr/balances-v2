@@ -108,6 +108,13 @@ func (h *Handlers) Mount(r chi.Router) {
 			r.Patch("/{transactionID}", h.handleUpdateTransaction)
 			r.Delete("/{transactionID}", h.handleDeleteTransaction)
 		})
+
+		// Lifecycle operates on the shared `investments` table (ADR-0009), so
+		// it sits at the parent /{id} level alongside snapshots/transactions
+		// rather than under each subtype.
+		r.Route("/{id}/lifecycle", func(r chi.Router) {
+			r.Patch("/", h.handleUpdateLifecycle)
+		})
 	})
 }
 
@@ -133,8 +140,11 @@ func repoErrorStatus(err error) int {
 		return http.StatusNotFound
 	case errors.Is(err, repo.ErrInvalidSnapshotShape),
 		errors.Is(err, repo.ErrInvalidTransactionType),
-		errors.Is(err, repo.ErrInvalidTransactionShape):
+		errors.Is(err, repo.ErrInvalidTransactionShape),
+		errors.Is(err, repo.ErrInvalidLifecycle):
 		return http.StatusBadRequest
+	case errors.Is(err, repo.ErrPositionNotActive):
+		return http.StatusConflict
 	default:
 		return http.StatusInternalServerError
 	}

@@ -33,6 +33,9 @@ import { CreateTradeTransactionDialog } from '@/components/CreateTradeTransactio
 import { CreateCashIncomeTransactionDialog } from '@/components/CreateCashIncomeTransactionDialog'
 import { CreateFeeTransactionDialog } from '@/components/CreateFeeTransactionDialog'
 import { TransactionRow } from '@/components/TransactionRow'
+import { TerminatePositionDialog } from '@/components/TerminatePositionDialog'
+import { StatusBadge } from '@/components/StatusBadge'
+import { isActiveStatus } from '@/lib/lifecycle'
 import { EditMutualFundDialog } from '@/components/EditMutualFundDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { QuantityPriceSnapshotRow } from '@/components/QuantityPriceSnapshotRow'
@@ -141,13 +144,23 @@ export function MutualFundDetail({ investmentId, onBack }: Props) {
           </p>
         </div>
         <div className="flex gap-2">
-          <CreateQuantityPriceSnapshotDialog
-            currency={mf.investment.native_currency}
-            mutation={createSnapshotMutation}
-          />
+          {isActiveStatus(mf.investment.status) && (
+            <CreateQuantityPriceSnapshotDialog
+              currency={mf.investment.native_currency}
+              mutation={createSnapshotMutation}
+            />
+          )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             Edit
           </Button>
+          <TerminatePositionDialog
+            group="investments"
+            id={mf.investment.id}
+            listKey="mutual-funds"
+            currentStatus={mf.investment.status}
+            currentTerminatedAt={mf.investment.terminated_at}
+            currentNote={mf.investment.termination_note}
+          />
           <Button
             variant="outline"
             size="sm"
@@ -170,7 +183,7 @@ export function MutualFundDetail({ investmentId, onBack }: Props) {
               currentUser,
             )}{' '}
             · Currency: {mf.investment.native_currency} · Status:{' '}
-            {mf.investment.status}
+            <StatusBadge group="investments" status={mf.investment.status} />
           </CardDescription>
         </CardHeader>
         {mf.investment.description && (
@@ -259,30 +272,32 @@ export function MutualFundDetail({ investmentId, onBack }: Props) {
                 auto-update bank balances.
               </CardDescription>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <CreateTradeTransactionDialog
-                currency={mf.investment.native_currency}
-                txnType="buy"
-                quantityUnit="units"
-                mutation={createTransactionMutation}
-              />
-              <CreateTradeTransactionDialog
-                currency={mf.investment.native_currency}
-                txnType="sell"
-                quantityUnit="units"
-                mutation={createTransactionMutation}
-              />
-              <CreateCashIncomeTransactionDialog
-                currency={mf.investment.native_currency}
-                txnType="distribution"
-                mutation={createTransactionMutation}
-              />
-              <CreateFeeTransactionDialog
-                currency={mf.investment.native_currency}
-                quantityUnit="units"
-                mutation={createTransactionMutation}
-              />
-            </div>
+            {isActiveStatus(mf.investment.status) && (
+              <div className="flex flex-wrap gap-2">
+                <CreateTradeTransactionDialog
+                  currency={mf.investment.native_currency}
+                  txnType="buy"
+                  quantityUnit="units"
+                  mutation={createTransactionMutation}
+                />
+                <CreateTradeTransactionDialog
+                  currency={mf.investment.native_currency}
+                  txnType="sell"
+                  quantityUnit="units"
+                  mutation={createTransactionMutation}
+                />
+                <CreateCashIncomeTransactionDialog
+                  currency={mf.investment.native_currency}
+                  txnType="distribution"
+                  mutation={createTransactionMutation}
+                />
+                <CreateFeeTransactionDialog
+                  currency={mf.investment.native_currency}
+                  quantityUnit="units"
+                  mutation={createTransactionMutation}
+                />
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-0">

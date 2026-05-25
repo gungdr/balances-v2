@@ -81,8 +81,23 @@ func (r *InvestmentRepo) CreateInvestmentTransaction(ctx context.Context, p Crea
 	if err := validateInvestmentTransactionShape(p); err != nil {
 		return nil, err
 	}
+	// ADR-0009: a terminated position is closed to new activity. Maturity is
+	// the canonical case — once it flips the position to 'matured' (below), no
+	// further transactions may land; a position terminated via the lifecycle
+	// action (sold/matured) is frozen the same way. Checked after type/shape
+	// so a structurally-invalid request still gets the more specific error.
+	if inv.Status != StatusActive {
+		return nil, ErrPositionNotActive
+	}
 
-	txn, err := r.q.CreateInvestmentTransaction(ctx, db.CreateInvestmentTransactionParams{
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	qtx := r.q.WithTx(tx)
+
+	txn, err := qtx.CreateInvestmentTransaction(ctx, db.CreateInvestmentTransactionParams{
 		ID:                   p.InvestmentID,
 		TransactionType:      p.TransactionType,
 		TransactionDate:      p.TransactionDate,
@@ -103,6 +118,27 @@ func (r *InvestmentRepo) CreateInvestmentTransaction(ctx context.Context, p Crea
 			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("create investment transaction: %w", err)
+	}
+
+	// Maturity is terminal (ADR-0009): flip the position to 'matured' and set
+	// terminated_at to the maturity date, atomically with the insert. The
+	// disposition of principal/interest stays recorded on the transaction; the
+	// status flip is what excludes the position from future net-worth months.
+	if p.TransactionType == TxnTypeMaturity {
+		termDate := p.TransactionDate
+		if _, err := qtx.UpdateInvestmentLifecycle(ctx, db.UpdateInvestmentLifecycleParams{
+			ID:           p.InvestmentID,
+			HouseholdID:  hid,
+			Status:       StatusMatured,
+			TerminatedAt: &termDate,
+			UpdatedBy:    &user,
+		}); err != nil {
+			return nil, fmt.Errorf("flip investment to matured: %w", err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit tx: %w", err)
 	}
 	return &txn, nil
 }

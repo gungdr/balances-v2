@@ -34,6 +34,9 @@ import {
 import { CreateAccruedInterestSnapshotDialog } from '@/components/CreateAccruedInterestSnapshotDialog'
 import { CreateMaturityTransactionDialog } from '@/components/CreateMaturityTransactionDialog'
 import { TransactionRow } from '@/components/TransactionRow'
+import { TerminatePositionDialog } from '@/components/TerminatePositionDialog'
+import { StatusBadge } from '@/components/StatusBadge'
+import { isActiveStatus } from '@/lib/lifecycle'
 import { EditTimeDepositDialog } from '@/components/EditTimeDepositDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { AccruedInterestSnapshotRow } from '@/components/AccruedInterestSnapshotRow'
@@ -80,7 +83,10 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
     investmentId,
     'time-deposits',
   )
-  const createTransactionMutation = useCreateInvestmentTransaction(investmentId)
+  const createTransactionMutation = useCreateInvestmentTransaction(
+    investmentId,
+    'time-deposits',
+  )
   const updateTransactionMutation = useUpdateInvestmentTransaction(investmentId)
   const deleteTransactionMutation = useDeleteInvestmentTransaction(investmentId)
   const { data: members } = useHouseholdMembers()
@@ -131,13 +137,9 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
     (effectiveTxnPage - 1) * PAGE_SIZE,
     effectiveTxnPage * PAGE_SIZE,
   )
-  // Maturity is uniquely terminal — once recorded, the position is matured
-  // and no further transactions should land. The hard guard (status flip +
-  // "no transactions after matured" rule) lands with M4.8 lifecycle UI.
-  // This UI hide is a band-aid until then.
-  const hasMaturity = transactions?.some(
-    (t) => t.transaction_type === 'maturity',
-  )
+  // Maturity is uniquely terminal: posting it flips the position to 'matured'
+  // (backend hard guard, ADR-0009), after which the transaction-create row is
+  // gated off entirely by isActiveStatus below.
   const mInfo = maturityInfo(td.details.maturity_date)
   const ratePct = Number(td.details.interest_rate).toFixed(2)
 
@@ -161,13 +163,23 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
           </p>
         </div>
         <div className="flex gap-2">
-          <CreateAccruedInterestSnapshotDialog
-            currency={td.investment.native_currency}
-            mutation={createSnapshotMutation}
-          />
+          {isActiveStatus(td.investment.status) && (
+            <CreateAccruedInterestSnapshotDialog
+              currency={td.investment.native_currency}
+              mutation={createSnapshotMutation}
+            />
+          )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             Edit
           </Button>
+          <TerminatePositionDialog
+            group="investments"
+            id={td.investment.id}
+            listKey="time-deposits"
+            currentStatus={td.investment.status}
+            currentTerminatedAt={td.investment.terminated_at}
+            currentNote={td.investment.termination_note}
+          />
           <Button
             variant="outline"
             size="sm"
@@ -190,7 +202,7 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
               currentUser,
             )}{' '}
             · Currency: {td.investment.native_currency} · Status:{' '}
-            {td.investment.status}
+            <StatusBadge group="investments" status={td.investment.status} />
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm space-y-1">
@@ -302,15 +314,15 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
                 deviate.
               </CardDescription>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {!hasMaturity && (
+            {isActiveStatus(td.investment.status) && (
+              <div className="flex flex-wrap gap-2">
                 <CreateMaturityTransactionDialog
                   currency={td.investment.native_currency}
                   rolloverPolicy={td.details.rollover_policy}
                   mutation={createTransactionMutation}
                 />
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-0">

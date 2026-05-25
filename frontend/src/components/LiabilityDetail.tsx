@@ -23,6 +23,9 @@ import {
   useDeleteLiabilitySnapshot,
 } from '@/hooks/useLiabilitySnapshots'
 import { CreateSnapshotDialog } from '@/components/CreateSnapshotDialog'
+import { TerminatePositionDialog } from '@/components/TerminatePositionDialog'
+import { StatusBadge } from '@/components/StatusBadge'
+import { isActiveStatus } from '@/lib/lifecycle'
 import { EditLiabilityDialog } from '@/components/EditLiabilityDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { SnapshotRow } from '@/components/SnapshotRow'
@@ -113,13 +116,23 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
           </p>
         </div>
         <div className="flex gap-2">
-          <CreateSnapshotDialog
-            currency={liability.native_currency}
-            mutation={createSnapshotMutation}
-          />
+          {isActiveStatus(liability.status) && (
+            <CreateSnapshotDialog
+              currency={liability.native_currency}
+              mutation={createSnapshotMutation}
+            />
+          )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             Edit
           </Button>
+          <TerminatePositionDialog
+            group="liabilities"
+            id={liability.id}
+            listKey="liabilities"
+            currentStatus={liability.status}
+            currentTerminatedAt={liability.terminated_at}
+            currentNote={liability.termination_note}
+          />
           <Button
             variant="outline"
             size="sm"
@@ -141,7 +154,8 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
               members,
               currentUser,
             )}{' '}
-            · Currency: {liability.native_currency} · Status: {liability.status}
+            · Currency: {liability.native_currency} · Status:{' '}
+            <StatusBadge group="liabilities" status={liability.status} />
           </CardDescription>
         </CardHeader>
         {hasDetails && (
