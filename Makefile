@@ -1,4 +1,4 @@
-.PHONY: up down logs ps backend-run backend-build backend-test backend-migrate-up backend-migrate-down backend-migrate-status backend-tidy backend-sqlc frontend-install frontend-dev frontend-build backend-stop backend-restart frontend-stop frontend-restart restart servers-status
+.PHONY: up down logs ps backend-run backend-build backend-test backend-migrate-up backend-migrate-down backend-migrate-status backend-tidy backend-sqlc frontend-install frontend-dev frontend-build backend-stop backend-restart frontend-stop frontend-restart restart servers-status e2e-db-create e2e-seed e2e-backend
 
 -include .env
 export
@@ -6,6 +6,15 @@ export
 # Background dev-server logs. tail -f to follow.
 BACKEND_LOG  := /tmp/balances-backend.log
 FRONTEND_LOG := /tmp/balances-frontend.log
+
+# E2E (ADR-0024): a dedicated database in the same Postgres container, plus the
+# backend pointed at it. PG_CONTAINER / PG_USER match docker-compose defaults.
+# E2E_DATABASE_URL is DATABASE_URL with the db name swapped to balances_e2e, so
+# it inherits host/port/credentials from .env without duplicating them.
+PG_CONTAINER := balances-v2-postgres-1
+PG_USER      := balances
+E2E_DB       := balances_e2e
+E2E_DATABASE_URL := $(shell echo "$(DATABASE_URL)" | sed 's|/balances?|/$(E2E_DB)?|')
 
 up:
 	docker compose up -d
@@ -82,6 +91,23 @@ frontend-restart: frontend-stop
 
 restart: backend-restart frontend-restart
 	@echo "both servers restarted"
+
+# ----- e2e (backend half; full `make e2e` lands with the Playwright work) ---
+# e2e-db-create  : create balances_e2e in the running container if missing
+# e2e-seed       : migrate + reset balances_e2e to the Playwright fixture, print SESSION_ID
+# e2e-backend    : run the backend against balances_e2e (foreground)
+
+e2e-db-create:
+	@docker exec $(PG_CONTAINER) psql -U $(PG_USER) -d postgres -tAc \
+	  "SELECT 1 FROM pg_database WHERE datname='$(E2E_DB)'" | grep -q 1 \
+	  || docker exec $(PG_CONTAINER) createdb -U $(PG_USER) $(E2E_DB)
+	@echo "e2e db: $(E2E_DB) ready"
+
+e2e-seed: e2e-db-create
+	@cd backend && DATABASE_URL="$(E2E_DATABASE_URL)" go run ./cmd/balances seed-e2e
+
+e2e-backend: e2e-db-create
+	@cd backend && DATABASE_URL="$(E2E_DATABASE_URL)" go run ./cmd/balances serve
 
 servers-status:
 	@if pgrep -f 'cmd/balances serve' >/dev/null; then \

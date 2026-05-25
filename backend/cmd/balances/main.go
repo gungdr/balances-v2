@@ -9,9 +9,11 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
@@ -47,6 +49,11 @@ func main() {
 			slog.Error("migrate failed", "err", err)
 			os.Exit(1)
 		}
+	case "seed-e2e":
+		if err := seedE2ECmd(); err != nil {
+			fmt.Fprintln(os.Stderr, "seed-e2e failed:", err)
+			os.Exit(1)
+		}
 	default:
 		usage()
 		os.Exit(1)
@@ -63,6 +70,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  migrate down       roll back one migration")
 	fmt.Fprintln(os.Stderr, "  migrate status     show migration status")
 	fmt.Fprintln(os.Stderr, "  migrate version    show current revision")
+	fmt.Fprintln(os.Stderr, "  seed-e2e           reset the balances_e2e DB with Playwright fixtures")
 }
 
 func serveCmd() error {
@@ -204,6 +212,139 @@ func migrateCmd(args []string) error {
 	}
 
 	return goose.RunContext(context.Background(), cmd, dbConn, ".", rest...)
+}
+
+// e2eDatabaseName is the only database seed-e2e will touch. The seed
+// truncates every application table, so a guard against running it anywhere
+// else (notably the dev database) is load-bearing, not cosmetic. See ADR-0024.
+const e2eDatabaseName = "balances_e2e"
+
+// e2eSessionID is the fixed session cookie value Playwright injects via
+// context.addCookies({name:'session', value:e2eSessionID}). It is deterministic
+// rather than a random opaque token because it only ever exists in the
+// balances_e2e database — never production — so global-setup can rely on a
+// constant instead of parsing it back out. We still print it (see below) to
+// honour the ADR-0024 contract.
+const e2eSessionID = "e2e-session-alice"
+
+// seedE2ECmd resets the dedicated balances_e2e database to a known fixture:
+// one household with two users (Alice + Bob) and an active session for Alice.
+// It bypasses Google OAuth entirely — the resulting session is a real session
+// row that SessionMiddleware will accept, so Playwright authenticates by
+// injecting the cookie instead of driving the IdP. See ADR-0024.
+func seedE2ECmd() error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("config: %w", err)
+	}
+
+	ctx := context.Background()
+
+	// Apply migrations first so an empty balances_e2e self-populates,
+	// mirroring serve's auto-migrate behaviour. goose up is idempotent.
+	if err := applyMigrations(ctx, cfg.DatabaseURL); err != nil {
+		return fmt.Errorf("migrate: %w", err)
+	}
+
+	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+	if err != nil {
+		return fmt.Errorf("connect db: %w", err)
+	}
+	defer pool.Close()
+
+	if name := pool.Config().ConnConfig.Database; name != e2eDatabaseName {
+		return fmt.Errorf("refusing to seed: DATABASE_URL points at %q, expected %q", name, e2eDatabaseName)
+	}
+
+	if err := truncateAppTables(ctx, pool); err != nil {
+		return fmt.Errorf("truncate: %w", err)
+	}
+
+	q := db.New(pool)
+
+	household, err := q.CreateHousehold(ctx, db.CreateHouseholdParams{
+		DisplayName:       "E2E Household",
+		ReportingCurrency: "IDR",
+	})
+	if err != nil {
+		return fmt.Errorf("create household: %w", err)
+	}
+
+	alice, err := q.CreateUser(ctx, db.CreateUserParams{
+		HouseholdID: household.ID,
+		DisplayName: "Alice",
+		Email:       "alice@example.com",
+		GoogleSub:   "e2e-alice",
+		Locale:      "id-ID",
+		TimeZone:    "Asia/Jakarta",
+		CreatedBy:   nil,
+	})
+	if err != nil {
+		return fmt.Errorf("create user alice: %w", err)
+	}
+
+	if _, err := q.CreateUser(ctx, db.CreateUserParams{
+		HouseholdID: household.ID,
+		DisplayName: "Bob",
+		Email:       "bob@example.com",
+		GoogleSub:   "e2e-bob",
+		Locale:      "id-ID",
+		TimeZone:    "Asia/Jakarta",
+		CreatedBy:   nil,
+	}); err != nil {
+		return fmt.Errorf("create user bob: %w", err)
+	}
+
+	userAgent := "e2e"
+	if _, err := q.CreateSession(ctx, db.CreateSessionParams{
+		ID:        e2eSessionID,
+		UserID:    alice.ID,
+		ExpiresAt: pgtype.Timestamptz{Time: time.Now().Add(cfg.SessionTTL), Valid: true},
+		UserAgent: &userAgent,
+	}); err != nil {
+		return fmt.Errorf("create session: %w", err)
+	}
+
+	fmt.Fprintf(os.Stderr, "seeded %s: household=%s, users Alice (%s) + Bob, active session for Alice\n",
+		e2eDatabaseName, household.ID, alice.ID)
+	// Sole stdout line, machine-readable for Playwright global-setup.
+	fmt.Printf("SESSION_ID=%s\n", e2eSessionID)
+	return nil
+}
+
+// truncateAppTables empties every public table except goose's bookkeeping,
+// resetting identity sequences. The table list comes from the catalog so new
+// migrations are covered automatically. Mirrors testutil.truncateAll, kept
+// separate because that helper is test-only (takes *testing.T).
+func truncateAppTables(ctx context.Context, pool *pgxpool.Pool) error {
+	rows, err := pool.Query(ctx, `
+		SELECT tablename FROM pg_tables
+		WHERE schemaname = 'public' AND tablename <> 'goose_db_version'`)
+	if err != nil {
+		return fmt.Errorf("list tables: %w", err)
+	}
+	var tables []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			rows.Close()
+			return fmt.Errorf("scan table name: %w", err)
+		}
+		tables = append(tables, `"`+name+`"`)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate tables: %w", err)
+	}
+	if len(tables) == 0 {
+		return nil
+	}
+
+	stmt := "TRUNCATE " + strings.Join(tables, ", ") + " RESTART IDENTITY CASCADE"
+	if _, err := pool.Exec(ctx, stmt); err != nil {
+		return fmt.Errorf("truncate: %w", err)
+	}
+	return nil
 }
 
 func newLogger(cfg *config.Config) *slog.Logger {
