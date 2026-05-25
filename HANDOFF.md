@@ -7,7 +7,7 @@ Read these first, in order:
 2. `docs/ROADMAP.md` (six milestones)
 3. `CONTEXT.md` (domain language)
 4. This document
-5. `docs/adr/*` (twenty-three design decisions; skim the index, read the ones touching your task)
+5. `docs/adr/*` (twenty-four design decisions; skim the index, read the ones touching your task)
 6. `git log --oneline -20` (most recent direction)
 
 ## Where we are

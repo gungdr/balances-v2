@@ -46,14 +46,11 @@ Scalar checks use plain `if`-and-`t.Errorf`. Structural checks use `cmp.Diff(wan
 - **Skip:** shadcn/ui components — they're library code, tested upstream.
 - **Skip:** trivial display components.
 
-### E2E tests (Playwright): deferred
+### E2E tests (Playwright): adopted — see [[adr-0024]]
 
-Real browser end-to-end tests are valuable but high-maintenance. They pay off when:
-- A UI flow has broken in a way that E2E would have caught
-- Multiple developers need a safety net against regressions
-- The UI is stable enough that tests don't churn
+Real browser end-to-end tests are valuable but high-maintenance. They were originally deferred for v1 of a solo-dev personal app — they pay off mainly once a UI flow has broken in a way E2E would have caught, multiple developers need a regression net, or the UI is stable enough that tests don't churn.
 
-None of those describe v1 of a solo-dev personal app. Add Playwright later when a specific recurring break makes the maintenance burden worth it.
+They are now being adopted as the app's UI surface has grown. **[[adr-0024]]** records the approach: Playwright authenticating by injecting a pre-seeded server-side session cookie (no real Google login), against a dedicated `balances_e2e` database. Tenancy and financial-calculation coverage stay in the Go suites described above — E2E does not take them over.
 
 ## Consequences
 
@@ -62,4 +59,4 @@ None of those describe v1 of a solo-dev personal app. Add Playwright later when 
 - `go-cmp` is added as a dev dependency.
 - Frontend tests run via `vitest run` and `vitest --watch`; CI runs the non-watch command.
 - The dev container (OrbStack on the user's machine) has Docker available, satisfying testcontainers' requirement; CI runners must too.
-- Playwright remains a future ADR if and when it's adopted.
+- Playwright is now adopted; see [[adr-0024]] for the session-injection approach and the dedicated `balances_e2e` database.
