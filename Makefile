@@ -1,4 +1,4 @@
-.PHONY: up down logs ps backend-run backend-build backend-test backend-migrate-up backend-migrate-down backend-migrate-status backend-tidy backend-sqlc frontend-install frontend-dev frontend-build backend-stop backend-restart frontend-stop frontend-restart restart servers-status e2e-db-create e2e-seed e2e-backend
+.PHONY: up down logs ps backend-run backend-build backend-test backend-migrate-up backend-migrate-down backend-migrate-status backend-tidy backend-sqlc frontend-install frontend-dev frontend-build backend-stop backend-restart frontend-stop frontend-restart restart servers-status e2e-db-create e2e-seed e2e-backend e2e
 
 -include .env
 export
@@ -92,10 +92,20 @@ frontend-restart: frontend-stop
 restart: backend-restart frontend-restart
 	@echo "both servers restarted"
 
-# ----- e2e (backend half; full `make e2e` lands with the Playwright work) ---
+# ----- e2e (Playwright; ADR-0024) -----------------------------------------
+# e2e            : full run — create DB, seed it, then Playwright launches its
+#                  own backend (:8099) + vite (:5273) and runs the suite
 # e2e-db-create  : create balances_e2e in the running container if missing
 # e2e-seed       : migrate + reset balances_e2e to the Playwright fixture, print SESSION_ID
 # e2e-backend    : run the backend against balances_e2e (foreground)
+#
+# The seed runs synchronously before Playwright so balances_e2e is fully
+# migrated by the time Playwright's backend boots (auto-migrate becomes a
+# no-op, no race). Playwright owns the e2e backend/vite lifecycle on dedicated
+# ports, so the 8080/5173 dev servers are never touched.
+
+e2e: e2e-db-create e2e-seed
+	@cd frontend && E2E_DATABASE_URL="$(E2E_DATABASE_URL)" npm run test:e2e
 
 e2e-db-create:
 	@docker exec $(PG_CONTAINER) psql -U $(PG_USER) -d postgres -tAc \

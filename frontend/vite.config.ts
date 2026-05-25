@@ -3,6 +3,12 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+// API_PROXY_TARGET lets the E2E run point the dev server at a backend on a
+// non-default port (the balances_e2e instance) without disturbing the
+// developer's 8080 dev backend. Defaults to 8080 for normal `npm run dev`.
+// See ADR-0024.
+const apiProxyTarget = process.env.API_PROXY_TARGET ?? 'http://localhost:8080'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -14,8 +20,8 @@ export default defineConfig({
   server: {
     host: true,
     proxy: {
-      '/healthz': 'http://localhost:8080',
-      '/api': 'http://localhost:8080',
+      '/healthz': apiProxyTarget,
+      '/api': apiProxyTarget,
     },
   },
   build: {
