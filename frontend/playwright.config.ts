@@ -8,6 +8,12 @@ import { defineConfig, devices } from '@playwright/test'
 // no-op and there is no migration race. Entry point is `make e2e`.
 const E2E_BACKEND_PORT = 8099
 const E2E_FRONTEND_PORT = 5273
+// The fake OIDC provider (cmd/balances mock-oidc) that `make e2e` launches
+// before Playwright boots the backend. Defaults here mirror mock-oidc's own
+// defaults; the backend discovers it at boot via OIDC_ISSUER_URL. See ADR-0024.
+const E2E_OIDC_ISSUER = 'http://localhost:8090'
+const E2E_OIDC_CLIENT_ID = 'e2e-client'
+const E2E_OIDC_CLIENT_SECRET = 'e2e-secret'
 
 export default defineConfig({
   testDir: './e2e',
@@ -32,6 +38,17 @@ export default defineConfig({
         PORT: String(E2E_BACKEND_PORT),
         // Set by `make e2e`; the seed step has already migrated this DB.
         DATABASE_URL: process.env.E2E_DATABASE_URL ?? '',
+        // Point auth at the local mock-oidc instead of accounts.google.com, so
+        // boot-time OIDC discovery and the login flow stay offline. These keys
+        // override any .env values (Playwright merges process.env then this).
+        OIDC_ISSUER_URL: E2E_OIDC_ISSUER,
+        GOOGLE_CLIENT_ID: E2E_OIDC_CLIENT_ID,
+        GOOGLE_CLIENT_SECRET: E2E_OIDC_CLIENT_SECRET,
+        // Callback comes back to the backend directly; the backend then sets the
+        // session cookie (host-scoped 'localhost', shared across ports) and
+        // redirects to the e2e frontend — mirroring the real dev wiring.
+        OAUTH_REDIRECT_URL: `http://localhost:${E2E_BACKEND_PORT}/api/auth/google/callback`,
+        FRONTEND_URL: `http://localhost:${E2E_FRONTEND_PORT}`,
       },
       url: `http://localhost:${E2E_BACKEND_PORT}/healthz`,
       reuseExistingServer: !process.env.CI,

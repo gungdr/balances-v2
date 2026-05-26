@@ -14,6 +14,7 @@ type Config struct {
 
 	GoogleClientID     string        `env:"GOOGLE_CLIENT_ID"`
 	GoogleClientSecret string        `env:"GOOGLE_CLIENT_SECRET"`
+	OIDCIssuerURL      string        `env:"OIDC_ISSUER_URL" envDefault:"https://accounts.google.com"`
 	OAuthRedirectURL   string        `env:"OAUTH_REDIRECT_URL" envDefault:"http://localhost:8080/api/auth/google/callback"`
 	FrontendURL        string        `env:"FRONTEND_URL" envDefault:"http://localhost:5173"`
 	BackendURL         string        `env:"BACKEND_URL" envDefault:"http://localhost:8080"`

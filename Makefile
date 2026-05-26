@@ -1,4 +1,4 @@
-.PHONY: up down logs ps backend-run backend-build backend-test backend-migrate-up backend-migrate-down backend-migrate-status backend-tidy backend-sqlc frontend-install frontend-dev frontend-build backend-stop backend-restart frontend-stop frontend-restart restart servers-status e2e-db-create e2e-seed e2e-backend e2e
+.PHONY: up down logs ps backend-run backend-build backend-test backend-migrate-up backend-migrate-down backend-migrate-status backend-tidy backend-sqlc frontend-install frontend-dev frontend-build backend-stop backend-restart frontend-stop frontend-restart restart servers-status e2e-db-create e2e-seed e2e-backend e2e-mock-oidc e2e
 
 -include .env
 export
@@ -93,19 +93,35 @@ restart: backend-restart frontend-restart
 	@echo "both servers restarted"
 
 # ----- e2e (Playwright; ADR-0024) -----------------------------------------
-# e2e            : full run — create DB, seed it, then Playwright launches its
-#                  own backend (:8099) + vite (:5273) and runs the suite
+# e2e            : full run — create DB, seed it, start the mock OIDC provider,
+#                  then Playwright launches its own backend (:8099) + vite
+#                  (:5273) and runs the suite
 # e2e-db-create  : create balances_e2e in the running container if missing
 # e2e-seed       : migrate + reset balances_e2e to the Playwright fixture, print SESSION_ID
 # e2e-backend    : run the backend against balances_e2e (foreground)
+# e2e-mock-oidc  : run the fake OIDC provider in the foreground (:8090) for debugging
 #
 # The seed runs synchronously before Playwright so balances_e2e is fully
 # migrated by the time Playwright's backend boots (auto-migrate becomes a
-# no-op, no race). Playwright owns the e2e backend/vite lifecycle on dedicated
+# no-op, no race). The mock OIDC provider (ADR-0024 option B) must be up BEFORE
+# the backend boots, because auth.New does OIDC discovery at startup — so `e2e`
+# starts it, waits for its discovery endpoint, then hands off to Playwright and
+# kills it on exit. Playwright owns the e2e backend/vite lifecycle on dedicated
 # ports, so the 8080/5173 dev servers are never touched.
 
 e2e: e2e-db-create e2e-seed
-	@cd frontend && E2E_DATABASE_URL="$(E2E_DATABASE_URL)" npm run test:e2e
+	@cd backend && go build -o /tmp/balances-e2e ./cmd/balances
+	@/tmp/balances-e2e mock-oidc & \
+	  MOCK_PID=$$!; \
+	  trap "kill $$MOCK_PID 2>/dev/null" EXIT; \
+	  for i in $$(seq 1 50); do \
+	    curl -sf http://localhost:8090/.well-known/openid-configuration >/dev/null && break; \
+	    sleep 0.2; \
+	  done; \
+	  cd frontend && E2E_DATABASE_URL="$(E2E_DATABASE_URL)" npm run test:e2e
+
+e2e-mock-oidc:
+	@cd backend && go run ./cmd/balances mock-oidc
 
 e2e-db-create:
 	@docker exec $(PG_CONTAINER) psql -U $(PG_USER) -d postgres -tAc \

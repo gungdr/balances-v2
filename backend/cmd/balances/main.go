@@ -54,6 +54,11 @@ func main() {
 			fmt.Fprintln(os.Stderr, "seed-e2e failed:", err)
 			os.Exit(1)
 		}
+	case "mock-oidc":
+		if err := mockOIDCCmd(); err != nil {
+			fmt.Fprintln(os.Stderr, "mock-oidc failed:", err)
+			os.Exit(1)
+		}
 	default:
 		usage()
 		os.Exit(1)
@@ -71,6 +76,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  migrate status     show migration status")
 	fmt.Fprintln(os.Stderr, "  migrate version    show current revision")
 	fmt.Fprintln(os.Stderr, "  seed-e2e           reset the balances_e2e DB with Playwright fixtures")
+	fmt.Fprintln(os.Stderr, "  mock-oidc          run the E2E fake OIDC provider (ADR-0024)")
 }
 
 func serveCmd() error {
@@ -112,6 +118,7 @@ func serveCmd() error {
 			ClientID:     cfg.GoogleClientID,
 			ClientSecret: cfg.GoogleClientSecret,
 			RedirectURL:  cfg.OAuthRedirectURL,
+			IssuerURL:    cfg.OIDCIssuerURL,
 		},
 		SessionTTL:   cfg.SessionTTL,
 		CookieSecure: cfg.CookieSecure,
@@ -227,6 +234,17 @@ const e2eDatabaseName = "balances_e2e"
 // honour the ADR-0024 contract.
 const e2eSessionID = "e2e-session-alice"
 
+// Alice's fixture identity is shared between seed-e2e (which inserts the user
+// with this google_sub) and mock-oidc (which issues an id_token carrying it).
+// They MUST agree: the login-flow E2E test signs in via mock-oidc and expects
+// to land as the *seeded* Alice, which only happens if GetUserByGoogleSub finds
+// a row with this exact sub.
+const (
+	e2eAliceGoogleSub = "e2e-alice"
+	e2eAliceEmail     = "alice@example.com"
+	e2eAliceName      = "Alice"
+)
+
 // seedE2ECmd resets the dedicated balances_e2e database to a known fixture:
 // one household with two users (Alice + Bob) and an active session for Alice.
 // It bypasses Google OAuth entirely — the resulting session is a real session
@@ -272,9 +290,9 @@ func seedE2ECmd() error {
 
 	alice, err := q.CreateUser(ctx, db.CreateUserParams{
 		HouseholdID: household.ID,
-		DisplayName: "Alice",
-		Email:       "alice@example.com",
-		GoogleSub:   "e2e-alice",
+		DisplayName: e2eAliceName,
+		Email:       e2eAliceEmail,
+		GoogleSub:   e2eAliceGoogleSub,
 		Locale:      "id-ID",
 		TimeZone:    "Asia/Jakarta",
 		CreatedBy:   nil,
