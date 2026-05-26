@@ -180,6 +180,55 @@ func TestPositionLifecycle_UpdateAndValidation(t *testing.T) {
 			t.Fatalf("want ErrNotFound, got %v", err)
 		}
 	})
+
+	// The asset path above covers every branch of the shared helper, but coverage
+	// is per-function: each Update*Lifecycle has its own validate-error return and
+	// its own ErrNoRows→ErrNotFound mapping. Exercise both on the other three
+	// groups so those branches aren't left to the asset stand-in.
+	t.Run("bob cannot terminate alice's liability", func(t *testing.T) {
+		_, err := liabRepo.UpdateLiabilityLifecycle(bobCtx, liability.ID, repo.LifecycleParams{
+			Status: "paid_off", TerminatedAt: &termDate,
+		})
+		if !errors.Is(err, repo.ErrNotFound) {
+			t.Fatalf("want ErrNotFound, got %v", err)
+		}
+	})
+
+	t.Run("receivable rejects cross-group status", func(t *testing.T) {
+		_, err := recvRepo.UpdateReceivableLifecycle(aliceCtx, receivable.ID, repo.LifecycleParams{
+			Status: "sold", TerminatedAt: &termDate, // sold is an asset/investment status
+		})
+		if !errors.Is(err, repo.ErrInvalidLifecycle) {
+			t.Fatalf("want ErrInvalidLifecycle, got %v", err)
+		}
+	})
+
+	t.Run("bob cannot terminate alice's receivable", func(t *testing.T) {
+		_, err := recvRepo.UpdateReceivableLifecycle(bobCtx, receivable.ID, repo.LifecycleParams{
+			Status: "collected", TerminatedAt: &termDate,
+		})
+		if !errors.Is(err, repo.ErrNotFound) {
+			t.Fatalf("want ErrNotFound, got %v", err)
+		}
+	})
+
+	t.Run("investment rejects cross-group status", func(t *testing.T) {
+		_, err := invRepo.UpdateInvestmentLifecycle(aliceCtx, stock.Investment.ID, repo.LifecycleParams{
+			Status: "paid_off", TerminatedAt: &termDate, // paid_off is a liability status
+		})
+		if !errors.Is(err, repo.ErrInvalidLifecycle) {
+			t.Fatalf("want ErrInvalidLifecycle, got %v", err)
+		}
+	})
+
+	t.Run("bob cannot terminate alice's stock", func(t *testing.T) {
+		_, err := invRepo.UpdateInvestmentLifecycle(bobCtx, stock.Investment.ID, repo.LifecycleParams{
+			Status: "sold", TerminatedAt: &termDate,
+		})
+		if !errors.Is(err, repo.ErrNotFound) {
+			t.Fatalf("want ErrNotFound, got %v", err)
+		}
+	})
 }
 
 // TestInvestmentTransaction_MaturityFlipsStatus verifies the M4.6 hard guard:
