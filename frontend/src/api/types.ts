@@ -416,3 +416,27 @@ export type Income = {
   updated_by: string | null
   updated_at: string
 }
+
+// ----- monthly report / dashboard (M5) ----------------------------------
+// Slice-1 shape: net worth + group breakdowns + per-user/Joint breakdown +
+// carried-forward (stale) positions. The income-statement fields (earned
+// income, investment return, asset value change, living expenses) arrive with
+// M5 slice 2. Decimals are strings to preserve precision (don't do arithmetic
+// in the frontend beyond display — see lib/format.ts).
+
+export type UserBreakdown = {
+  nw: string
+}
+
+export type MonthlyReport = {
+  year_month: string // ISO datetime, day always = 01
+  generated_at: string | null
+  reporting_currency: string
+  nw_total: string
+  nw_assets: string
+  nw_liabilities: string // positive magnitude; subtracted into nw_total
+  nw_receivables: string
+  nw_investments: string
+  user_breakdowns: Record<string, UserBreakdown> // keyed by user_id and "joint"
+  stale_positions: string[]
+}

@@ -25,8 +25,15 @@ import { BondDetail } from '@/components/BondDetail'
 import { TimeDepositsScreen } from '@/components/TimeDepositsScreen'
 import { TimeDepositDetail } from '@/components/TimeDepositDetail'
 import { IncomeScreen } from '@/components/IncomeScreen'
+import { DashboardScreen } from '@/components/DashboardScreen'
 
-type Group = 'assets' | 'liabilities' | 'receivables' | 'investments' | 'income'
+type Group =
+  | 'dashboard'
+  | 'assets'
+  | 'liabilities'
+  | 'receivables'
+  | 'investments'
+  | 'income'
 type AssetSubtype = 'bank_account' | 'property' | 'vehicle'
 type LiabilitySubtype = 'personal' | 'institutional'
 type InvestmentSubtypeNav =
@@ -51,7 +58,7 @@ function App() {
   // Two-level in-state navigation: outer group (Assets / Liabilities / …),
   // inner subtype where the group has one. A real router lands in M4.9 and
   // the URL structure will mirror this hierarchy.
-  const [group, setGroup] = useState<Group>('assets')
+  const [group, setGroup] = useState<Group>('dashboard')
   const [assetSubtype, setAssetSubtype] = useState<AssetSubtype>('bank_account')
   const [liabilitySubtype, setLiabilitySubtype] =
     useState<LiabilitySubtype>('personal')
@@ -143,12 +150,17 @@ function App() {
       <div className="space-y-8">
         <Tabs value={group} onValueChange={(v) => setGroup(v as Group)}>
           <TabsList>
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="assets">Assets</TabsTrigger>
             <TabsTrigger value="liabilities">Liabilities</TabsTrigger>
             <TabsTrigger value="receivables">Receivables</TabsTrigger>
             <TabsTrigger value="investments">Investments</TabsTrigger>
             <TabsTrigger value="income">Income</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="dashboard" className="mt-6">
+            <DashboardScreen />
+          </TabsContent>
 
           <TabsContent value="assets" className="mt-6">
             <Tabs

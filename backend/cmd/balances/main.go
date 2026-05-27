@@ -30,6 +30,7 @@ import (
 	"github.com/kerti/balances-v2/backend/internal/migrations"
 	"github.com/kerti/balances-v2/backend/internal/receivables"
 	"github.com/kerti/balances-v2/backend/internal/repo"
+	"github.com/kerti/balances-v2/backend/internal/reports"
 )
 
 func main() {
@@ -146,7 +147,10 @@ func serveCmd() error {
 	incomeRepo := repo.NewIncomeRepo(pool)
 	incomeH := income.New(incomeRepo)
 
-	srv := httpserver.New(pool, cfg, authH, assetsH, liabilitiesH, receivablesH, investmentsH, incomeH)
+	reportRepo := repo.NewMonthlyReportRepo(pool)
+	reportsH := reports.New(reportRepo)
+
+	srv := httpserver.New(pool, cfg, authH, assetsH, liabilitiesH, receivablesH, investmentsH, incomeH, reportsH)
 
 	httpSrv := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),

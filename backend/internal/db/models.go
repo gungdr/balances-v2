@@ -207,6 +207,38 @@ type LiabilitySnapshot struct {
 	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
 }
 
+type MonthlyReport struct {
+	ID                          uuid.UUID          `json:"id"`
+	HouseholdID                 uuid.UUID          `json:"household_id"`
+	YearMonth                   time.Time          `json:"year_month"`
+	GeneratedAt                 pgtype.Timestamptz `json:"generated_at"`
+	NwTotal                     decimal.Decimal    `json:"nw_total"`
+	NwAssets                    decimal.Decimal    `json:"nw_assets"`
+	NwLiabilities               decimal.Decimal    `json:"nw_liabilities"`
+	NwReceivables               decimal.Decimal    `json:"nw_receivables"`
+	NwInvestments               decimal.Decimal    `json:"nw_investments"`
+	EarnedIncomeTotal           *decimal.Decimal   `json:"earned_income_total"`
+	EarnedIncomeSalary          *decimal.Decimal   `json:"earned_income_salary"`
+	EarnedIncomeBusiness        *decimal.Decimal   `json:"earned_income_business"`
+	EarnedIncomeRental          *decimal.Decimal   `json:"earned_income_rental"`
+	EarnedIncomeGift            *decimal.Decimal   `json:"earned_income_gift"`
+	EarnedIncomeTaxRefund       *decimal.Decimal   `json:"earned_income_tax_refund"`
+	EarnedIncomeInsurance       *decimal.Decimal   `json:"earned_income_insurance"`
+	EarnedIncomeOther           *decimal.Decimal   `json:"earned_income_other"`
+	InvestmentReturnTotal       *decimal.Decimal   `json:"investment_return_total"`
+	InvestmentReturnStock       *decimal.Decimal   `json:"investment_return_stock"`
+	InvestmentReturnMutualFund  *decimal.Decimal   `json:"investment_return_mutual_fund"`
+	InvestmentReturnBond        *decimal.Decimal   `json:"investment_return_bond"`
+	InvestmentReturnGold        *decimal.Decimal   `json:"investment_return_gold"`
+	InvestmentReturnTimeDeposit *decimal.Decimal   `json:"investment_return_time_deposit"`
+	AssetValueChange            *decimal.Decimal   `json:"asset_value_change"`
+	DerivedLivingExpenses       *decimal.Decimal   `json:"derived_living_expenses"`
+	UserBreakdowns              []byte             `json:"user_breakdowns"`
+	FxRatesUsed                 []byte             `json:"fx_rates_used"`
+	StalePositions              []byte             `json:"stale_positions"`
+	MissingFx                   []byte             `json:"missing_fx"`
+}
+
 type MutualFundDetail struct {
 	InvestmentID uuid.UUID `json:"investment_id"`
 	FundCode     string    `json:"fund_code"`

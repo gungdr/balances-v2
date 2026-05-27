@@ -21,7 +21,7 @@ import (
 func TestServer_Healthz(t *testing.T) {
 	tdb := testutil.NewTestDB(t)
 
-	s := httpserver.New(tdb.Pool, &config.Config{}, nil, nil, nil, nil, nil, nil)
+	s := httpserver.New(tdb.Pool, &config.Config{}, nil, nil, nil, nil, nil, nil, nil)
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
