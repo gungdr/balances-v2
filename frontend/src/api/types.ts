@@ -426,6 +426,8 @@ export type Income = {
 
 export type UserBreakdown = {
   nw: string
+  earned_income: string
+  investment_return: string
 }
 
 export type MonthlyReport = {
@@ -437,6 +439,13 @@ export type MonthlyReport = {
   nw_liabilities: string // positive magnitude; subtracted into nw_total
   nw_receivables: string
   nw_investments: string
+  // Income statement (slice 2). Derived lines are null on the first-month
+  // baseline (no prior month — ADR-0006). Per-category / per-subtype columns
+  // also exist on the wire; typed here only as totals until a drill-down needs them.
+  earned_income_total: string | null
+  investment_return_total: string | null
+  asset_value_change: string | null // property + vehicle non-cash mark change
+  derived_living_expenses: string | null // signed cash-spending residual
   user_breakdowns: Record<string, UserBreakdown> // keyed by user_id and "joint"
   stale_positions: string[]
 }

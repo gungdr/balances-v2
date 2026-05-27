@@ -31,21 +31,46 @@ WHERE household_id = $1 AND (year_month < $2 OR year_month > $3);
 INSERT INTO monthly_reports (
     household_id, year_month, generated_at,
     nw_total, nw_assets, nw_liabilities, nw_receivables, nw_investments,
+    earned_income_total, earned_income_salary, earned_income_business,
+    earned_income_rental, earned_income_gift, earned_income_tax_refund,
+    earned_income_insurance, earned_income_other,
+    investment_return_total, investment_return_stock, investment_return_mutual_fund,
+    investment_return_bond, investment_return_gold, investment_return_time_deposit,
+    asset_value_change, derived_living_expenses,
     user_breakdowns, stale_positions
 ) VALUES (
     $1, $2, now(),
     $3, $4, $5, $6, $7,
-    $8, $9
+    $8, $9, $10, $11, $12, $13, $14, $15,
+    $16, $17, $18, $19, $20, $21,
+    $22, $23,
+    $24, $25
 )
 ON CONFLICT (household_id, year_month) DO UPDATE SET
-    generated_at    = now(),
-    nw_total        = EXCLUDED.nw_total,
-    nw_assets       = EXCLUDED.nw_assets,
-    nw_liabilities  = EXCLUDED.nw_liabilities,
-    nw_receivables  = EXCLUDED.nw_receivables,
-    nw_investments  = EXCLUDED.nw_investments,
-    user_breakdowns = EXCLUDED.user_breakdowns,
-    stale_positions = EXCLUDED.stale_positions
+    generated_at                   = now(),
+    nw_total                       = EXCLUDED.nw_total,
+    nw_assets                      = EXCLUDED.nw_assets,
+    nw_liabilities                 = EXCLUDED.nw_liabilities,
+    nw_receivables                 = EXCLUDED.nw_receivables,
+    nw_investments                 = EXCLUDED.nw_investments,
+    earned_income_total            = EXCLUDED.earned_income_total,
+    earned_income_salary           = EXCLUDED.earned_income_salary,
+    earned_income_business         = EXCLUDED.earned_income_business,
+    earned_income_rental           = EXCLUDED.earned_income_rental,
+    earned_income_gift             = EXCLUDED.earned_income_gift,
+    earned_income_tax_refund       = EXCLUDED.earned_income_tax_refund,
+    earned_income_insurance        = EXCLUDED.earned_income_insurance,
+    earned_income_other            = EXCLUDED.earned_income_other,
+    investment_return_total        = EXCLUDED.investment_return_total,
+    investment_return_stock        = EXCLUDED.investment_return_stock,
+    investment_return_mutual_fund  = EXCLUDED.investment_return_mutual_fund,
+    investment_return_bond         = EXCLUDED.investment_return_bond,
+    investment_return_gold         = EXCLUDED.investment_return_gold,
+    investment_return_time_deposit = EXCLUDED.investment_return_time_deposit,
+    asset_value_change             = EXCLUDED.asset_value_change,
+    derived_living_expenses        = EXCLUDED.derived_living_expenses,
+    user_breakdowns                = EXCLUDED.user_breakdowns,
+    stale_positions                = EXCLUDED.stale_positions
 RETURNING *;
 
 -- Staleness watermark: the newest updated_at across every input that feeds
@@ -53,7 +78,8 @@ RETURNING *;
 -- is stale when its generated_at predates this value. Snapshot subqueries do
 -- not filter deleted_at so soft-deletes count; parent tables are household-wide
 -- (metadata is timeless). Detail tables and `users` are deliberately excluded
--- (ADR-0006). FX rates + income + transactions join the set in M5 slices 2-3.
+-- (ADR-0006). Income + investment_transactions joined the set in slice 2;
+-- fx_rates joins in slice 3.
 -- name: MaxReportInputUpdatedAt :one
 SELECT COALESCE(GREATEST(
     (SELECT MAX(s.updated_at) FROM asset_snapshots s
@@ -68,6 +94,11 @@ SELECT COALESCE(GREATEST(
     (SELECT MAX(s.updated_at) FROM investment_snapshots s
         JOIN investments i ON i.id = s.investment_id
         WHERE i.household_id = $1 AND s.year_month <= $2),
+    (SELECT MAX(updated_at) FROM income
+        WHERE household_id = $1 AND date <= $2),
+    (SELECT MAX(t.updated_at) FROM investment_transactions t
+        JOIN investments i ON i.id = t.investment_id
+        WHERE i.household_id = $1 AND t.transaction_date <= $2),
     (SELECT MAX(updated_at) FROM assets       WHERE household_id = $1),
     (SELECT MAX(updated_at) FROM liabilities  WHERE household_id = $1),
     (SELECT MAX(updated_at) FROM receivables  WHERE household_id = $1),
@@ -81,7 +112,7 @@ SELECT COALESCE(GREATEST(
 -- plus ownership for the per-user / Joint breakdown.
 
 -- name: ListAssetsForReport :many
-SELECT id, ownership_type, sole_owner_user_id, terminated_at
+SELECT id, subtype, ownership_type, sole_owner_user_id, terminated_at
 FROM assets
 WHERE household_id = $1 AND deleted_at IS NULL;
 
@@ -96,9 +127,28 @@ FROM receivables
 WHERE household_id = $1 AND deleted_at IS NULL;
 
 -- name: ListInvestmentsForReport :many
-SELECT id, ownership_type, sole_owner_user_id, terminated_at
+SELECT id, subtype, ownership_type, sole_owner_user_id, terminated_at
 FROM investments
 WHERE household_id = $1 AND deleted_at IS NULL;
+
+-- ----- engine inputs: income + investment transactions (slice 2) ----------
+
+-- name: ListIncomeForReport :many
+SELECT date, amount, category, ownership_type, sole_owner_user_id
+FROM income
+WHERE household_id = $1 AND deleted_at IS NULL;
+
+-- Transaction cash-flow fields the engine maps to cash_in/cash_out (ADR-0008).
+-- price_per_unit is omitted — it doesn't enter the return formula.
+-- name: ListInvestmentTransactionsForReport :many
+SELECT t.investment_id, t.transaction_date, t.transaction_type,
+       t.amount, t.quantity,
+       t.principal_amount, t.interest_amount,
+       t.principal_disposition, t.interest_disposition
+FROM investment_transactions t
+JOIN investments i ON i.id = t.investment_id
+WHERE i.household_id = $1 AND i.deleted_at IS NULL AND t.deleted_at IS NULL
+ORDER BY t.investment_id, t.transaction_date;
 
 -- ----- engine inputs: flat snapshots (position_id, year_month, amount) -----
 -- All non-deleted snapshots for the household, ordered for the engine's

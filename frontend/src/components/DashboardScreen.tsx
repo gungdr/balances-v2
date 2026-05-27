@@ -92,6 +92,8 @@ export function DashboardScreen() {
 
       <GroupBreakdown selected={selected} currency={currency} />
 
+      <ThisMonth selected={selected} currency={currency} />
+
       <ByPerson
         selected={selected}
         currency={currency}
@@ -273,6 +275,125 @@ function ByPerson({
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+// ThisMonth renders the comprehensive-income statement (ADR-0008): earned
+// income + investment return + property/vehicle value change − living expenses
+// = net worth change. Suppressed on the first-month baseline (derived lines
+// null — no prior month to compare).
+function ThisMonth({
+  selected,
+  currency,
+}: {
+  selected: MonthlyReport
+  currency: string
+}) {
+  const baseline = selected.derived_living_expenses === null
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">This month</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {baseline ? (
+          <p className="text-sm text-muted-foreground">
+            First tracked month — there&apos;s no earlier month to compare
+            against yet, so income and spending figures start the month after.
+          </p>
+        ) : (
+          <IncomeStatement selected={selected} currency={currency} />
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function IncomeStatement({
+  selected,
+  currency,
+}: {
+  selected: MonthlyReport
+  currency: string
+}) {
+  // Display-only arithmetic at household scale (see lib/format.ts). Each line
+  // is its signed contribution to net-worth change, so they sum to the total.
+  const earned = Number(selected.earned_income_total ?? '0')
+  const ret = Number(selected.investment_return_total ?? '0')
+  const avc = Number(selected.asset_value_change ?? '0')
+  const exp = Number(selected.derived_living_expenses ?? '0')
+  const nwChange = earned + ret + avc - exp
+  const expensePositive = exp >= 0
+
+  return (
+    <div className="space-y-2 text-sm">
+      <StatementRow label="Earned income" value={earned} currency={currency} />
+      <StatementRow label="Investment return" value={ret} currency={currency} />
+      {avc !== 0 && (
+        <StatementRow
+          label="Property & vehicle value change"
+          value={avc}
+          currency={currency}
+          muted
+          hint="Non-cash — depreciation or revaluation of property and vehicles. No money changed hands."
+        />
+      )}
+      <StatementRow
+        // The residual: positive → spending (an outflow); negative → net worth
+        // rose more than income + return explain (relabelled, shown as a gain).
+        label={expensePositive ? 'Living expenses (estimated)' : 'Unexplained increase'}
+        value={-exp}
+        currency={currency}
+        hint={
+          expensePositive
+            ? "Estimated from the change in your net worth minus tracked income and investment return. This app doesn't track individual purchases."
+            : 'Your net worth rose more than tracked income and investment return explain — for example an untracked gift or a revaluation.'
+        }
+      />
+      <div className="border-t pt-2">
+        <StatementRow
+          label="Net worth change"
+          value={nwChange}
+          currency={currency}
+          bold
+        />
+      </div>
+    </div>
+  )
+}
+
+function StatementRow({
+  label,
+  value,
+  currency,
+  muted,
+  bold,
+  hint,
+}: {
+  label: string
+  value: number
+  currency: string
+  muted?: boolean
+  bold?: boolean
+  hint?: string
+}) {
+  const positive = value >= 0
+  const amountClass = muted
+    ? 'text-muted-foreground'
+    : positive
+      ? 'text-emerald-600'
+      : 'text-destructive'
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <span className={muted ? 'text-muted-foreground' : ''} title={hint}>
+        {label}
+        {hint && <span className="ml-1 cursor-help text-muted-foreground">ⓘ</span>}
+      </span>
+      <span className={`tabular-nums ${bold ? 'font-semibold' : ''} ${amountClass}`}>
+        {positive ? '+' : '−'}
+        {formatCurrency(String(Math.abs(value)), currency)}
+      </span>
+    </div>
   )
 }
 

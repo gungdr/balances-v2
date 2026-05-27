@@ -121,13 +121,14 @@ func (q *Queries) ListAssetSnapshotsForReport(ctx context.Context, householdID u
 
 const listAssetsForReport = `-- name: ListAssetsForReport :many
 
-SELECT id, ownership_type, sole_owner_user_id, terminated_at
+SELECT id, subtype, ownership_type, sole_owner_user_id, terminated_at
 FROM assets
 WHERE household_id = $1 AND deleted_at IS NULL
 `
 
 type ListAssetsForReportRow struct {
 	ID              uuid.UUID  `json:"id"`
+	Subtype         string     `json:"subtype"`
 	OwnershipType   string     `json:"ownership_type"`
 	SoleOwnerUserID *uuid.UUID `json:"sole_owner_user_id"`
 	TerminatedAt    *time.Time `json:"terminated_at"`
@@ -148,9 +149,52 @@ func (q *Queries) ListAssetsForReport(ctx context.Context, householdID uuid.UUID
 		var i ListAssetsForReportRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.Subtype,
 			&i.OwnershipType,
 			&i.SoleOwnerUserID,
 			&i.TerminatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listIncomeForReport = `-- name: ListIncomeForReport :many
+
+SELECT date, amount, category, ownership_type, sole_owner_user_id
+FROM income
+WHERE household_id = $1 AND deleted_at IS NULL
+`
+
+type ListIncomeForReportRow struct {
+	Date            time.Time       `json:"date"`
+	Amount          decimal.Decimal `json:"amount"`
+	Category        string          `json:"category"`
+	OwnershipType   string          `json:"ownership_type"`
+	SoleOwnerUserID *uuid.UUID      `json:"sole_owner_user_id"`
+}
+
+// ----- engine inputs: income + investment transactions (slice 2) ----------
+func (q *Queries) ListIncomeForReport(ctx context.Context, householdID uuid.UUID) ([]ListIncomeForReportRow, error) {
+	rows, err := q.db.Query(ctx, listIncomeForReport, householdID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListIncomeForReportRow
+	for rows.Next() {
+		var i ListIncomeForReportRow
+		if err := rows.Scan(
+			&i.Date,
+			&i.Amount,
+			&i.Category,
+			&i.OwnershipType,
+			&i.SoleOwnerUserID,
 		); err != nil {
 			return nil, err
 		}
@@ -196,14 +240,70 @@ func (q *Queries) ListInvestmentSnapshotsForReport(ctx context.Context, househol
 	return items, nil
 }
 
+const listInvestmentTransactionsForReport = `-- name: ListInvestmentTransactionsForReport :many
+SELECT t.investment_id, t.transaction_date, t.transaction_type,
+       t.amount, t.quantity,
+       t.principal_amount, t.interest_amount,
+       t.principal_disposition, t.interest_disposition
+FROM investment_transactions t
+JOIN investments i ON i.id = t.investment_id
+WHERE i.household_id = $1 AND i.deleted_at IS NULL AND t.deleted_at IS NULL
+ORDER BY t.investment_id, t.transaction_date
+`
+
+type ListInvestmentTransactionsForReportRow struct {
+	InvestmentID         uuid.UUID        `json:"investment_id"`
+	TransactionDate      time.Time        `json:"transaction_date"`
+	TransactionType      string           `json:"transaction_type"`
+	Amount               *decimal.Decimal `json:"amount"`
+	Quantity             *decimal.Decimal `json:"quantity"`
+	PrincipalAmount      *decimal.Decimal `json:"principal_amount"`
+	InterestAmount       *decimal.Decimal `json:"interest_amount"`
+	PrincipalDisposition *string          `json:"principal_disposition"`
+	InterestDisposition  *string          `json:"interest_disposition"`
+}
+
+// Transaction cash-flow fields the engine maps to cash_in/cash_out (ADR-0008).
+// price_per_unit is omitted — it doesn't enter the return formula.
+func (q *Queries) ListInvestmentTransactionsForReport(ctx context.Context, householdID uuid.UUID) ([]ListInvestmentTransactionsForReportRow, error) {
+	rows, err := q.db.Query(ctx, listInvestmentTransactionsForReport, householdID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListInvestmentTransactionsForReportRow
+	for rows.Next() {
+		var i ListInvestmentTransactionsForReportRow
+		if err := rows.Scan(
+			&i.InvestmentID,
+			&i.TransactionDate,
+			&i.TransactionType,
+			&i.Amount,
+			&i.Quantity,
+			&i.PrincipalAmount,
+			&i.InterestAmount,
+			&i.PrincipalDisposition,
+			&i.InterestDisposition,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listInvestmentsForReport = `-- name: ListInvestmentsForReport :many
-SELECT id, ownership_type, sole_owner_user_id, terminated_at
+SELECT id, subtype, ownership_type, sole_owner_user_id, terminated_at
 FROM investments
 WHERE household_id = $1 AND deleted_at IS NULL
 `
 
 type ListInvestmentsForReportRow struct {
 	ID              uuid.UUID  `json:"id"`
+	Subtype         string     `json:"subtype"`
 	OwnershipType   string     `json:"ownership_type"`
 	SoleOwnerUserID *uuid.UUID `json:"sole_owner_user_id"`
 	TerminatedAt    *time.Time `json:"terminated_at"`
@@ -220,6 +320,7 @@ func (q *Queries) ListInvestmentsForReport(ctx context.Context, householdID uuid
 		var i ListInvestmentsForReportRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.Subtype,
 			&i.OwnershipType,
 			&i.SoleOwnerUserID,
 			&i.TerminatedAt,
@@ -460,6 +561,11 @@ SELECT COALESCE(GREATEST(
     (SELECT MAX(s.updated_at) FROM investment_snapshots s
         JOIN investments i ON i.id = s.investment_id
         WHERE i.household_id = $1 AND s.year_month <= $2),
+    (SELECT MAX(updated_at) FROM income
+        WHERE household_id = $1 AND date <= $2),
+    (SELECT MAX(t.updated_at) FROM investment_transactions t
+        JOIN investments i ON i.id = t.investment_id
+        WHERE i.household_id = $1 AND t.transaction_date <= $2),
     (SELECT MAX(updated_at) FROM assets       WHERE household_id = $1),
     (SELECT MAX(updated_at) FROM liabilities  WHERE household_id = $1),
     (SELECT MAX(updated_at) FROM receivables  WHERE household_id = $1),
@@ -478,7 +584,8 @@ type MaxReportInputUpdatedAtParams struct {
 // is stale when its generated_at predates this value. Snapshot subqueries do
 // not filter deleted_at so soft-deletes count; parent tables are household-wide
 // (metadata is timeless). Detail tables and `users` are deliberately excluded
-// (ADR-0006). FX rates + income + transactions join the set in M5 slices 2-3.
+// (ADR-0006). Income + investment_transactions joined the set in slice 2;
+// fx_rates joins in slice 3.
 func (q *Queries) MaxReportInputUpdatedAt(ctx context.Context, arg MaxReportInputUpdatedAtParams) (pgtype.Timestamptz, error) {
 	row := q.db.QueryRow(ctx, maxReportInputUpdatedAt, arg.HouseholdID, arg.YearMonth)
 	var max_updated_at pgtype.Timestamptz
@@ -490,34 +597,75 @@ const upsertMonthlyReport = `-- name: UpsertMonthlyReport :one
 INSERT INTO monthly_reports (
     household_id, year_month, generated_at,
     nw_total, nw_assets, nw_liabilities, nw_receivables, nw_investments,
+    earned_income_total, earned_income_salary, earned_income_business,
+    earned_income_rental, earned_income_gift, earned_income_tax_refund,
+    earned_income_insurance, earned_income_other,
+    investment_return_total, investment_return_stock, investment_return_mutual_fund,
+    investment_return_bond, investment_return_gold, investment_return_time_deposit,
+    asset_value_change, derived_living_expenses,
     user_breakdowns, stale_positions
 ) VALUES (
     $1, $2, now(),
     $3, $4, $5, $6, $7,
-    $8, $9
+    $8, $9, $10, $11, $12, $13, $14, $15,
+    $16, $17, $18, $19, $20, $21,
+    $22, $23,
+    $24, $25
 )
 ON CONFLICT (household_id, year_month) DO UPDATE SET
-    generated_at    = now(),
-    nw_total        = EXCLUDED.nw_total,
-    nw_assets       = EXCLUDED.nw_assets,
-    nw_liabilities  = EXCLUDED.nw_liabilities,
-    nw_receivables  = EXCLUDED.nw_receivables,
-    nw_investments  = EXCLUDED.nw_investments,
-    user_breakdowns = EXCLUDED.user_breakdowns,
-    stale_positions = EXCLUDED.stale_positions
+    generated_at                   = now(),
+    nw_total                       = EXCLUDED.nw_total,
+    nw_assets                      = EXCLUDED.nw_assets,
+    nw_liabilities                 = EXCLUDED.nw_liabilities,
+    nw_receivables                 = EXCLUDED.nw_receivables,
+    nw_investments                 = EXCLUDED.nw_investments,
+    earned_income_total            = EXCLUDED.earned_income_total,
+    earned_income_salary           = EXCLUDED.earned_income_salary,
+    earned_income_business         = EXCLUDED.earned_income_business,
+    earned_income_rental           = EXCLUDED.earned_income_rental,
+    earned_income_gift             = EXCLUDED.earned_income_gift,
+    earned_income_tax_refund       = EXCLUDED.earned_income_tax_refund,
+    earned_income_insurance        = EXCLUDED.earned_income_insurance,
+    earned_income_other            = EXCLUDED.earned_income_other,
+    investment_return_total        = EXCLUDED.investment_return_total,
+    investment_return_stock        = EXCLUDED.investment_return_stock,
+    investment_return_mutual_fund  = EXCLUDED.investment_return_mutual_fund,
+    investment_return_bond         = EXCLUDED.investment_return_bond,
+    investment_return_gold         = EXCLUDED.investment_return_gold,
+    investment_return_time_deposit = EXCLUDED.investment_return_time_deposit,
+    asset_value_change             = EXCLUDED.asset_value_change,
+    derived_living_expenses        = EXCLUDED.derived_living_expenses,
+    user_breakdowns                = EXCLUDED.user_breakdowns,
+    stale_positions                = EXCLUDED.stale_positions
 RETURNING id, household_id, year_month, generated_at, nw_total, nw_assets, nw_liabilities, nw_receivables, nw_investments, earned_income_total, earned_income_salary, earned_income_business, earned_income_rental, earned_income_gift, earned_income_tax_refund, earned_income_insurance, earned_income_other, investment_return_total, investment_return_stock, investment_return_mutual_fund, investment_return_bond, investment_return_gold, investment_return_time_deposit, asset_value_change, derived_living_expenses, user_breakdowns, fx_rates_used, stale_positions, missing_fx
 `
 
 type UpsertMonthlyReportParams struct {
-	HouseholdID    uuid.UUID       `json:"household_id"`
-	YearMonth      time.Time       `json:"year_month"`
-	NwTotal        decimal.Decimal `json:"nw_total"`
-	NwAssets       decimal.Decimal `json:"nw_assets"`
-	NwLiabilities  decimal.Decimal `json:"nw_liabilities"`
-	NwReceivables  decimal.Decimal `json:"nw_receivables"`
-	NwInvestments  decimal.Decimal `json:"nw_investments"`
-	UserBreakdowns []byte          `json:"user_breakdowns"`
-	StalePositions []byte          `json:"stale_positions"`
+	HouseholdID                 uuid.UUID        `json:"household_id"`
+	YearMonth                   time.Time        `json:"year_month"`
+	NwTotal                     decimal.Decimal  `json:"nw_total"`
+	NwAssets                    decimal.Decimal  `json:"nw_assets"`
+	NwLiabilities               decimal.Decimal  `json:"nw_liabilities"`
+	NwReceivables               decimal.Decimal  `json:"nw_receivables"`
+	NwInvestments               decimal.Decimal  `json:"nw_investments"`
+	EarnedIncomeTotal           *decimal.Decimal `json:"earned_income_total"`
+	EarnedIncomeSalary          *decimal.Decimal `json:"earned_income_salary"`
+	EarnedIncomeBusiness        *decimal.Decimal `json:"earned_income_business"`
+	EarnedIncomeRental          *decimal.Decimal `json:"earned_income_rental"`
+	EarnedIncomeGift            *decimal.Decimal `json:"earned_income_gift"`
+	EarnedIncomeTaxRefund       *decimal.Decimal `json:"earned_income_tax_refund"`
+	EarnedIncomeInsurance       *decimal.Decimal `json:"earned_income_insurance"`
+	EarnedIncomeOther           *decimal.Decimal `json:"earned_income_other"`
+	InvestmentReturnTotal       *decimal.Decimal `json:"investment_return_total"`
+	InvestmentReturnStock       *decimal.Decimal `json:"investment_return_stock"`
+	InvestmentReturnMutualFund  *decimal.Decimal `json:"investment_return_mutual_fund"`
+	InvestmentReturnBond        *decimal.Decimal `json:"investment_return_bond"`
+	InvestmentReturnGold        *decimal.Decimal `json:"investment_return_gold"`
+	InvestmentReturnTimeDeposit *decimal.Decimal `json:"investment_return_time_deposit"`
+	AssetValueChange            *decimal.Decimal `json:"asset_value_change"`
+	DerivedLivingExpenses       *decimal.Decimal `json:"derived_living_expenses"`
+	UserBreakdowns              []byte           `json:"user_breakdowns"`
+	StalePositions              []byte           `json:"stale_positions"`
 }
 
 func (q *Queries) UpsertMonthlyReport(ctx context.Context, arg UpsertMonthlyReportParams) (MonthlyReport, error) {
@@ -529,6 +677,22 @@ func (q *Queries) UpsertMonthlyReport(ctx context.Context, arg UpsertMonthlyRepo
 		arg.NwLiabilities,
 		arg.NwReceivables,
 		arg.NwInvestments,
+		arg.EarnedIncomeTotal,
+		arg.EarnedIncomeSalary,
+		arg.EarnedIncomeBusiness,
+		arg.EarnedIncomeRental,
+		arg.EarnedIncomeGift,
+		arg.EarnedIncomeTaxRefund,
+		arg.EarnedIncomeInsurance,
+		arg.EarnedIncomeOther,
+		arg.InvestmentReturnTotal,
+		arg.InvestmentReturnStock,
+		arg.InvestmentReturnMutualFund,
+		arg.InvestmentReturnBond,
+		arg.InvestmentReturnGold,
+		arg.InvestmentReturnTimeDeposit,
+		arg.AssetValueChange,
+		arg.DerivedLivingExpenses,
 		arg.UserBreakdowns,
 		arg.StalePositions,
 	)

@@ -171,3 +171,114 @@ func TestEngine_EmptyIsNil(t *testing.T) {
 		t.Errorf("empty input: got %v, want nil", got)
 	}
 }
+
+// The transaction → cash mapping (ADR-0008): unit-deducting fees and rolled
+// maturity portions move no cash; cash fees and cash-out dispositions do.
+func TestEngine_TransactionCashFlows(t *testing.T) {
+	amt := func(s string) *decimal.Decimal { v := dec(s); return &v }
+	str := func(s string) *string { return &s }
+	cases := []struct {
+		name    string
+		txn     reportTransaction
+		in, out string
+	}{
+		{"buy", reportTransaction{txnType: "buy", amount: amt("350")}, "350", "0"},
+		{"sell", reportTransaction{txnType: "sell", amount: amt("400")}, "0", "400"},
+		{"coupon", reportTransaction{txnType: "coupon", amount: amt("50")}, "0", "50"},
+		{"dividend", reportTransaction{txnType: "dividend", amount: amt("30")}, "0", "30"},
+		{"distribution", reportTransaction{txnType: "distribution", amount: amt("20")}, "0", "20"},
+		{"fee cash", reportTransaction{txnType: "fee", amount: amt("10")}, "10", "0"},
+		{"fee unit-deducted", reportTransaction{txnType: "fee", amount: amt("10"), quantity: amt("2")}, "0", "0"},
+		{"maturity both cash_out", reportTransaction{txnType: "maturity", principalAmount: amt("1000"), interestAmount: amt("55"), principalDisposition: str("cash_out"), interestDisposition: str("cash_out")}, "0", "1055"},
+		{"maturity both rolled", reportTransaction{txnType: "maturity", principalAmount: amt("1000"), interestAmount: amt("55"), principalDisposition: str("rolled_to_new"), interestDisposition: str("rolled_to_new")}, "0", "0"},
+		{"maturity P rolled / I cash", reportTransaction{txnType: "maturity", principalAmount: amt("1000"), interestAmount: amt("55"), principalDisposition: str("rolled_to_new"), interestDisposition: str("cash_out")}, "0", "55"},
+	}
+	for _, c := range cases {
+		cf := transactionCashFlows(c.txn)
+		if !cf.in.Equal(dec(c.in)) || !cf.out.Equal(dec(c.out)) {
+			t.Errorf("%s: got in=%s out=%s, want in=%s out=%s", c.name, cf.in, cf.out, c.in, c.out)
+		}
+	}
+}
+
+// The income statement: earned income by category, investment return,
+// property/vehicle asset value change isolated from the residual, and the
+// comprehensive-income identity closing. Baseline month suppresses the derived
+// lines. Vehicle depreciation must land in asset_value_change, not expenses.
+func TestEngine_IncomeStatement(t *testing.T) {
+	bank, veh, stock := uuid.New(), uuid.New(), uuid.New()
+	in := reportEngineInput{
+		positions: []reportPosition{
+			{id: bank, group: groupAsset, subtype: "bank_account", ownershipType: "joint"},
+			{id: veh, group: groupAsset, subtype: "vehicle", ownershipType: "joint"},
+			{id: stock, group: groupInvestment, subtype: "stock", ownershipType: "joint"},
+		},
+		snapshots: []reportSnapshot{
+			{positionID: bank, yearMonth: ym(2026, time.January), amount: dec("1000")},
+			{positionID: bank, yearMonth: ym(2026, time.February), amount: dec("900")},
+			{positionID: veh, yearMonth: ym(2026, time.January), amount: dec("200")},
+			{positionID: veh, yearMonth: ym(2026, time.February), amount: dec("197")},
+			{positionID: stock, yearMonth: ym(2026, time.January), amount: dec("500")},
+			{positionID: stock, yearMonth: ym(2026, time.February), amount: dec("560")},
+		},
+		income: []reportIncome{
+			{yearMonth: ym(2026, time.February), amount: dec("50"), category: "salary", ownershipType: "joint"},
+		},
+		currentMonth: ym(2026, time.February),
+	}
+	reports := generateMonthlyReports(in)
+	jan := findMonth(t, reports, ym(2026, time.January))
+	feb := findMonth(t, reports, ym(2026, time.February))
+
+	// Baseline (Jan): derived lines suppressed; earned income still present (0).
+	if jan.investmentReturn != nil || jan.assetValueChange != nil || jan.livingExpenses != nil {
+		t.Errorf("Jan baseline: derived lines should be nil, got return=%v assetΔ=%v exp=%v",
+			jan.investmentReturn, jan.assetValueChange, jan.livingExpenses)
+	}
+	if !jan.earnedIncome.total.Equal(dec("0")) {
+		t.Errorf("Jan earned income: got %s, want 0", jan.earnedIncome.total)
+	}
+
+	// Feb income statement.
+	if !feb.earnedIncome.salary.Equal(dec("50")) || !feb.earnedIncome.total.Equal(dec("50")) {
+		t.Errorf("Feb earned income: got total=%s salary=%s, want 50/50", feb.earnedIncome.total, feb.earnedIncome.salary)
+	}
+	if feb.investmentReturn == nil || !feb.investmentReturn.total.Equal(dec("60")) || !feb.investmentReturn.stock.Equal(dec("60")) {
+		t.Fatalf("Feb investment return: %+v, want total/stock=60", feb.investmentReturn)
+	}
+	if feb.assetValueChange == nil || !feb.assetValueChange.Equal(dec("-3")) {
+		t.Fatalf("Feb asset value change: %v, want -3 (vehicle only; bank excluded)", feb.assetValueChange)
+	}
+	if feb.livingExpenses == nil || !feb.livingExpenses.Equal(dec("150")) {
+		t.Fatalf("Feb living expenses: %v, want 150 (cash residual, depreciation excluded)", feb.livingExpenses)
+	}
+	// Identity closes: ΔNW == earned + return + assetΔ − expenses.
+	deltaNW := feb.nwTotal.Sub(jan.nwTotal)
+	rhs := feb.earnedIncome.total.Add(feb.investmentReturn.total).Add(*feb.assetValueChange).Sub(*feb.livingExpenses)
+	if !deltaNW.Equal(rhs) {
+		t.Errorf("identity broken: ΔNW=%s != earned+return+assetΔ−expenses=%s", deltaNW, rhs)
+	}
+}
+
+// Investment return counts the transaction cash flow: a Buy reduces return by
+// the cash put in, so a holding that rose 400 on 300 of new cash returns 100.
+func TestEngine_InvestmentReturnWithCashFlow(t *testing.T) {
+	stock := uuid.New()
+	buy := dec("300")
+	in := reportEngineInput{
+		positions: []reportPosition{{id: stock, group: groupInvestment, subtype: "stock", ownershipType: "joint"}},
+		snapshots: []reportSnapshot{
+			{positionID: stock, yearMonth: ym(2026, time.January), amount: dec("500")},
+			{positionID: stock, yearMonth: ym(2026, time.February), amount: dec("500")},
+			{positionID: stock, yearMonth: ym(2026, time.March), amount: dec("900")},
+		},
+		transactions: []reportTransaction{
+			{investmentID: stock, yearMonth: ym(2026, time.March), txnType: "buy", amount: &buy},
+		},
+		currentMonth: ym(2026, time.March),
+	}
+	mar := findMonth(t, generateMonthlyReports(in), ym(2026, time.March))
+	if mar.investmentReturn == nil || !mar.investmentReturn.total.Equal(dec("100")) {
+		t.Fatalf("Mar return: %+v, want 100 (Δsnapshot 400 − cashIn 300)", mar.investmentReturn)
+	}
+}

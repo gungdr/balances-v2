@@ -39,33 +39,77 @@ func (h *Handlers) Mount(r chi.Router) {
 	})
 }
 
-// reportResponse is the slice-1 API shape: net worth + group breakdowns +
-// per-user/Joint breakdown + carried-forward (stale) positions. The
-// income-statement fields arrive with M5 slice 2.
+// reportResponse is the API shape: net worth + group breakdowns + the income
+// statement + per-user/Joint breakdown + carried-forward (stale) positions.
+// The income-statement fields are nullable — null on the first-month baseline
+// (no prior month) for the derived lines (ADR-0006). Decimals serialise as
+// strings (precision); nulls pass through as JSON null.
 type reportResponse struct {
-	YearMonth         time.Time       `json:"year_month"`
-	GeneratedAt       *time.Time      `json:"generated_at"`
-	ReportingCurrency string          `json:"reporting_currency"`
-	NWTotal           decimal.Decimal `json:"nw_total"`
-	NWAssets          decimal.Decimal `json:"nw_assets"`
-	NWLiabilities     decimal.Decimal `json:"nw_liabilities"`
-	NWReceivables     decimal.Decimal `json:"nw_receivables"`
-	NWInvestments     decimal.Decimal `json:"nw_investments"`
-	UserBreakdowns    json.RawMessage `json:"user_breakdowns"`
-	StalePositions    json.RawMessage `json:"stale_positions"`
+	YearMonth         time.Time  `json:"year_month"`
+	GeneratedAt       *time.Time `json:"generated_at"`
+	ReportingCurrency string     `json:"reporting_currency"`
+
+	NWTotal       decimal.Decimal `json:"nw_total"`
+	NWAssets      decimal.Decimal `json:"nw_assets"`
+	NWLiabilities decimal.Decimal `json:"nw_liabilities"`
+	NWReceivables decimal.Decimal `json:"nw_receivables"`
+	NWInvestments decimal.Decimal `json:"nw_investments"`
+
+	EarnedIncomeTotal     *decimal.Decimal `json:"earned_income_total"`
+	EarnedIncomeSalary    *decimal.Decimal `json:"earned_income_salary"`
+	EarnedIncomeBusiness  *decimal.Decimal `json:"earned_income_business"`
+	EarnedIncomeRental    *decimal.Decimal `json:"earned_income_rental"`
+	EarnedIncomeGift      *decimal.Decimal `json:"earned_income_gift"`
+	EarnedIncomeTaxRefund *decimal.Decimal `json:"earned_income_tax_refund"`
+	EarnedIncomeInsurance *decimal.Decimal `json:"earned_income_insurance"`
+	EarnedIncomeOther     *decimal.Decimal `json:"earned_income_other"`
+
+	InvestmentReturnTotal       *decimal.Decimal `json:"investment_return_total"`
+	InvestmentReturnStock       *decimal.Decimal `json:"investment_return_stock"`
+	InvestmentReturnMutualFund  *decimal.Decimal `json:"investment_return_mutual_fund"`
+	InvestmentReturnBond        *decimal.Decimal `json:"investment_return_bond"`
+	InvestmentReturnGold        *decimal.Decimal `json:"investment_return_gold"`
+	InvestmentReturnTimeDeposit *decimal.Decimal `json:"investment_return_time_deposit"`
+
+	AssetValueChange      *decimal.Decimal `json:"asset_value_change"`
+	DerivedLivingExpenses *decimal.Decimal `json:"derived_living_expenses"`
+
+	UserBreakdowns json.RawMessage `json:"user_breakdowns"`
+	StalePositions json.RawMessage `json:"stale_positions"`
 }
 
 func toResponse(r db.MonthlyReport, currency string) reportResponse {
 	resp := reportResponse{
 		YearMonth:         r.YearMonth,
 		ReportingCurrency: currency,
-		NWTotal:           r.NwTotal,
-		NWAssets:          r.NwAssets,
-		NWLiabilities:     r.NwLiabilities,
-		NWReceivables:     r.NwReceivables,
-		NWInvestments:     r.NwInvestments,
-		UserBreakdowns:    rawJSON(r.UserBreakdowns, "{}"),
-		StalePositions:    rawJSON(r.StalePositions, "[]"),
+
+		NWTotal:       r.NwTotal,
+		NWAssets:      r.NwAssets,
+		NWLiabilities: r.NwLiabilities,
+		NWReceivables: r.NwReceivables,
+		NWInvestments: r.NwInvestments,
+
+		EarnedIncomeTotal:     r.EarnedIncomeTotal,
+		EarnedIncomeSalary:    r.EarnedIncomeSalary,
+		EarnedIncomeBusiness:  r.EarnedIncomeBusiness,
+		EarnedIncomeRental:    r.EarnedIncomeRental,
+		EarnedIncomeGift:      r.EarnedIncomeGift,
+		EarnedIncomeTaxRefund: r.EarnedIncomeTaxRefund,
+		EarnedIncomeInsurance: r.EarnedIncomeInsurance,
+		EarnedIncomeOther:     r.EarnedIncomeOther,
+
+		InvestmentReturnTotal:       r.InvestmentReturnTotal,
+		InvestmentReturnStock:       r.InvestmentReturnStock,
+		InvestmentReturnMutualFund:  r.InvestmentReturnMutualFund,
+		InvestmentReturnBond:        r.InvestmentReturnBond,
+		InvestmentReturnGold:        r.InvestmentReturnGold,
+		InvestmentReturnTimeDeposit: r.InvestmentReturnTimeDeposit,
+
+		AssetValueChange:      r.AssetValueChange,
+		DerivedLivingExpenses: r.DerivedLivingExpenses,
+
+		UserBreakdowns: rawJSON(r.UserBreakdowns, "{}"),
+		StalePositions: rawJSON(r.StalePositions, "[]"),
 	}
 	if r.GeneratedAt.Valid {
 		t := r.GeneratedAt.Time

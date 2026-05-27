@@ -11,9 +11,14 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/shopspring/decimal"
 
 	"github.com/kerti/balances-v2/backend/internal/db"
 )
+
+// ptr returns a pointer to a decimal, for the nullable income-statement
+// columns that the engine always computes a value for.
+func ptr(d decimal.Decimal) *decimal.Decimal { return &d }
 
 // MonthlyReportRepo serves the materialized monthly net-worth report (ADR-0006).
 // Reads are lazy: ListReports / GetReport regenerate the household's rows when
@@ -171,17 +176,36 @@ func (r *MonthlyReportRepo) writeReports(ctx context.Context, hid uuid.UUID, fir
 		if err != nil {
 			return fmt.Errorf("marshal stale positions: %w", err)
 		}
-		if _, err := qtx.UpsertMonthlyReport(ctx, db.UpsertMonthlyReportParams{
-			HouseholdID:    hid,
-			YearMonth:      rep.yearMonth,
-			NwTotal:        rep.nwTotal,
-			NwAssets:       rep.nwAssets,
-			NwLiabilities:  rep.nwLiabilities,
-			NwReceivables:  rep.nwReceivables,
-			NwInvestments:  rep.nwInvestments,
-			UserBreakdowns: ub,
-			StalePositions: stale,
-		}); err != nil {
+		params := db.UpsertMonthlyReportParams{
+			HouseholdID:           hid,
+			YearMonth:             rep.yearMonth,
+			NwTotal:               rep.nwTotal,
+			NwAssets:              rep.nwAssets,
+			NwLiabilities:         rep.nwLiabilities,
+			NwReceivables:         rep.nwReceivables,
+			NwInvestments:         rep.nwInvestments,
+			EarnedIncomeTotal:     ptr(rep.earnedIncome.total),
+			EarnedIncomeSalary:    ptr(rep.earnedIncome.salary),
+			EarnedIncomeBusiness:  ptr(rep.earnedIncome.business),
+			EarnedIncomeRental:    ptr(rep.earnedIncome.rental),
+			EarnedIncomeGift:      ptr(rep.earnedIncome.gift),
+			EarnedIncomeTaxRefund: ptr(rep.earnedIncome.taxRefund),
+			EarnedIncomeInsurance: ptr(rep.earnedIncome.insurance),
+			EarnedIncomeOther:     ptr(rep.earnedIncome.other),
+			AssetValueChange:      rep.assetValueChange, // nil on baseline
+			DerivedLivingExpenses: rep.livingExpenses,   // nil on baseline
+			UserBreakdowns:        ub,
+			StalePositions:        stale,
+		}
+		if rep.investmentReturn != nil { // suppressed on the baseline month
+			params.InvestmentReturnTotal = ptr(rep.investmentReturn.total)
+			params.InvestmentReturnStock = ptr(rep.investmentReturn.stock)
+			params.InvestmentReturnMutualFund = ptr(rep.investmentReturn.mutualFund)
+			params.InvestmentReturnBond = ptr(rep.investmentReturn.bond)
+			params.InvestmentReturnGold = ptr(rep.investmentReturn.gold)
+			params.InvestmentReturnTimeDeposit = ptr(rep.investmentReturn.timeDeposit)
+		}
+		if _, err := qtx.UpsertMonthlyReport(ctx, params); err != nil {
 			return fmt.Errorf("upsert monthly report: %w", err)
 		}
 	}
@@ -218,7 +242,7 @@ func (r *MonthlyReportRepo) loadEngineInput(ctx context.Context, hid uuid.UUID, 
 	}
 	for _, a := range assets {
 		in.positions = append(in.positions, reportPosition{
-			id: a.ID, group: groupAsset, ownershipType: a.OwnershipType,
+			id: a.ID, group: groupAsset, subtype: a.Subtype, ownershipType: a.OwnershipType,
 			soleOwnerID: a.SoleOwnerUserID, terminatedAt: a.TerminatedAt,
 		})
 	}
@@ -248,7 +272,7 @@ func (r *MonthlyReportRepo) loadEngineInput(ctx context.Context, hid uuid.UUID, 
 	}
 	for _, i := range investments {
 		in.positions = append(in.positions, reportPosition{
-			id: i.ID, group: groupInvestment, ownershipType: i.OwnershipType,
+			id: i.ID, group: groupInvestment, subtype: i.Subtype, ownershipType: i.OwnershipType,
 			soleOwnerID: i.SoleOwnerUserID, terminatedAt: i.TerminatedAt,
 		})
 	}
@@ -280,6 +304,30 @@ func (r *MonthlyReportRepo) loadEngineInput(ctx context.Context, hid uuid.UUID, 
 	}
 	for _, s := range isnaps {
 		in.snapshots = append(in.snapshots, reportSnapshot{positionID: s.PositionID, yearMonth: s.YearMonth, amount: s.Amount})
+	}
+
+	incomes, err := r.q.ListIncomeForReport(ctx, hid)
+	if err != nil {
+		return in, fmt.Errorf("list income for report: %w", err)
+	}
+	for _, inc := range incomes {
+		in.income = append(in.income, reportIncome{
+			yearMonth: inc.Date, amount: inc.Amount, category: inc.Category,
+			ownershipType: inc.OwnershipType, soleOwnerID: inc.SoleOwnerUserID,
+		})
+	}
+
+	txns, err := r.q.ListInvestmentTransactionsForReport(ctx, hid)
+	if err != nil {
+		return in, fmt.Errorf("list investment transactions for report: %w", err)
+	}
+	for _, t := range txns {
+		in.transactions = append(in.transactions, reportTransaction{
+			investmentID: t.InvestmentID, yearMonth: t.TransactionDate, txnType: t.TransactionType,
+			amount: t.Amount, quantity: t.Quantity,
+			principalAmount: t.PrincipalAmount, interestAmount: t.InterestAmount,
+			principalDisposition: t.PrincipalDisposition, interestDisposition: t.InterestDisposition,
+		})
 	}
 
 	users, err := r.q.ListUsersByHousehold(ctx, hid)
