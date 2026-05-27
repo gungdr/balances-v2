@@ -8,9 +8,15 @@ import {
 import { SnapshotChart } from '@/components/SnapshotChart'
 import { useReports, useRebuildReports } from '@/hooks/useReports'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { useFxRates } from '@/hooks/useFxRates'
 import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatYearMonth } from '@/lib/format'
-import type { HouseholdMember, MonthlyReport } from '@/api/types'
+import {
+  availableDisplayCurrencies,
+  resolveDisplayRate,
+  convert,
+} from '@/lib/fx'
+import type { FxRate, HouseholdMember, MonthlyReport } from '@/api/types'
 import type { Me } from '@/hooks/useSession'
 
 // The net-worth dashboard — the app's home tab. Single-scroll, headline-first
@@ -21,8 +27,12 @@ import type { Me } from '@/hooks/useSession'
 export function DashboardScreen() {
   const { data: reports, isPending, error } = useReports()
   const { data: members } = useHouseholdMembers()
+  const { data: rates } = useFxRates()
   const { data: me } = useSession()
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
+  // Q15c: a second display currency under the headline. Local-only state; off
+  // by default. Offered only to multi-currency households that have ≥1 rate.
+  const [secondaryCurrency, setSecondaryCurrency] = useState('')
 
   if (isPending) {
     return <p className="text-sm text-muted-foreground">Loading…</p>
@@ -60,12 +70,24 @@ export function DashboardScreen() {
   const isProvisional = selected === latest
   const currency = selected.reporting_currency
 
+  // Side-by-side currencies the user can pick (multi-currency households only).
+  const displayCurrencies = me?.multi_currency_enabled
+    ? availableDisplayCurrencies(rates ?? [], currency)
+    : []
+  // Guard against a stale selection (e.g. its rate was deleted): fall back to off.
+  const secondary = displayCurrencies.includes(secondaryCurrency)
+    ? secondaryCurrency
+    : ''
+
   return (
     <div className="space-y-6">
       <DashboardHeader
         reports={reports}
         selected={selected}
         onSelect={setSelectedMonth}
+        displayCurrencies={displayCurrencies}
+        secondary={secondary}
+        onSecondaryChange={setSecondaryCurrency}
       />
 
       <HeadlineCard
@@ -73,6 +95,8 @@ export function DashboardScreen() {
         previous={previous}
         isProvisional={isProvisional}
         currency={currency}
+        secondary={secondary}
+        rates={rates ?? []}
       />
 
       <Card>
@@ -149,25 +173,51 @@ function DashboardHeader({
   reports,
   selected,
   onSelect,
+  displayCurrencies,
+  secondary,
+  onSecondaryChange,
 }: {
   reports: MonthlyReport[]
   selected: MonthlyReport
   onSelect: (yearMonth: string) => void
+  displayCurrencies: string[]
+  secondary: string
+  onSecondaryChange: (currency: string) => void
 }) {
   return (
     <div className="flex items-center justify-between gap-4">
       <h1 className="text-2xl font-semibold tracking-tight">Net Worth</h1>
-      <select
-        className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-        value={selected.year_month}
-        onChange={(e) => onSelect(e.target.value)}
-      >
-        {[...reports].reverse().map((r) => (
-          <option key={r.year_month} value={r.year_month}>
-            {formatYearMonth(r.year_month)}
-          </option>
-        ))}
-      </select>
+      <div className="flex items-center gap-2">
+        {displayCurrencies.length > 0 && (
+          <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            Also in
+            <select
+              data-testid="dashboard-secondary-currency"
+              className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+              value={secondary}
+              onChange={(e) => onSecondaryChange(e.target.value)}
+            >
+              <option value="">—</option>
+              {displayCurrencies.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <select
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+          value={selected.year_month}
+          onChange={(e) => onSelect(e.target.value)}
+        >
+          {[...reports].reverse().map((r) => (
+            <option key={r.year_month} value={r.year_month}>
+              {formatYearMonth(r.year_month)}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   )
 }
@@ -177,11 +227,15 @@ function HeadlineCard({
   previous,
   isProvisional,
   currency,
+  secondary,
+  rates,
 }: {
   selected: MonthlyReport
   previous: MonthlyReport | null
   isProvisional: boolean
   currency: string
+  secondary: string
+  rates: FxRate[]
 }) {
   const staleCount = selected.stale_positions.length
   return (
@@ -196,6 +250,9 @@ function HeadlineCard({
             <span className="text-xs text-muted-foreground">· in progress</span>
           )}
         </div>
+        {secondary && (
+          <SecondaryAmount selected={selected} currency={secondary} rates={rates} />
+        )}
         {staleCount > 0 && (
           <p className="text-sm text-amber-600">
             ⚠ {staleCount} position{staleCount > 1 ? 's' : ''} carried forward —
@@ -219,6 +276,43 @@ function MissingFxWarning({ selected }: { selected: MonthlyReport }) {
       no {formatYearMonth(selected.year_month)} exchange rate for{' '}
       {currencies.join(', ')}. Add{' '}
       {currencies.length > 1 ? 'rates' : 'a rate'} in Settings.
+    </p>
+  )
+}
+
+// SecondaryAmount projects the headline net worth into a second currency
+// (Q15c, ADR-0010) at the selected month's carry-forward rate. Pure rendering;
+// shown as an "≈" approximation since the conversion is display-only. Flags when
+// the rate is carried forward from an earlier month, or absent entirely.
+function SecondaryAmount({
+  selected,
+  currency,
+  rates,
+}: {
+  selected: MonthlyReport
+  currency: string
+  rates: FxRate[]
+}) {
+  const resolved = resolveDisplayRate(rates, currency, selected.year_month)
+  if (!resolved) {
+    return (
+      <p data-testid="dashboard-secondary-amount" className="text-sm text-muted-foreground">
+        ≈ — · no {currency} rate yet — add one in Settings to convert.
+      </p>
+    )
+  }
+  const amount = convert(selected.nw_total, resolved.rate)
+  const carried =
+    resolved.rateMonth.slice(0, 7) !== selected.year_month.slice(0, 7)
+  return (
+    <p data-testid="dashboard-secondary-amount" className="text-sm text-muted-foreground tabular-nums">
+      ≈ {formatCurrency(String(amount), currency)}
+      {carried && (
+        <span className="ml-1 text-amber-600">
+          · {currency} rate carried forward from{' '}
+          {formatYearMonth(resolved.rateMonth)}
+        </span>
+      )}
     </p>
   )
 }
