@@ -18,6 +18,7 @@ test('bank account lifecycle: close → reopen → delete', async ({ page }) => 
     page.locator('span').filter({ hasText: new RegExp(`^${label}$`) })
 
   await page.goto('/')
+  await page.getByRole('tab', { name: 'Assets' }).click()
   await page.getByRole('tab', { name: 'Bank Accounts' }).click()
 
   // --- Create (minimal required fields; currency/type/ownership default) ---

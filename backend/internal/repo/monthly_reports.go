@@ -168,52 +168,9 @@ func (r *MonthlyReportRepo) writeReports(ctx context.Context, hid uuid.UUID, fir
 		return fmt.Errorf("prune monthly reports: %w", err)
 	}
 	for _, rep := range reports {
-		ub, err := json.Marshal(rep.userBreakdowns)
+		params, err := buildUpsertParams(hid, rep)
 		if err != nil {
-			return fmt.Errorf("marshal user breakdowns: %w", err)
-		}
-		stale, err := json.Marshal(rep.stalePositions)
-		if err != nil {
-			return fmt.Errorf("marshal stale positions: %w", err)
-		}
-		fxUsed, err := json.Marshal(rep.fxRatesUsed)
-		if err != nil {
-			return fmt.Errorf("marshal fx rates used: %w", err)
-		}
-		missingFx, err := json.Marshal(rep.missingFx)
-		if err != nil {
-			return fmt.Errorf("marshal missing fx: %w", err)
-		}
-		params := db.UpsertMonthlyReportParams{
-			HouseholdID:           hid,
-			YearMonth:             rep.yearMonth,
-			NwTotal:               rep.nwTotal,
-			NwAssets:              rep.nwAssets,
-			NwLiabilities:         rep.nwLiabilities,
-			NwReceivables:         rep.nwReceivables,
-			NwInvestments:         rep.nwInvestments,
-			EarnedIncomeTotal:     ptr(rep.earnedIncome.total),
-			EarnedIncomeSalary:    ptr(rep.earnedIncome.salary),
-			EarnedIncomeBusiness:  ptr(rep.earnedIncome.business),
-			EarnedIncomeRental:    ptr(rep.earnedIncome.rental),
-			EarnedIncomeGift:      ptr(rep.earnedIncome.gift),
-			EarnedIncomeTaxRefund: ptr(rep.earnedIncome.taxRefund),
-			EarnedIncomeInsurance: ptr(rep.earnedIncome.insurance),
-			EarnedIncomeOther:     ptr(rep.earnedIncome.other),
-			AssetValueChange:      rep.assetValueChange, // nil on baseline
-			DerivedLivingExpenses: rep.livingExpenses,   // nil on baseline
-			UserBreakdowns:        ub,
-			StalePositions:        stale,
-			FxRatesUsed:           fxUsed,
-			MissingFx:             missingFx,
-		}
-		if rep.investmentReturn != nil { // suppressed on the baseline month
-			params.InvestmentReturnTotal = ptr(rep.investmentReturn.total)
-			params.InvestmentReturnStock = ptr(rep.investmentReturn.stock)
-			params.InvestmentReturnMutualFund = ptr(rep.investmentReturn.mutualFund)
-			params.InvestmentReturnBond = ptr(rep.investmentReturn.bond)
-			params.InvestmentReturnGold = ptr(rep.investmentReturn.gold)
-			params.InvestmentReturnTimeDeposit = ptr(rep.investmentReturn.timeDeposit)
+			return err
 		}
 		if _, err := qtx.UpsertMonthlyReport(ctx, params); err != nil {
 			return fmt.Errorf("upsert monthly report: %w", err)
@@ -223,6 +180,135 @@ func (r *MonthlyReportRepo) writeReports(ctx context.Context, hid uuid.UUID, fir
 		return fmt.Errorf("commit report write: %w", err)
 	}
 	return nil
+}
+
+// writeReport upserts a single month without pruning — the per-month rebuild
+// path (RebuildMonth), where neighbouring cached months must stay intact.
+func (r *MonthlyReportRepo) writeReport(ctx context.Context, hid uuid.UUID, rep monthlyReportData) error {
+	params, err := buildUpsertParams(hid, rep)
+	if err != nil {
+		return err
+	}
+	if _, err := r.q.UpsertMonthlyReport(ctx, params); err != nil {
+		return fmt.Errorf("upsert monthly report: %w", err)
+	}
+	return nil
+}
+
+// buildUpsertParams marshals one generated month into upsert params. The
+// income-statement columns are always-computed except on the first-month
+// baseline, where investment_return/asset_value_change/living_expenses stay nil
+// (ADR-0006).
+func buildUpsertParams(hid uuid.UUID, rep monthlyReportData) (db.UpsertMonthlyReportParams, error) {
+	ub, err := json.Marshal(rep.userBreakdowns)
+	if err != nil {
+		return db.UpsertMonthlyReportParams{}, fmt.Errorf("marshal user breakdowns: %w", err)
+	}
+	stale, err := json.Marshal(rep.stalePositions)
+	if err != nil {
+		return db.UpsertMonthlyReportParams{}, fmt.Errorf("marshal stale positions: %w", err)
+	}
+	fxUsed, err := json.Marshal(rep.fxRatesUsed)
+	if err != nil {
+		return db.UpsertMonthlyReportParams{}, fmt.Errorf("marshal fx rates used: %w", err)
+	}
+	missingFx, err := json.Marshal(rep.missingFx)
+	if err != nil {
+		return db.UpsertMonthlyReportParams{}, fmt.Errorf("marshal missing fx: %w", err)
+	}
+	params := db.UpsertMonthlyReportParams{
+		HouseholdID:           hid,
+		YearMonth:             rep.yearMonth,
+		NwTotal:               rep.nwTotal,
+		NwAssets:              rep.nwAssets,
+		NwLiabilities:         rep.nwLiabilities,
+		NwReceivables:         rep.nwReceivables,
+		NwInvestments:         rep.nwInvestments,
+		EarnedIncomeTotal:     ptr(rep.earnedIncome.total),
+		EarnedIncomeSalary:    ptr(rep.earnedIncome.salary),
+		EarnedIncomeBusiness:  ptr(rep.earnedIncome.business),
+		EarnedIncomeRental:    ptr(rep.earnedIncome.rental),
+		EarnedIncomeGift:      ptr(rep.earnedIncome.gift),
+		EarnedIncomeTaxRefund: ptr(rep.earnedIncome.taxRefund),
+		EarnedIncomeInsurance: ptr(rep.earnedIncome.insurance),
+		EarnedIncomeOther:     ptr(rep.earnedIncome.other),
+		AssetValueChange:      rep.assetValueChange, // nil on baseline
+		DerivedLivingExpenses: rep.livingExpenses,   // nil on baseline
+		UserBreakdowns:        ub,
+		StalePositions:        stale,
+		FxRatesUsed:           fxUsed,
+		MissingFx:             missingFx,
+	}
+	if rep.investmentReturn != nil { // suppressed on the baseline month
+		params.InvestmentReturnTotal = ptr(rep.investmentReturn.total)
+		params.InvestmentReturnStock = ptr(rep.investmentReturn.stock)
+		params.InvestmentReturnMutualFund = ptr(rep.investmentReturn.mutualFund)
+		params.InvestmentReturnBond = ptr(rep.investmentReturn.bond)
+		params.InvestmentReturnGold = ptr(rep.investmentReturn.gold)
+		params.InvestmentReturnTimeDeposit = ptr(rep.investmentReturn.timeDeposit)
+	}
+	return params, nil
+}
+
+// RebuildAll forces a full regeneration of the household's reports, ignoring the
+// staleness watermark (ADR-0006 manual rebuild, household scope). The escape
+// hatch for changes the data-driven watermark can't see — engine code changes
+// and FX corrections that should propagate across history. Mirrors refresh's
+// no-data behaviour: with no inputs there's nothing to materialize.
+func (r *MonthlyReportRepo) RebuildAll(ctx context.Context) error {
+	_, hid, err := currentUser(ctx)
+	if err != nil {
+		return err
+	}
+	reports, err := r.generate(ctx, hid)
+	if err != nil {
+		return err
+	}
+	if len(reports) == 0 {
+		return nil
+	}
+	return r.writeReports(ctx, hid, reports[0].yearMonth, reports[len(reports)-1].yearMonth, reports)
+}
+
+// RebuildMonth forces regeneration of a single month, ignoring staleness
+// (ADR-0006 manual rebuild, per-month scope — surgical fixes). Carry-forward
+// means the recompute still reads every input ≤ M; only the one row is
+// rewritten, so neighbouring cached months are untouched. ErrNotFound when the
+// month falls outside the reportable range.
+func (r *MonthlyReportRepo) RebuildMonth(ctx context.Context, yearMonth time.Time) error {
+	_, hid, err := currentUser(ctx)
+	if err != nil {
+		return err
+	}
+	reports, err := r.generate(ctx, hid)
+	if err != nil {
+		return err
+	}
+	target := monthFromIndex(monthIndex(yearMonth))
+	for _, rep := range reports {
+		if rep.yearMonth.Equal(target) {
+			return r.writeReport(ctx, hid, rep)
+		}
+	}
+	return ErrNotFound
+}
+
+// generate loads the engine input for the household's current month and runs
+// the pure engine. Shared by the two rebuild paths.
+func (r *MonthlyReportRepo) generate(ctx context.Context, hid uuid.UUID) ([]monthlyReportData, error) {
+	uid, _, err := currentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	currentMonth, err := r.currentMonth(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	in, err := r.loadEngineInput(ctx, hid, currentMonth)
+	if err != nil {
+		return nil, err
+	}
+	return generateMonthlyReports(in), nil
 }
 
 // currentMonth is the first of the month containing now() in the requesting

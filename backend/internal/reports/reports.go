@@ -35,7 +35,9 @@ func (h *Handlers) Mount(r chi.Router) {
 	r.Route("/reports", func(r chi.Router) {
 		r.Use(auth.RequireAuth)
 		r.Get("/", h.handleList)
+		r.Post("/rebuild", h.handleRebuildAll)
 		r.Get("/{yearMonth}", h.handleGet)
+		r.Post("/{yearMonth}/rebuild", h.handleRebuildMonth)
 	})
 }
 
@@ -157,6 +159,32 @@ func (h *Handlers) handleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, toResponse(*row, currency))
+}
+
+// handleRebuildAll forces a full regeneration ignoring staleness (ADR-0006
+// household-scope rebuild) — the escape hatch for engine-code / FX changes the
+// data-driven watermark can't detect. Returns the freshly-rebuilt series.
+func (h *Handlers) handleRebuildAll(w http.ResponseWriter, r *http.Request) {
+	if err := h.repo.RebuildAll(r.Context()); err != nil {
+		writeRepoError(w, "rebuild all reports", err)
+		return
+	}
+	h.handleList(w, r)
+}
+
+// handleRebuildMonth forces regeneration of a single month (ADR-0006 per-month
+// rebuild — surgical fixes). 404 when the month is outside the reportable range.
+func (h *Handlers) handleRebuildMonth(w http.ResponseWriter, r *http.Request) {
+	ym, err := parseYearMonth(chi.URLParam(r, "yearMonth"))
+	if err != nil {
+		http.Error(w, "invalid year_month: expected YYYY-MM", http.StatusBadRequest)
+		return
+	}
+	if err := h.repo.RebuildMonth(r.Context(), ym); err != nil {
+		writeRepoError(w, "rebuild month report", err)
+		return
+	}
+	h.handleGet(w, r)
 }
 
 // ----- helpers ------------------------------------------------------------

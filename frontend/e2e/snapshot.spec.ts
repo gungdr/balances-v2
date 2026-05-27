@@ -13,6 +13,7 @@ test('bank account snapshot create → edit → delete', async ({ page }) => {
   const editedDesc = `${desc} edited`
 
   await page.goto('/')
+  await page.getByRole('tab', { name: 'Assets' }).click()
   await page.getByRole('tab', { name: 'Bank Accounts' }).click()
 
   // --- Create the parent bank account ---

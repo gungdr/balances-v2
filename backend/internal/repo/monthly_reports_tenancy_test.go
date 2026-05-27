@@ -3,6 +3,7 @@ package repo_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 	"time"
 
@@ -139,6 +140,64 @@ func TestMonthlyReportRepo(t *testing.T) {
 		}
 		if !jan.GeneratedAt.Time.After(before.Time) {
 			t.Errorf("Jan not regenerated after snapshot edit")
+		}
+	})
+
+	t.Run("rebuild all: force-regenerates ignoring staleness", func(t *testing.T) {
+		rows1, err := r.ListReports(aliceCtx)
+		if err != nil {
+			t.Fatalf("ListReports: %v", err)
+		}
+		before := mustMonth(t, rows1, ymUTC(2026, time.January)).GeneratedAt
+
+		if err := r.RebuildAll(aliceCtx); err != nil {
+			t.Fatalf("RebuildAll: %v", err)
+		}
+		rows2, err := r.ListReports(aliceCtx)
+		if err != nil {
+			t.Fatalf("ListReports: %v", err)
+		}
+		jan := mustMonth(t, rows2, ymUTC(2026, time.January))
+		// generated_at advances even though no input changed — proof the rebuild
+		// ignores the staleness watermark.
+		if !jan.GeneratedAt.Time.After(before.Time) {
+			t.Errorf("RebuildAll did not bump Jan generated_at without input change")
+		}
+		// The recompute reproduces the same number (150 from the prior edit).
+		if !jan.NwTotal.Equal(decimal.NewFromInt(150)) {
+			t.Errorf("Jan nw_total after rebuild: got %s, want 150", jan.NwTotal)
+		}
+	})
+
+	t.Run("rebuild month: rebuilds target only, neighbours untouched", func(t *testing.T) {
+		rows1, err := r.ListReports(aliceCtx)
+		if err != nil {
+			t.Fatalf("ListReports: %v", err)
+		}
+		janBefore := mustMonth(t, rows1, ymUTC(2026, time.January)).GeneratedAt
+		marBefore := mustMonth(t, rows1, ymUTC(2026, time.March)).GeneratedAt
+
+		if err := r.RebuildMonth(aliceCtx, ymUTC(2026, time.January)); err != nil {
+			t.Fatalf("RebuildMonth: %v", err)
+		}
+		rows2, err := r.ListReports(aliceCtx)
+		if err != nil {
+			t.Fatalf("ListReports: %v", err)
+		}
+		janAfter := mustMonth(t, rows2, ymUTC(2026, time.January)).GeneratedAt
+		marAfter := mustMonth(t, rows2, ymUTC(2026, time.March)).GeneratedAt
+		if !janAfter.Time.After(janBefore.Time) {
+			t.Errorf("RebuildMonth did not bump Jan generated_at")
+		}
+		if !marAfter.Time.Equal(marBefore.Time) {
+			t.Errorf("RebuildMonth touched March: %s -> %s", marBefore.Time, marAfter.Time)
+		}
+	})
+
+	t.Run("rebuild month: out of range is not found", func(t *testing.T) {
+		err := r.RebuildMonth(aliceCtx, ymUTC(2020, time.January))
+		if !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("RebuildMonth out-of-range: got %v, want ErrNotFound", err)
 		}
 	})
 }

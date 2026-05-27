@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { SnapshotChart } from '@/components/SnapshotChart'
-import { useReports } from '@/hooks/useReports'
+import { useReports, useRebuildReports } from '@/hooks/useReports'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatYearMonth } from '@/lib/format'
@@ -102,6 +102,45 @@ export function DashboardScreen() {
         members={members}
         me={me}
       />
+
+      <RebuildFooter selected={selected} />
+    </div>
+  )
+}
+
+// RebuildFooter offers the manual rebuild actions (ADR-0006). Framed in
+// user terms ("numbers look off?") rather than the engine-cache reason, and
+// kept deliberately low-key at the page bottom — a maintenance affordance, not
+// a primary action. Rebuild-month is the surgical fix; rebuild-all re-derives
+// every month (needed after an exchange-rate correction ripples across history).
+function RebuildFooter({ selected }: { selected: MonthlyReport }) {
+  const { rebuildAll, rebuildMonth } = useRebuildReports()
+  const busy = rebuildAll.isPending || rebuildMonth.isPending
+  return (
+    <div className="flex flex-wrap items-center gap-2 border-t pt-4 text-xs text-muted-foreground">
+      <span>Numbers look off?</span>
+      <button
+        type="button"
+        className="underline underline-offset-2 hover:text-foreground disabled:opacity-50"
+        disabled={busy}
+        onClick={() => rebuildMonth.mutate(selected.year_month)}
+      >
+        {rebuildMonth.isPending
+          ? 'Rebuilding…'
+          : `Rebuild ${formatYearMonth(selected.year_month)}`}
+      </button>
+      <span aria-hidden>·</span>
+      <button
+        type="button"
+        className="underline underline-offset-2 hover:text-foreground disabled:opacity-50"
+        disabled={busy}
+        onClick={() => rebuildAll.mutate()}
+      >
+        {rebuildAll.isPending ? 'Rebuilding…' : 'Rebuild all months'}
+      </button>
+      {(rebuildAll.isError || rebuildMonth.isError) && (
+        <span className="text-destructive">Rebuild failed — try again.</span>
+      )}
     </div>
   )
 }

@@ -131,6 +131,68 @@ func TestReportsHandlers_Get(t *testing.T) {
 	})
 }
 
+func post(t *testing.T, router *chi.Mux, path string, user *db.User) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, path, nil)
+	if user != nil {
+		req = req.WithContext(auth.WithUser(req.Context(), *user))
+	}
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	return rec
+}
+
+func TestReportsHandlers_Rebuild(t *testing.T) {
+	router, user := newHarness(t)
+
+	t.Run("rebuild all returns refreshed series", func(t *testing.T) {
+		rec := post(t, router, "/reports/rebuild", &user)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status: got %d (%s)", rec.Code, rec.Body.String())
+		}
+		var list []reportDTO
+		if err := json.NewDecoder(rec.Body).Decode(&list); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if len(list) == 0 {
+			t.Fatalf("empty report list after rebuild")
+		}
+	})
+
+	t.Run("rebuild month returns the month", func(t *testing.T) {
+		rec := post(t, router, "/reports/2026-01/rebuild", &user)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status: got %d (%s)", rec.Code, rec.Body.String())
+		}
+		var r reportDTO
+		_ = json.NewDecoder(rec.Body).Decode(&r)
+		if r.NWTotal != "100" {
+			t.Errorf("nw_total: got %q, want 100", r.NWTotal)
+		}
+	})
+
+	t.Run("rebuild month out of range is 404", func(t *testing.T) {
+		rec := post(t, router, "/reports/1999-01/rebuild", &user)
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("status: got %d, want 404", rec.Code)
+		}
+	})
+
+	t.Run("rebuild month bad year_month is 400", func(t *testing.T) {
+		rec := post(t, router, "/reports/not-a-month/rebuild", &user)
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("status: got %d, want 400", rec.Code)
+		}
+	})
+
+	t.Run("rebuild requires auth", func(t *testing.T) {
+		rec := post(t, router, "/reports/rebuild", nil)
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("status: got %d, want 401", rec.Code)
+		}
+	})
+}
+
 func TestReportsHandlers_RequiresAuth(t *testing.T) {
 	router, _ := newHarness(t)
 	rec := do(t, router, "/reports", nil)
