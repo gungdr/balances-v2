@@ -2,8 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import type { FxRate } from '@/api/types'
 
-// Manual monthly FX rates (ADR-0002). Mutations also invalidate ['reports']
-// because a rate change re-converts the dashboard.
+// Manual monthly FX rates (ADR-0002). ['reports'] refresh is handled globally
+// by the MutationCache in main.tsx (a rate change re-converts the dashboard).
 export function useFxRates() {
   return useQuery({
     queryKey: ['fx-rates'],
@@ -14,7 +14,6 @@ export function useFxRates() {
 
 function invalidate(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ['fx-rates'] })
-  qc.invalidateQueries({ queryKey: ['reports'] })
 }
 
 export function useCreateFxRate() {

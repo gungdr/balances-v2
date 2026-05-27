@@ -35,10 +35,11 @@ test('dashboard rebuild: per-month + rebuild-all', async ({ page }) => {
   await expect(page.getByRole('row', { name: new RegExp(desc) })).toBeVisible()
 
   // --- Dashboard now has a figure → the rebuild footer renders ---
-  // Reload so the dashboard re-fetches: ['reports'] is cached (empty) on first
-  // load, before the snapshot existed, and snapshot writes don't invalidate it.
-  // Reload clears the cache and lands on the default Dashboard tab.
-  await page.reload()
+  // No reload: the snapshot write invalidates ['reports'] globally (main.tsx),
+  // so stepping back to the dashboard shows the fresh net worth. The detail page
+  // replaces the tab bar, so go back to it first.
+  await page.getByRole('button', { name: '← Back' }).click()
+  await page.getByRole('tab', { name: 'Dashboard' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Net Worth' })).toBeVisible()
 
   // --- Rebuild this month (per-month scope: /api/reports/YYYY-MM/rebuild) ---
