@@ -8,3 +8,11 @@ Storing native amounts preserves auditability against the user's bank statements
 
 - **Single currency (IDR everywhere).** Rejected — converting at entry time loses the original number forever, breaking auditability against statements.
 - **Store both native and IDR-equivalent on every row.** Rejected — couples FX assumptions to historical rows; rate corrections require migrations of all snapshots.
+
+## M5 implementation notes
+
+- **`fx_rates` table** is household-scoped: `(household_id, year_month, currency, rate)` with `rate` = reporting-currency units per 1 unit of the foreign `currency`, `DECIMAL(20,8)` per ADR-0011, plus audit + soft-delete (so edits feed the report staleness check, ADR-0006). Partial unique on `(household_id, year_month, currency) WHERE deleted_at IS NULL`. No `as_of_date` — the rate is the month-end rate for `year_month` by convention; `created_at` is audit-only (when entered, not the rate's month). Reporting currency stores no row (rate ≡ 1).
+- **Rate resolution carries forward**: month `M` uses the most recent rate with `year_month ≤ M`, mirroring snapshot carry-forward (CONTEXT → Net Worth).
+- **Missing rate → exclude + warn**, never treat as 1:1. A foreign currency held in `M` with no rate ≤ `M` excludes those positions from converted totals and lists them in a `missing_fx` warning on the report, distinct from `stale_positions`. Carry-forward of a stale *rate* was rejected — a year-old FX rate distorts materially and the user can't eyeball the error the way they can a stale balance.
+- **Multi-currency toggle** (`households.multi_currency_enabled`, default off) gates UI exposure + whether conversion runs, not storage. Off = single-currency household, pinned to reporting currency, FX machinery dormant. See CONTEXT → Multi-currency reporting.
+- **Manual entry in v1**; auto-fetch is deferred post-M5. Planned provider is **Frankfurter** (frankfurter.app — free, no key, ECB-sourced, historical-by-date, covers IDR), not Google Finance (no usable public API). When it lands: an on-demand "fetch this month's rates" button (not a cron) plus a `source` column (`manual`/`auto`) so manual corrections stay authoritative and are never overwritten by the fetcher. Column added with the fetcher, not speculatively now.

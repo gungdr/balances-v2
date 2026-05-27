@@ -18,6 +18,25 @@ A manual **rebuild** action is offered at two scopes: per-month ("rebuild May 20
 - **Row per (Household, year-month, group)** or **row per (Household, year-month, Position).** Rejected — finer granularity duplicates data already present in snapshots, courts drift bugs, and doesn't help the dashboard query (which is the only consumer warranting a cache).
 - **`household_state_version` integer instead of `max(updated_at)` staleness check.** Rejected in favour of soft-delete (ADR-0007), which also gives undelete capability.
 
+## M5 implementation notes
+
+- **Month coverage.** Reports run from the first month with any input data through the **current month inclusive**. The current (in-progress) month is generated as a **provisional** row — built from carry-forward balances plus whatever snapshots/income/transactions are entered so far — and labeled as such in the UI, so a user can see "net worth now" before month-end.
+- **"Current month"** is the month containing `now()` in the **requesting user's `time_zone`** (default `Asia/Jakarta`). No household-level time zone in v1; promote to one if cross-time-zone households ever appear. The boundary only affects which month is defaulted/marked in-progress — the report rows themselves are zone-independent buckets.
+- **First-month baseline.** The earliest month with data has no prior month, so `ΔNW` is undefined. That month is a **net-worth baseline only**: `nw_*` and `earned_income_*` (a tracked fact) are populated, but `investment_return_*` and `derived_living_expenses` are **suppressed** (NULL) — deriving them would count pre-existing wealth as one month's flow. The full income statement begins the second month. The UI labels the baseline month explicitly.
+
+- **Staleness enumeration (complete — a missing input is a silently-stale report).** Carry-forward means an input ripples *forward*, so the check can't scope by `month == M`. Rule: **month M regenerates if `generated_at(M)` is older than the max `updated_at` across all inputs with effective-month ≤ M.** One uniform rule; biases toward over-invalidation (a recompute that finds no change is cheap and harmless; under-invalidation shows a wrong number). Inputs:
+
+  | Input | Effective-month | Scope for M |
+  |---|---|---|
+  | 4 snapshot tables (asset/liability/receivable/investment) | snapshot `year_month` | ≤ M |
+  | `income` | `year_month(date)` | ≤ M |
+  | `investment_transactions` | `year_month(transaction_date)` | ≤ M |
+  | `fx_rates` | `year_month` | ≤ M |
+  | 4 parent position tables (assets/liabilities/receivables/investments) | none (timeless metadata) | household-wide max |
+  | `households` | none | household-wide max (`reporting_currency`, `multi_currency_enabled`) |
+
+  **Detail tables are deliberately excluded** (bank_account_details, stock_details, …): their attributes (rates, ticker, maturity_date) are display/metadata and feed neither net worth nor the income statement — snapshots are the truth. Ownership/status/`terminated_at` live on the *parent* tables (M4.5 follow-up #3) and are covered. **`users` is excluded** because Joint positions render as their own column rather than being split across members (ADR-0012 / M5 UI), so member count affects no figure; display-name edits are labels resolved on read. If Joint ever becomes a per-member split, `users` must join the staleness set.
+
 ## Consequences
 
 - Every domain table that feeds reports needs `updated_at` and soft-delete semantics (ADR-0007).

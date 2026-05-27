@@ -18,17 +18,24 @@ The materialized monthly report (ADR-0006, extended by ADR-0008) uses a hybrid s
 `investment_return_total`, plus one column per Investment subtype (closed enum, ADR-0009):
 `investment_return_stock`, `investment_return_mutual_fund`, `investment_return_bond`, `investment_return_gold`, `investment_return_time_deposit`. Six columns.
 
+### Asset value change — non-cash mark change of non-financial assets
+
+`asset_value_change` — stored, signed (usually negative). The sum of `ΔSnapshot` over property + vehicle positions for the month (carry-forward aware). Isolates depreciation / leasehold amortization / revaluation out of the residual so living expenses reads as cash spending. Added during the M5 grilling — see ADR-0008. First-month baseline: NULL (no prior month).
+
 ### Derived
 
-`derived_living_expenses` — stored, not computed at display. Formula: `earned_income_total + investment_return_total − ΔNW(year_month)`. Locked in at generation; the report's staleness machinery (ADR-0006) ensures it stays current when inputs change.
+`derived_living_expenses` — stored, not computed at display. Formula: `earned_income_total + investment_return_total + asset_value_change − ΔNW(year_month)`. Locked in at generation; the report's staleness machinery (ADR-0006) ensures it stays current when inputs change. With `asset_value_change` isolated and investment marks already captured in `investment_return_total`, this residual is a cash-spending proxy. The dashboard relabels it "Living expenses (estimated)" when positive and "Unexplained increase" when negative.
 
 ### Variable-cardinality breakdowns — JSON columns
 
 | Column | Shape |
 |---|---|
-| `user_breakdowns: jsonb` | Keyed by `user_id` and `"joint"`. Each value: `{nw, earned_income, investment_return}`. JSON because Household User count is variable. |
-| `fx_rates_used: jsonb` | Per ADR-0006. Snapshot of rates applied at generation time. |
-| `stale_positions: jsonb` | Array of Position IDs whose contribution was carried-forward (Q12b). The UI surfaces this as a "incomplete data" warning. |
+| `user_breakdowns: jsonb` | Keyed by `user_id` and `"joint"`. Each value: `{nw, earned_income, investment_return}`. JSON because Household User count is variable. Joint is its own key, never split across members (CONTEXT → Net Worth) — so member count doesn't affect figures and `users` is not a report input (ADR-0006). |
+| `fx_rates_used: jsonb` | Per ADR-0006. Snapshot of rates applied at generation time. Empty when the Household is single-currency (`multi_currency_enabled = false`, ADR-0002). |
+| `stale_positions: jsonb` | Array of Position IDs whose contribution was carried-forward (Q12b). The UI surfaces this as an "incomplete data" warning. |
+| `missing_fx: jsonb` | Array of `{position_id, currency}` for foreign-currency Positions excluded from the converted totals because no FX rate exists at or before this month (ADR-0002). Distinct from `stale_positions`; the UI surfaces it as "net worth excludes N positions — no rate entered." |
+
+The **transaction-without-snapshot nudge** (an instrument with a transaction in month M but no snapshot in M, per ADR-0008's timing-noise mitigation) is **computed on read**, not stored — it's a cheap per-month function of snapshots + transactions, and storing it would add a column for a pure derivation.
 
 ### Core fields
 
@@ -53,7 +60,7 @@ These would couple the report row's width to portfolio size, which is a bad coup
 
 ## Consequences
 
-- The report row is ~28 columns plus three JSON columns. Comfortable in Postgres; well within sensible-row-width.
+- The report row is ~29 columns plus four JSON columns. Comfortable in Postgres; well within sensible-row-width.
 - Adding a new Income category or Investment subtype is a schema migration (one new column). Acceptable given how rarely the closed enums change, and existing rows simply backfill with zero or get marked stale and regenerate.
 - Per-instrument and per-Position drill-downs are query-time concerns, not storage-time.
 - The dashboard "headline view" is a single-row read with no joins.

@@ -3,10 +3,12 @@
 To approximate the Household's cashflow without contradicting the snapshot-based net-worth model (ADR-0001), only **earned income** is tracked explicitly. Investment returns are **derived** from snapshots and transactions already in the system. Living expenses are **derived** as the residual that closes the comprehensive-income identity.
 
 ```
-ΔNet Worth = Earned Income + Investment Return − Living Expenses
+ΔNet Worth = Earned Income + Investment Return + Asset Value Change − Living Expenses
 ```
 
 This decomposes the per-month `ΔNet Worth` (which the materialized monthly report already produces — ADR-0006) into named line items the user can read as an income statement.
+
+The **Asset Value Change** term (added during the M5 grilling) isolates the non-cash mark change of non-financial Assets — property + vehicle — so that depreciation/amortization no longer inflates the residual. See "M5 implementation notes" below for the derivation.
 
 ## What's tracked vs. derived
 
@@ -26,6 +28,43 @@ This means the materialized monthly report (ADR-0006) gains additional columns �
 - **Don't track Income; infer it from snapshot deltas + transactions.** Rejected — there's no way to distinguish salary from a market rally without an explicit signal. The "unexplained NW increase" residual is too noisy to be useful as a cashflow proxy.
 - **Auto-link Income to a specific bank account.** Rejected — same drift-risk reasoning as ADR-0003. Reconciliation between manually-entered income and bank statements is exactly the bug class we're avoiding.
 - **User-defined income categories.** Deferred — the closed enum keeps reports comparable and prevents category sprawl. Migration to user-defined later is non-breaking.
+
+## M5 implementation notes — return formula made precise
+
+Per-instrument per-month: `Return(i, M) = [value(i, M) − value(i, M−1)] + Σ cash_out(M) − Σ cash_in(M)`, where `value` is the carry-forward snapshot value converted to reporting currency (CONTEXT → Net Worth), and transaction cash flows bucket by `transaction_date`'s year-month. Sum per-instrument returns into the five `investment_return_*` subtype columns (ADR-0012) and the total.
+
+Transaction → cash-flow mapping (columns per migration 00010):
+
+| Type | cash_in (bank→instrument) | cash_out (instrument→bank) |
+|---|---|---|
+| Buy | `amount` | — |
+| Sell | — | `amount` |
+| Coupon / Dividend / Distribution | — | `amount` |
+| Fee | `amount` **only if `quantity IS NULL`** | — |
+| Maturity | — | `principal_amount` if `principal_disposition='cash_out'` + `interest_amount` if `interest_disposition='cash_out'` |
+
+- **Unit-deducting fees are NOT a cash flow** (`quantity` set): the deducted units lower the next snapshot, so the fee is already in `ΔSnapshot`. Only pure cash fees hit `cash_in`. This makes "fees absorbed into the snapshot delta" precise for both fee flavors.
+- **Rolled maturity portions are NOT a cash flow**: a `rolled_to_new` portion is captured by snapshots (old position drops to 0, the new position's first snapshot carries the rolled amount). The formula yields the same total whether the user accrues interest in snapshots over the term or recognizes it lump-sum at maturity.
+- **Birth month**: `value(M−1) = 0` when no snapshot ≤ M−1 — correct under the expected workflow (buy during the month, snapshot the position at month-end): `ΔSnapshot − cash_in` = unrealised gain since purchase.
+
+**Timing noise & its mitigation.** A transaction in a month with no snapshot for that instrument produces a per-month return that is off (e.g. `−buy_cost` that month, `+value` the next) but **cumulatively correct** — and the residual `living_expenses` line absorbs the exact opposite noise, so the comprehensive-income identity always closes. We keep the correct formula rather than engineering phantom-snapshot alignment. Because the audience is non-technical, the mitigation is a **UX guardrail, not interpretation**: when an instrument has transactions in a month it wasn't snapshotted, the dashboard nudges the user to record that snapshot (surfaced alongside `stale_positions`). The fix is complete data, driven by the UI.
+
+**Asset Value Change — isolating non-cash depreciation/amortization.** Property and vehicle values are entered as manually-declining snapshots (the per-subtype amortization/depreciation rate is only a UI helper). Their decline lands in `ΔNW`, and expanding the residual shows it leaking in as phantom spending:
+
+```
+LivingExpenses = EarnedIncome + InvestmentReturn − ΔNW
+ΔNW            = ΔBank + ΔProp + ΔVeh + ΔInv + ΔRecv − ΔLiab
+⇒ LivingExpenses = EarnedIncome + cash_out − cash_in − ΔBank − ΔProp − ΔVeh − ΔRecv + ΔLiab
+```
+
+The `ΔInv` terms cancel (investment marks are already in `InvestmentReturn`), so **property + vehicle revaluation is the only major non-cash distortion left** — making its isolation a *complete* fix, not a partial one. We add a line:
+
+```
+AssetValueChange     = Σ ΔSnapshot over property + vehicle positions  (signed; usually negative)
+LivingExpenses(cash) = EarnedIncome + InvestmentReturn + AssetValueChange − ΔNW
+```
+
+Scope is **property + vehicle only** — bank accounts are cash (stay in the residual), investments have their own line, and receivable write-downs are genuine wealth losses left in the residual (revisit if material). Display: a non-cash **"Property & vehicle value change"** line in the income statement / waterfall; the residual is relabeled a cash-spending estimate. Stored on the report row per ADR-0012.
 
 ## Consequences
 
