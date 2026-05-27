@@ -72,3 +72,39 @@ WHERE s.id = $1
   AND a.household_id = $2
   AND a.deleted_at IS NULL
   AND s.deleted_at IS NULL;
+
+-- GetAssetForImport returns the display name + native currency of an owned
+-- asset. Doubles as the ownership/existence check for the snapshot importer:
+-- ErrNoRows means the asset doesn't exist in this household (or is deleted),
+-- which the repo maps to ErrNotFound -> 404.
+-- name: GetAssetForImport :one
+SELECT a.display_name, a.native_currency
+FROM assets a
+WHERE a.id = $1 AND a.household_id = $2 AND a.deleted_at IS NULL;
+
+-- UpsertAssetSnapshot inserts a snapshot or, when one already exists for the
+-- (asset_id, year_month) pair, overwrites it (last-write-wins) — the importer
+-- needs idempotent re-runs of a multi-year backfill. ON CONFLICT targets the
+-- partial unique index, so its predicate (deleted_at IS NULL) is repeated.
+-- created_by is only set on insert; updated_by always.
+-- name: UpsertAssetSnapshot :one
+WITH owned_asset AS (
+    SELECT a.id AS aid
+    FROM assets a
+    WHERE a.id = $1 AND a.household_id = sqlc.arg('household_id')::uuid AND a.deleted_at IS NULL
+)
+INSERT INTO asset_snapshots (
+    asset_id, year_month, amount, currency, as_of_date, description,
+    created_by, updated_by
+)
+SELECT owned_asset.aid, $2, $3, $4, $5, $6, $7, $7
+FROM owned_asset
+ON CONFLICT (asset_id, year_month) WHERE deleted_at IS NULL
+DO UPDATE SET
+    amount      = EXCLUDED.amount,
+    currency    = EXCLUDED.currency,
+    as_of_date  = EXCLUDED.as_of_date,
+    description = EXCLUDED.description,
+    updated_by  = EXCLUDED.updated_by,
+    updated_at  = now()
+RETURNING *;

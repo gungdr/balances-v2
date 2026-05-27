@@ -79,6 +79,12 @@ func (h *Handlers) Mount(r chi.Router) {
 		r.Get("/", h.handleListSnapshots)
 		r.Patch("/{snapshotID}", h.handleUpdateSnapshot)
 		r.Delete("/{snapshotID}", h.handleDeleteSnapshot)
+		// Bulk import (M6 side item): download a scoped .xlsx template, then
+		// upload a filled one. ?mode=preview (default) validates + counts;
+		// ?mode=commit upserts all-or-nothing. Static segments, so no clash
+		// with the /{snapshotID} routes above.
+		r.Get("/import-template", h.handleImportTemplate)
+		r.Post("/import", h.handleImportSnapshots)
 	})
 
 	// Lifecycle (status/terminated_at/termination_note) lives at the parent

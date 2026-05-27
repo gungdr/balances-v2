@@ -73,6 +73,33 @@ func (q *Queries) CreateAssetSnapshot(ctx context.Context, arg CreateAssetSnapsh
 	return i, err
 }
 
+const getAssetForImport = `-- name: GetAssetForImport :one
+SELECT a.display_name, a.native_currency
+FROM assets a
+WHERE a.id = $1 AND a.household_id = $2 AND a.deleted_at IS NULL
+`
+
+type GetAssetForImportParams struct {
+	ID          uuid.UUID `json:"id"`
+	HouseholdID uuid.UUID `json:"household_id"`
+}
+
+type GetAssetForImportRow struct {
+	DisplayName    string `json:"display_name"`
+	NativeCurrency string `json:"native_currency"`
+}
+
+// GetAssetForImport returns the display name + native currency of an owned
+// asset. Doubles as the ownership/existence check for the snapshot importer:
+// ErrNoRows means the asset doesn't exist in this household (or is deleted),
+// which the repo maps to ErrNotFound -> 404.
+func (q *Queries) GetAssetForImport(ctx context.Context, arg GetAssetForImportParams) (GetAssetForImportRow, error) {
+	row := q.db.QueryRow(ctx, getAssetForImport, arg.ID, arg.HouseholdID)
+	var i GetAssetForImportRow
+	err := row.Scan(&i.DisplayName, &i.NativeCurrency)
+	return i, err
+}
+
 const getAssetSnapshotByID = `-- name: GetAssetSnapshotByID :one
 SELECT s.id, s.asset_id, s.year_month, s.amount, s.currency, s.as_of_date, s.description, s.created_by, s.created_at, s.updated_by, s.updated_at, s.deleted_at
 FROM asset_snapshots s
@@ -263,6 +290,74 @@ func (q *Queries) UpdateAssetSnapshot(ctx context.Context, arg UpdateAssetSnapsh
 		arg.AsOfDate,
 		arg.Description,
 		arg.UpdatedBy,
+	)
+	var i AssetSnapshot
+	err := row.Scan(
+		&i.ID,
+		&i.AssetID,
+		&i.YearMonth,
+		&i.Amount,
+		&i.Currency,
+		&i.AsOfDate,
+		&i.Description,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedBy,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const upsertAssetSnapshot = `-- name: UpsertAssetSnapshot :one
+WITH owned_asset AS (
+    SELECT a.id AS aid
+    FROM assets a
+    WHERE a.id = $1 AND a.household_id = $8::uuid AND a.deleted_at IS NULL
+)
+INSERT INTO asset_snapshots (
+    asset_id, year_month, amount, currency, as_of_date, description,
+    created_by, updated_by
+)
+SELECT owned_asset.aid, $2, $3, $4, $5, $6, $7, $7
+FROM owned_asset
+ON CONFLICT (asset_id, year_month) WHERE deleted_at IS NULL
+DO UPDATE SET
+    amount      = EXCLUDED.amount,
+    currency    = EXCLUDED.currency,
+    as_of_date  = EXCLUDED.as_of_date,
+    description = EXCLUDED.description,
+    updated_by  = EXCLUDED.updated_by,
+    updated_at  = now()
+RETURNING id, asset_id, year_month, amount, currency, as_of_date, description, created_by, created_at, updated_by, updated_at, deleted_at
+`
+
+type UpsertAssetSnapshotParams struct {
+	ID          uuid.UUID       `json:"id"`
+	YearMonth   time.Time       `json:"year_month"`
+	Amount      decimal.Decimal `json:"amount"`
+	Currency    string          `json:"currency"`
+	AsOfDate    *time.Time      `json:"as_of_date"`
+	Description *string         `json:"description"`
+	CreatedBy   *uuid.UUID      `json:"created_by"`
+	HouseholdID uuid.UUID       `json:"household_id"`
+}
+
+// UpsertAssetSnapshot inserts a snapshot or, when one already exists for the
+// (asset_id, year_month) pair, overwrites it (last-write-wins) — the importer
+// needs idempotent re-runs of a multi-year backfill. ON CONFLICT targets the
+// partial unique index, so its predicate (deleted_at IS NULL) is repeated.
+// created_by is only set on insert; updated_by always.
+func (q *Queries) UpsertAssetSnapshot(ctx context.Context, arg UpsertAssetSnapshotParams) (AssetSnapshot, error) {
+	row := q.db.QueryRow(ctx, upsertAssetSnapshot,
+		arg.ID,
+		arg.YearMonth,
+		arg.Amount,
+		arg.Currency,
+		arg.AsOfDate,
+		arg.Description,
+		arg.CreatedBy,
+		arg.HouseholdID,
 	)
 	var i AssetSnapshot
 	err := row.Scan(

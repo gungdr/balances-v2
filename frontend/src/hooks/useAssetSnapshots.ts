@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { api } from '@/api/client'
+import { api, ApiError } from '@/api/client'
 import type { AssetSnapshot } from '@/api/types'
 
 // Asset snapshots live under /api/assets/{id}/snapshots — shared across
@@ -90,6 +90,69 @@ export function useDeleteSnapshot(assetId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['snapshots', assetId] })
       invalidateAssetLists(qc)
+    },
+  })
+}
+
+// ----- bulk snapshot import (xlsx template) -------------------------------
+
+export type ImportRowError = { row: number; message: string }
+
+export type ImportResult = {
+  mode: 'preview' | 'commit'
+  committed: boolean
+  to_insert: number
+  to_update: number
+  errors: ImportRowError[]
+}
+
+// importTemplateUrl is a plain GET the browser can hit as a download link;
+// the session cookie rides along same-origin.
+export function importTemplateUrl(assetId: string): string {
+  return `/api/assets/${assetId}/snapshots/import-template`
+}
+
+// postImport uploads multipart, so it bypasses the JSON `api` wrapper (which
+// would force a Content-Type and clobber the multipart boundary). A 422 is the
+// "file had bad rows" outcome — its body is a valid ImportResult, so we return
+// it rather than throwing, letting the dialog render the per-row errors.
+async function postImport(
+  assetId: string,
+  file: File,
+  mode: 'preview' | 'commit',
+): Promise<ImportResult> {
+  const body = new FormData()
+  body.append('file', file)
+  const res = await fetch(
+    `/api/assets/${assetId}/snapshots/import?mode=${mode}`,
+    { method: 'POST', body },
+  )
+  if (res.status === 422) return (await res.json()) as ImportResult
+  if (!res.ok) {
+    let errBody: unknown
+    try {
+      errBody = await res.json()
+    } catch {
+      errBody = await res.text().catch(() => undefined)
+    }
+    throw new ApiError(res.status, res.statusText || `import failed (${res.status})`, errBody)
+  }
+  return (await res.json()) as ImportResult
+}
+
+export function useImportSnapshots(assetId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (args: { file: File; mode: 'preview' | 'commit' }) =>
+      postImport(assetId, args.file, args.mode),
+    onSuccess: (result) => {
+      // Only a real write should refresh the snapshot/list caches; a preview
+      // changed nothing. (The global MutationCache still pokes ['reports'],
+      // which is a harmless no-op refetch when nothing was committed.)
+      if (result.committed) {
+        qc.invalidateQueries({ queryKey: ['snapshots', assetId] })
+        invalidateAssetLists(qc)
+      }
     },
   })
 }
