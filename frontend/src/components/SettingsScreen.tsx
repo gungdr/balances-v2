@@ -26,6 +26,7 @@ import {
   useDeleteFxRate,
 } from '@/hooks/useFxRates'
 import { formatYearMonth } from '@/lib/format'
+import { InviteForm } from '@/components/InviteForm'
 
 function errText(err: unknown): string {
   if (err instanceof ApiError && typeof err.body === 'string' && err.body) {
@@ -56,11 +57,12 @@ export function SettingsScreen() {
     })
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground">
-          Reporting currency and multi-currency tracking.
+          Reporting currency, multi-currency tracking, and household
+          invitations.
         </p>
       </div>
 
@@ -113,6 +115,8 @@ export function SettingsScreen() {
       </Card>
 
       {me.multi_currency_enabled && <FxRatesCard />}
+
+      <InviteForm />
     </div>
   )
 }

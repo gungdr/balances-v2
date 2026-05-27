@@ -3,7 +3,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useSession } from '@/hooks/useSession'
 import { SignInScreen } from '@/components/SignInScreen'
 import { AppShell } from '@/components/AppShell'
-import { InviteForm } from '@/components/InviteForm'
 import { BankAccountsScreen } from '@/components/BankAccountsScreen'
 import { BankAccountDetail } from '@/components/BankAccountDetail'
 import { PropertiesScreen } from '@/components/PropertiesScreen'
@@ -295,8 +294,6 @@ function App() {
             <SettingsScreen />
           </TabsContent>
         </Tabs>
-
-        <InviteForm />
       </div>
     </AppShell>
   )
