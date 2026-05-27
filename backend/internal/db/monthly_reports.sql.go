@@ -83,7 +83,7 @@ func (q *Queries) GetMonthlyReport(ctx context.Context, arg GetMonthlyReportPara
 
 const listAssetSnapshotsForReport = `-- name: ListAssetSnapshotsForReport :many
 
-SELECT s.asset_id AS position_id, s.year_month, s.amount
+SELECT s.asset_id AS position_id, s.year_month, s.amount, s.currency
 FROM asset_snapshots s
 JOIN assets a ON a.id = s.asset_id
 WHERE a.household_id = $1 AND a.deleted_at IS NULL AND s.deleted_at IS NULL
@@ -94,6 +94,7 @@ type ListAssetSnapshotsForReportRow struct {
 	PositionID uuid.UUID       `json:"position_id"`
 	YearMonth  time.Time       `json:"year_month"`
 	Amount     decimal.Decimal `json:"amount"`
+	Currency   string          `json:"currency"`
 }
 
 // ----- engine inputs: flat snapshots (position_id, year_month, amount) -----
@@ -108,7 +109,12 @@ func (q *Queries) ListAssetSnapshotsForReport(ctx context.Context, householdID u
 	var items []ListAssetSnapshotsForReportRow
 	for rows.Next() {
 		var i ListAssetSnapshotsForReportRow
-		if err := rows.Scan(&i.PositionID, &i.YearMonth, &i.Amount); err != nil {
+		if err := rows.Scan(
+			&i.PositionID,
+			&i.YearMonth,
+			&i.Amount,
+			&i.Currency,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -164,9 +170,44 @@ func (q *Queries) ListAssetsForReport(ctx context.Context, householdID uuid.UUID
 	return items, nil
 }
 
+const listFxRatesForReport = `-- name: ListFxRatesForReport :many
+SELECT currency, year_month, rate
+FROM fx_rates
+WHERE household_id = $1 AND deleted_at IS NULL
+ORDER BY currency, year_month
+`
+
+type ListFxRatesForReportRow struct {
+	Currency  string          `json:"currency"`
+	YearMonth time.Time       `json:"year_month"`
+	Rate      decimal.Decimal `json:"rate"`
+}
+
+// All non-deleted FX rates for the household; the engine indexes them by
+// currency and applies the latest with year_month <= M (carry-forward).
+func (q *Queries) ListFxRatesForReport(ctx context.Context, householdID uuid.UUID) ([]ListFxRatesForReportRow, error) {
+	rows, err := q.db.Query(ctx, listFxRatesForReport, householdID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListFxRatesForReportRow
+	for rows.Next() {
+		var i ListFxRatesForReportRow
+		if err := rows.Scan(&i.Currency, &i.YearMonth, &i.Rate); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listIncomeForReport = `-- name: ListIncomeForReport :many
 
-SELECT date, amount, category, ownership_type, sole_owner_user_id
+SELECT date, amount, currency, category, ownership_type, sole_owner_user_id
 FROM income
 WHERE household_id = $1 AND deleted_at IS NULL
 `
@@ -174,6 +215,7 @@ WHERE household_id = $1 AND deleted_at IS NULL
 type ListIncomeForReportRow struct {
 	Date            time.Time       `json:"date"`
 	Amount          decimal.Decimal `json:"amount"`
+	Currency        string          `json:"currency"`
 	Category        string          `json:"category"`
 	OwnershipType   string          `json:"ownership_type"`
 	SoleOwnerUserID *uuid.UUID      `json:"sole_owner_user_id"`
@@ -192,6 +234,7 @@ func (q *Queries) ListIncomeForReport(ctx context.Context, householdID uuid.UUID
 		if err := rows.Scan(
 			&i.Date,
 			&i.Amount,
+			&i.Currency,
 			&i.Category,
 			&i.OwnershipType,
 			&i.SoleOwnerUserID,
@@ -207,7 +250,7 @@ func (q *Queries) ListIncomeForReport(ctx context.Context, householdID uuid.UUID
 }
 
 const listInvestmentSnapshotsForReport = `-- name: ListInvestmentSnapshotsForReport :many
-SELECT s.investment_id AS position_id, s.year_month, s.amount
+SELECT s.investment_id AS position_id, s.year_month, s.amount, s.currency
 FROM investment_snapshots s
 JOIN investments i ON i.id = s.investment_id
 WHERE i.household_id = $1 AND i.deleted_at IS NULL AND s.deleted_at IS NULL
@@ -218,6 +261,7 @@ type ListInvestmentSnapshotsForReportRow struct {
 	PositionID uuid.UUID       `json:"position_id"`
 	YearMonth  time.Time       `json:"year_month"`
 	Amount     decimal.Decimal `json:"amount"`
+	Currency   string          `json:"currency"`
 }
 
 func (q *Queries) ListInvestmentSnapshotsForReport(ctx context.Context, householdID uuid.UUID) ([]ListInvestmentSnapshotsForReportRow, error) {
@@ -229,7 +273,12 @@ func (q *Queries) ListInvestmentSnapshotsForReport(ctx context.Context, househol
 	var items []ListInvestmentSnapshotsForReportRow
 	for rows.Next() {
 		var i ListInvestmentSnapshotsForReportRow
-		if err := rows.Scan(&i.PositionID, &i.YearMonth, &i.Amount); err != nil {
+		if err := rows.Scan(
+			&i.PositionID,
+			&i.YearMonth,
+			&i.Amount,
+			&i.Currency,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -241,7 +290,7 @@ func (q *Queries) ListInvestmentSnapshotsForReport(ctx context.Context, househol
 }
 
 const listInvestmentTransactionsForReport = `-- name: ListInvestmentTransactionsForReport :many
-SELECT t.investment_id, t.transaction_date, t.transaction_type,
+SELECT t.investment_id, t.transaction_date, t.transaction_type, t.currency,
        t.amount, t.quantity,
        t.principal_amount, t.interest_amount,
        t.principal_disposition, t.interest_disposition
@@ -255,6 +304,7 @@ type ListInvestmentTransactionsForReportRow struct {
 	InvestmentID         uuid.UUID        `json:"investment_id"`
 	TransactionDate      time.Time        `json:"transaction_date"`
 	TransactionType      string           `json:"transaction_type"`
+	Currency             string           `json:"currency"`
 	Amount               *decimal.Decimal `json:"amount"`
 	Quantity             *decimal.Decimal `json:"quantity"`
 	PrincipalAmount      *decimal.Decimal `json:"principal_amount"`
@@ -278,6 +328,7 @@ func (q *Queries) ListInvestmentTransactionsForReport(ctx context.Context, house
 			&i.InvestmentID,
 			&i.TransactionDate,
 			&i.TransactionType,
+			&i.Currency,
 			&i.Amount,
 			&i.Quantity,
 			&i.PrincipalAmount,
@@ -374,7 +425,7 @@ func (q *Queries) ListLiabilitiesForReport(ctx context.Context, householdID uuid
 }
 
 const listLiabilitySnapshotsForReport = `-- name: ListLiabilitySnapshotsForReport :many
-SELECT s.liability_id AS position_id, s.year_month, s.amount
+SELECT s.liability_id AS position_id, s.year_month, s.amount, s.currency
 FROM liability_snapshots s
 JOIN liabilities l ON l.id = s.liability_id
 WHERE l.household_id = $1 AND l.deleted_at IS NULL AND s.deleted_at IS NULL
@@ -385,6 +436,7 @@ type ListLiabilitySnapshotsForReportRow struct {
 	PositionID uuid.UUID       `json:"position_id"`
 	YearMonth  time.Time       `json:"year_month"`
 	Amount     decimal.Decimal `json:"amount"`
+	Currency   string          `json:"currency"`
 }
 
 func (q *Queries) ListLiabilitySnapshotsForReport(ctx context.Context, householdID uuid.UUID) ([]ListLiabilitySnapshotsForReportRow, error) {
@@ -396,7 +448,12 @@ func (q *Queries) ListLiabilitySnapshotsForReport(ctx context.Context, household
 	var items []ListLiabilitySnapshotsForReportRow
 	for rows.Next() {
 		var i ListLiabilitySnapshotsForReportRow
-		if err := rows.Scan(&i.PositionID, &i.YearMonth, &i.Amount); err != nil {
+		if err := rows.Scan(
+			&i.PositionID,
+			&i.YearMonth,
+			&i.Amount,
+			&i.Currency,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -476,7 +533,7 @@ func (q *Queries) ListMonthlyReports(ctx context.Context, householdID uuid.UUID)
 }
 
 const listReceivableSnapshotsForReport = `-- name: ListReceivableSnapshotsForReport :many
-SELECT s.receivable_id AS position_id, s.year_month, s.amount
+SELECT s.receivable_id AS position_id, s.year_month, s.amount, s.currency
 FROM receivable_snapshots s
 JOIN receivables rc ON rc.id = s.receivable_id
 WHERE rc.household_id = $1 AND rc.deleted_at IS NULL AND s.deleted_at IS NULL
@@ -487,6 +544,7 @@ type ListReceivableSnapshotsForReportRow struct {
 	PositionID uuid.UUID       `json:"position_id"`
 	YearMonth  time.Time       `json:"year_month"`
 	Amount     decimal.Decimal `json:"amount"`
+	Currency   string          `json:"currency"`
 }
 
 func (q *Queries) ListReceivableSnapshotsForReport(ctx context.Context, householdID uuid.UUID) ([]ListReceivableSnapshotsForReportRow, error) {
@@ -498,7 +556,12 @@ func (q *Queries) ListReceivableSnapshotsForReport(ctx context.Context, househol
 	var items []ListReceivableSnapshotsForReportRow
 	for rows.Next() {
 		var i ListReceivableSnapshotsForReportRow
-		if err := rows.Scan(&i.PositionID, &i.YearMonth, &i.Amount); err != nil {
+		if err := rows.Scan(
+			&i.PositionID,
+			&i.YearMonth,
+			&i.Amount,
+			&i.Currency,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -566,6 +629,8 @@ SELECT COALESCE(GREATEST(
     (SELECT MAX(t.updated_at) FROM investment_transactions t
         JOIN investments i ON i.id = t.investment_id
         WHERE i.household_id = $1 AND t.transaction_date <= $2),
+    (SELECT MAX(updated_at) FROM fx_rates
+        WHERE household_id = $1 AND year_month <= $2),
     (SELECT MAX(updated_at) FROM assets       WHERE household_id = $1),
     (SELECT MAX(updated_at) FROM liabilities  WHERE household_id = $1),
     (SELECT MAX(updated_at) FROM receivables  WHERE household_id = $1),
@@ -585,7 +650,7 @@ type MaxReportInputUpdatedAtParams struct {
 // not filter deleted_at so soft-deletes count; parent tables are household-wide
 // (metadata is timeless). Detail tables and `users` are deliberately excluded
 // (ADR-0006). Income + investment_transactions joined the set in slice 2;
-// fx_rates joins in slice 3.
+// fx_rates in slice 3.
 func (q *Queries) MaxReportInputUpdatedAt(ctx context.Context, arg MaxReportInputUpdatedAtParams) (pgtype.Timestamptz, error) {
 	row := q.db.QueryRow(ctx, maxReportInputUpdatedAt, arg.HouseholdID, arg.YearMonth)
 	var max_updated_at pgtype.Timestamptz
@@ -603,14 +668,14 @@ INSERT INTO monthly_reports (
     investment_return_total, investment_return_stock, investment_return_mutual_fund,
     investment_return_bond, investment_return_gold, investment_return_time_deposit,
     asset_value_change, derived_living_expenses,
-    user_breakdowns, stale_positions
+    user_breakdowns, stale_positions, fx_rates_used, missing_fx
 ) VALUES (
     $1, $2, now(),
     $3, $4, $5, $6, $7,
     $8, $9, $10, $11, $12, $13, $14, $15,
     $16, $17, $18, $19, $20, $21,
     $22, $23,
-    $24, $25
+    $24, $25, $26, $27
 )
 ON CONFLICT (household_id, year_month) DO UPDATE SET
     generated_at                   = now(),
@@ -636,7 +701,9 @@ ON CONFLICT (household_id, year_month) DO UPDATE SET
     asset_value_change             = EXCLUDED.asset_value_change,
     derived_living_expenses        = EXCLUDED.derived_living_expenses,
     user_breakdowns                = EXCLUDED.user_breakdowns,
-    stale_positions                = EXCLUDED.stale_positions
+    stale_positions                = EXCLUDED.stale_positions,
+    fx_rates_used                  = EXCLUDED.fx_rates_used,
+    missing_fx                     = EXCLUDED.missing_fx
 RETURNING id, household_id, year_month, generated_at, nw_total, nw_assets, nw_liabilities, nw_receivables, nw_investments, earned_income_total, earned_income_salary, earned_income_business, earned_income_rental, earned_income_gift, earned_income_tax_refund, earned_income_insurance, earned_income_other, investment_return_total, investment_return_stock, investment_return_mutual_fund, investment_return_bond, investment_return_gold, investment_return_time_deposit, asset_value_change, derived_living_expenses, user_breakdowns, fx_rates_used, stale_positions, missing_fx
 `
 
@@ -666,6 +733,8 @@ type UpsertMonthlyReportParams struct {
 	DerivedLivingExpenses       *decimal.Decimal `json:"derived_living_expenses"`
 	UserBreakdowns              []byte           `json:"user_breakdowns"`
 	StalePositions              []byte           `json:"stale_positions"`
+	FxRatesUsed                 []byte           `json:"fx_rates_used"`
+	MissingFx                   []byte           `json:"missing_fx"`
 }
 
 func (q *Queries) UpsertMonthlyReport(ctx context.Context, arg UpsertMonthlyReportParams) (MonthlyReport, error) {
@@ -695,6 +764,8 @@ func (q *Queries) UpsertMonthlyReport(ctx context.Context, arg UpsertMonthlyRepo
 		arg.DerivedLivingExpenses,
 		arg.UserBreakdowns,
 		arg.StalePositions,
+		arg.FxRatesUsed,
+		arg.MissingFx,
 	)
 	var i MonthlyReport
 	err := row.Scan(

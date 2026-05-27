@@ -10,6 +10,7 @@ import (
 	"github.com/kerti/balances-v2/backend/internal/assets"
 	"github.com/kerti/balances-v2/backend/internal/auth"
 	"github.com/kerti/balances-v2/backend/internal/config"
+	"github.com/kerti/balances-v2/backend/internal/fxrates"
 	"github.com/kerti/balances-v2/backend/internal/income"
 	"github.com/kerti/balances-v2/backend/internal/investments"
 	"github.com/kerti/balances-v2/backend/internal/liabilities"
@@ -27,6 +28,7 @@ type Server struct {
 	investmentsH *investments.Handlers
 	incomeH      *income.Handlers
 	reportsH     *reports.Handlers
+	fxRatesH     *fxrates.Handlers
 	router       chi.Router
 }
 
@@ -40,6 +42,7 @@ func New(
 	investmentsH *investments.Handlers,
 	incomeH *income.Handlers,
 	reportsH *reports.Handlers,
+	fxRatesH *fxrates.Handlers,
 ) *Server {
 	s := &Server{
 		pool:         pool,
@@ -51,6 +54,7 @@ func New(
 		investmentsH: investmentsH,
 		incomeH:      incomeH,
 		reportsH:     reportsH,
+		fxRatesH:     fxRatesH,
 	}
 	s.router = s.buildRouter()
 	return s
@@ -78,6 +82,7 @@ func (s *Server) buildRouter() chi.Router {
 		s.investmentsH.Mount(r)
 		s.incomeH.Mount(r)
 		s.reportsH.Mount(r)
+		s.fxRatesH.Mount(r)
 	})
 
 	return r

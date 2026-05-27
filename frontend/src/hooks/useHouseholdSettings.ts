@@ -1,0 +1,24 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { api } from '@/api/client'
+
+// Updates the reporting currency + multi-currency toggle (ADR-0002). Refreshes
+// the session (which carries the settings) and the dashboard (re-converted).
+// The backend returns 409 when turning the toggle off while foreign-currency
+// positions still exist — surfaced to the caller as an ApiError.
+export function useUpdateHouseholdSettings() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (p: {
+      reporting_currency: string
+      multi_currency_enabled: boolean
+    }) =>
+      api('/api/household/settings', {
+        method: 'PATCH',
+        body: JSON.stringify(p),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['session'] })
+      qc.invalidateQueries({ queryKey: ['reports'] })
+    },
+  })
+}

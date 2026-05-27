@@ -448,4 +448,25 @@ export type MonthlyReport = {
   derived_living_expenses: string | null // signed cash-spending residual
   user_breakdowns: Record<string, UserBreakdown> // keyed by user_id and "joint"
   stale_positions: string[]
+  fx_rates_used: Record<string, string> // currency -> rate applied this month
+  missing_fx: MissingFx[] // positions/flows excluded for want of a rate
+}
+
+export type MissingFx = {
+  position_id: string | null
+  currency: string
+}
+
+// ----- FX rates (M5 slice 3) --------------------------------------------
+
+export type FxRate = {
+  id: string
+  household_id: string
+  year_month: string // ISO datetime, day always = 01
+  currency: string
+  rate: string // reporting-currency units per 1 unit of `currency`
+  created_by: string | null
+  created_at: string
+  updated_by: string | null
+  updated_at: string
 }

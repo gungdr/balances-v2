@@ -26,6 +26,7 @@ import { TimeDepositsScreen } from '@/components/TimeDepositsScreen'
 import { TimeDepositDetail } from '@/components/TimeDepositDetail'
 import { IncomeScreen } from '@/components/IncomeScreen'
 import { DashboardScreen } from '@/components/DashboardScreen'
+import { SettingsScreen } from '@/components/SettingsScreen'
 
 type Group =
   | 'dashboard'
@@ -34,6 +35,7 @@ type Group =
   | 'receivables'
   | 'investments'
   | 'income'
+  | 'settings'
 type AssetSubtype = 'bank_account' | 'property' | 'vehicle'
 type LiabilitySubtype = 'personal' | 'institutional'
 type InvestmentSubtypeNav =
@@ -156,6 +158,7 @@ function App() {
             <TabsTrigger value="receivables">Receivables</TabsTrigger>
             <TabsTrigger value="investments">Investments</TabsTrigger>
             <TabsTrigger value="income">Income</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-6">
@@ -287,6 +290,9 @@ function App() {
           </TabsContent>
           <TabsContent value="income" className="mt-6">
             <IncomeScreen />
+          </TabsContent>
+          <TabsContent value="settings" className="mt-6">
+            <SettingsScreen />
           </TabsContent>
         </Tabs>
 

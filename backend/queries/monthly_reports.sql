@@ -37,14 +37,14 @@ INSERT INTO monthly_reports (
     investment_return_total, investment_return_stock, investment_return_mutual_fund,
     investment_return_bond, investment_return_gold, investment_return_time_deposit,
     asset_value_change, derived_living_expenses,
-    user_breakdowns, stale_positions
+    user_breakdowns, stale_positions, fx_rates_used, missing_fx
 ) VALUES (
     $1, $2, now(),
     $3, $4, $5, $6, $7,
     $8, $9, $10, $11, $12, $13, $14, $15,
     $16, $17, $18, $19, $20, $21,
     $22, $23,
-    $24, $25
+    $24, $25, $26, $27
 )
 ON CONFLICT (household_id, year_month) DO UPDATE SET
     generated_at                   = now(),
@@ -70,7 +70,9 @@ ON CONFLICT (household_id, year_month) DO UPDATE SET
     asset_value_change             = EXCLUDED.asset_value_change,
     derived_living_expenses        = EXCLUDED.derived_living_expenses,
     user_breakdowns                = EXCLUDED.user_breakdowns,
-    stale_positions                = EXCLUDED.stale_positions
+    stale_positions                = EXCLUDED.stale_positions,
+    fx_rates_used                  = EXCLUDED.fx_rates_used,
+    missing_fx                     = EXCLUDED.missing_fx
 RETURNING *;
 
 -- Staleness watermark: the newest updated_at across every input that feeds
@@ -79,7 +81,7 @@ RETURNING *;
 -- not filter deleted_at so soft-deletes count; parent tables are household-wide
 -- (metadata is timeless). Detail tables and `users` are deliberately excluded
 -- (ADR-0006). Income + investment_transactions joined the set in slice 2;
--- fx_rates joins in slice 3.
+-- fx_rates in slice 3.
 -- name: MaxReportInputUpdatedAt :one
 SELECT COALESCE(GREATEST(
     (SELECT MAX(s.updated_at) FROM asset_snapshots s
@@ -99,6 +101,8 @@ SELECT COALESCE(GREATEST(
     (SELECT MAX(t.updated_at) FROM investment_transactions t
         JOIN investments i ON i.id = t.investment_id
         WHERE i.household_id = $1 AND t.transaction_date <= $2),
+    (SELECT MAX(updated_at) FROM fx_rates
+        WHERE household_id = $1 AND year_month <= $2),
     (SELECT MAX(updated_at) FROM assets       WHERE household_id = $1),
     (SELECT MAX(updated_at) FROM liabilities  WHERE household_id = $1),
     (SELECT MAX(updated_at) FROM receivables  WHERE household_id = $1),
@@ -134,14 +138,14 @@ WHERE household_id = $1 AND deleted_at IS NULL;
 -- ----- engine inputs: income + investment transactions (slice 2) ----------
 
 -- name: ListIncomeForReport :many
-SELECT date, amount, category, ownership_type, sole_owner_user_id
+SELECT date, amount, currency, category, ownership_type, sole_owner_user_id
 FROM income
 WHERE household_id = $1 AND deleted_at IS NULL;
 
 -- Transaction cash-flow fields the engine maps to cash_in/cash_out (ADR-0008).
 -- price_per_unit is omitted — it doesn't enter the return formula.
 -- name: ListInvestmentTransactionsForReport :many
-SELECT t.investment_id, t.transaction_date, t.transaction_type,
+SELECT t.investment_id, t.transaction_date, t.transaction_type, t.currency,
        t.amount, t.quantity,
        t.principal_amount, t.interest_amount,
        t.principal_disposition, t.interest_disposition
@@ -155,29 +159,37 @@ ORDER BY t.investment_id, t.transaction_date;
 -- per-position carry-forward scan.
 
 -- name: ListAssetSnapshotsForReport :many
-SELECT s.asset_id AS position_id, s.year_month, s.amount
+SELECT s.asset_id AS position_id, s.year_month, s.amount, s.currency
 FROM asset_snapshots s
 JOIN assets a ON a.id = s.asset_id
 WHERE a.household_id = $1 AND a.deleted_at IS NULL AND s.deleted_at IS NULL
 ORDER BY s.asset_id, s.year_month;
 
 -- name: ListLiabilitySnapshotsForReport :many
-SELECT s.liability_id AS position_id, s.year_month, s.amount
+SELECT s.liability_id AS position_id, s.year_month, s.amount, s.currency
 FROM liability_snapshots s
 JOIN liabilities l ON l.id = s.liability_id
 WHERE l.household_id = $1 AND l.deleted_at IS NULL AND s.deleted_at IS NULL
 ORDER BY s.liability_id, s.year_month;
 
 -- name: ListReceivableSnapshotsForReport :many
-SELECT s.receivable_id AS position_id, s.year_month, s.amount
+SELECT s.receivable_id AS position_id, s.year_month, s.amount, s.currency
 FROM receivable_snapshots s
 JOIN receivables rc ON rc.id = s.receivable_id
 WHERE rc.household_id = $1 AND rc.deleted_at IS NULL AND s.deleted_at IS NULL
 ORDER BY s.receivable_id, s.year_month;
 
 -- name: ListInvestmentSnapshotsForReport :many
-SELECT s.investment_id AS position_id, s.year_month, s.amount
+SELECT s.investment_id AS position_id, s.year_month, s.amount, s.currency
 FROM investment_snapshots s
 JOIN investments i ON i.id = s.investment_id
 WHERE i.household_id = $1 AND i.deleted_at IS NULL AND s.deleted_at IS NULL
 ORDER BY s.investment_id, s.year_month;
+
+-- All non-deleted FX rates for the household; the engine indexes them by
+-- currency and applies the latest with year_month <= M (carry-forward).
+-- name: ListFxRatesForReport :many
+SELECT currency, year_month, rate
+FROM fx_rates
+WHERE household_id = $1 AND deleted_at IS NULL
+ORDER BY currency, year_month;

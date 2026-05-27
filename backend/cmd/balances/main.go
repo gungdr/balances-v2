@@ -23,6 +23,7 @@ import (
 	"github.com/kerti/balances-v2/backend/internal/config"
 	"github.com/kerti/balances-v2/backend/internal/db"
 	"github.com/kerti/balances-v2/backend/internal/email"
+	"github.com/kerti/balances-v2/backend/internal/fxrates"
 	"github.com/kerti/balances-v2/backend/internal/httpserver"
 	"github.com/kerti/balances-v2/backend/internal/income"
 	"github.com/kerti/balances-v2/backend/internal/investments"
@@ -150,7 +151,10 @@ func serveCmd() error {
 	reportRepo := repo.NewMonthlyReportRepo(pool)
 	reportsH := reports.New(reportRepo)
 
-	srv := httpserver.New(pool, cfg, authH, assetsH, liabilitiesH, receivablesH, investmentsH, incomeH, reportsH)
+	fxRateRepo := repo.NewFxRateRepo(pool)
+	fxRatesH := fxrates.New(fxRateRepo)
+
+	srv := httpserver.New(pool, cfg, authH, assetsH, liabilitiesH, receivablesH, investmentsH, incomeH, reportsH, fxRatesH)
 
 	httpSrv := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),

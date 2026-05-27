@@ -11,15 +11,16 @@ import (
 // This file is the pure compute core of the materialized monthly report
 // (ADR-0006 / ADR-0012). It takes plain in-memory inputs and derives one
 // report per month — no DB, no context, no I/O — so the rules (carry-forward,
-// lifecycle suppression, per-user/Joint attribution, stale flagging, and the
-// comprehensive-income identity) are unit-testable without a container. The
-// MonthlyReportRepo (monthly_reports.go) fetches the inputs, calls this, and
+// lifecycle suppression, per-user/Joint attribution, stale flagging, the
+// comprehensive-income identity, and FX conversion) are unit-testable without
+// a container. The MonthlyReportRepo fetches the inputs, calls this, and
 // upserts the result.
 //
-// Slice-2 scope: net worth + group breakdowns + the income statement (earned
-// income by category, investment return by subtype, property/vehicle asset
-// value change, residual living expenses). FX conversion is slice 3 — amounts
-// are summed in their native currency for now.
+// Slice-3 scope: net worth + group breakdowns + the income statement +
+// multi-currency conversion. Each monetary amount is converted from its native
+// currency to the household's reporting currency at the report month's rate
+// (latest <= M, carry-forward). When multi-currency is off the converter is a
+// no-op and the engine behaves exactly as the single-currency slices.
 
 const jointKey = "joint"
 
@@ -33,10 +34,9 @@ const (
 )
 
 // reportPosition is the lifecycle + ownership + subtype metadata the engine
-// needs. terminatedAt nil => active (migration 00012's biconditional CHECK
-// guarantees terminatedAt is set iff non-active). subtype distinguishes
-// property/vehicle from bank_account (for asset value change) and carries the
-// investment subtype (for the per-subtype return breakdown).
+// needs. terminatedAt nil => active (migration 00012's biconditional CHECK).
+// subtype distinguishes property/vehicle from bank_account (asset value change)
+// and carries the investment subtype (per-subtype return).
 type reportPosition struct {
 	id            uuid.UUID
 	group         positionGroup
@@ -46,28 +46,27 @@ type reportPosition struct {
 	terminatedAt  *time.Time
 }
 
-// reportSnapshot is one monthly observation. amount is the position's value in
-// its native currency (slice 2 is still single-currency; FX is slice 3).
+// reportSnapshot is one monthly observation in its native currency.
 type reportSnapshot struct {
 	positionID uuid.UUID
 	yearMonth  time.Time
 	amount     decimal.Decimal
+	currency   string
 }
 
-// reportIncome is one earned-income event, bucketed by its date's month.
 type reportIncome struct {
 	yearMonth     time.Time
 	amount        decimal.Decimal
+	currency      string
 	category      string
 	ownershipType string
 	soleOwnerID   *uuid.UUID
 }
 
-// reportTransaction is one investment-ledger event; the engine maps it to
-// cash_in/cash_out for the return formula (ADR-0008).
 type reportTransaction struct {
 	investmentID         uuid.UUID
 	yearMonth            time.Time
+	currency             string
 	txnType              string
 	amount               *decimal.Decimal
 	quantity             *decimal.Decimal
@@ -77,16 +76,26 @@ type reportTransaction struct {
 	interestDisposition  *string
 }
 
-type reportEngineInput struct {
-	positions    []reportPosition
-	snapshots    []reportSnapshot
-	income       []reportIncome
-	transactions []reportTransaction
-	members      []uuid.UUID // household user IDs — seed the per-user breakdown keys
-	currentMonth time.Time   // first-of-month in the requesting user's time zone
+// reportFxRate is one manual rate: reporting-currency units per 1 unit of
+// currency, for the month-end of yearMonth (ADR-0002).
+type reportFxRate struct {
+	currency  string
+	yearMonth time.Time
+	rate      decimal.Decimal
 }
 
-// userBreakdown is the per-user (or "joint") slice of a month.
+type reportEngineInput struct {
+	positions         []reportPosition
+	snapshots         []reportSnapshot
+	income            []reportIncome
+	transactions      []reportTransaction
+	fxRates           []reportFxRate
+	members           []uuid.UUID
+	reportingCurrency string
+	multiCurrency     bool
+	currentMonth      time.Time
+}
+
 type userBreakdown struct {
 	NW               decimal.Decimal `json:"nw"`
 	EarnedIncome     decimal.Decimal `json:"earned_income"`
@@ -137,10 +146,15 @@ func (r *investmentReturnAmounts) add(subtype string, v decimal.Decimal) {
 	}
 }
 
-// monthlyReportData is one generated month, pre-serialisation. The income-
-// statement pointers are nil on the first-month baseline (no prior month to
-// difference against — ADR-0006); earnedIncome is always present (a tracked
-// fact, not derived).
+// missingFxEntry names a position (or, for a flow, nil) and the currency that
+// could not be converted because no rate existed at or before its month.
+type missingFxEntry struct {
+	PositionID *uuid.UUID `json:"position_id"`
+	Currency   string     `json:"currency"`
+}
+
+// monthlyReportData is one generated month, pre-serialisation. Income-statement
+// pointers are nil on the first-month baseline (ADR-0006).
 type monthlyReportData struct {
 	yearMonth        time.Time
 	nwTotal          decimal.Decimal
@@ -154,11 +168,15 @@ type monthlyReportData struct {
 	livingExpenses   *decimal.Decimal         // nil on baseline
 	userBreakdowns   map[string]userBreakdown
 	stalePositions   []uuid.UUID
+	missingFx        []missingFxEntry
+	fxRatesUsed      map[string]decimal.Decimal
+	missingSeen      map[string]bool // dedup helper, not serialised
 }
 
 type monthAmount struct {
-	idx    int
-	amount decimal.Decimal
+	idx      int
+	amount   decimal.Decimal
+	currency string // snapshot's native currency; unused for fx-rate entries
 }
 
 type cashFlow struct{ in, out decimal.Decimal }
@@ -186,10 +204,281 @@ func decOrZero(d *decimal.Decimal) decimal.Decimal {
 	return *d
 }
 
-// transactionCashFlows maps an investment transaction to the cash that moved
-// between the instrument and the bank, per ADR-0008. Unit-deducting fees
-// (quantity set) move no cash — they're absorbed in the snapshot delta; rolled
-// maturity portions move no cash — captured by the new instrument's snapshot.
+// fxConverter converts native amounts to the reporting currency. When multi is
+// false (single-currency household) it is a no-op: amounts pass through and no
+// conversion can fail.
+type fxConverter struct {
+	reporting string
+	multi     bool
+	rates     map[string][]monthAmount // currency -> sorted (monthIdx, rate)
+}
+
+func newFxConverter(in reportEngineInput) fxConverter {
+	rates := make(map[string][]monthAmount)
+	if in.multiCurrency {
+		for _, r := range in.fxRates {
+			rates[r.currency] = append(rates[r.currency], monthAmount{idx: monthIndex(r.yearMonth), amount: r.rate})
+		}
+		for _, rs := range rates {
+			sort.Slice(rs, func(i, j int) bool { return rs[i].idx < rs[j].idx })
+		}
+	}
+	return fxConverter{reporting: in.reportingCurrency, multi: in.multiCurrency, rates: rates}
+}
+
+// convert returns the amount in reporting currency, the rate applied (1 for the
+// reporting currency or when multi-currency is off), and ok=false when a
+// foreign currency has no rate at or before idx.
+func (fx fxConverter) convert(amount decimal.Decimal, currency string, idx int) (converted, rate decimal.Decimal, ok bool) {
+	if !fx.multi || currency == "" || currency == fx.reporting {
+		return amount, decimal.NewFromInt(1), true
+	}
+	r, found := latestAtOrBefore(fx.rates[currency], idx)
+	if !found {
+		return decimal.Zero, decimal.Zero, false
+	}
+	return amount.Mul(r.amount), r.amount, true
+}
+
+// foreign reports whether a currency is a non-reporting currency under an
+// active multi-currency setting (i.e. worth recording in fx_rates_used).
+func (fx fxConverter) foreign(currency string) bool {
+	return fx.multi && currency != "" && currency != fx.reporting
+}
+
+func generateMonthlyReports(in reportEngineInput) []monthlyReportData {
+	if len(in.snapshots) == 0 {
+		return nil
+	}
+	fx := newFxConverter(in)
+
+	byPos := make(map[uuid.UUID][]monthAmount, len(in.positions))
+	var minIdx, maxIdx int
+	for i, s := range in.snapshots {
+		si := monthIndex(s.yearMonth)
+		byPos[s.positionID] = append(byPos[s.positionID], monthAmount{idx: si, amount: s.amount, currency: s.currency})
+		if i == 0 || si < minIdx {
+			minIdx = si
+		}
+		if i == 0 || si > maxIdx {
+			maxIdx = si
+		}
+	}
+	for _, ss := range byPos {
+		sort.Slice(ss, func(i, j int) bool { return ss[i].idx < ss[j].idx })
+	}
+
+	incomeByMonth := make(map[int][]reportIncome)
+	for _, inc := range in.income {
+		incomeByMonth[monthIndex(inc.yearMonth)] = append(incomeByMonth[monthIndex(inc.yearMonth)], inc)
+	}
+
+	// Convert transaction cash flows at the transaction's own month (= the
+	// report month they affect). Unconvertible currencies are dropped and
+	// flagged per month so the report still generates.
+	cashByPos := make(map[uuid.UUID]map[int]cashFlow)
+	txnMissing := make(map[int]map[string]bool)
+	txnRates := make(map[int]map[string]decimal.Decimal)
+	for _, t := range in.transactions {
+		raw := transactionCashFlows(t)
+		if raw.in.IsZero() && raw.out.IsZero() {
+			continue
+		}
+		mi := monthIndex(t.yearMonth)
+		inC, rate, okIn := fx.convert(raw.in, t.currency, mi)
+		outC, _, okOut := fx.convert(raw.out, t.currency, mi)
+		if !okIn || !okOut {
+			if txnMissing[mi] == nil {
+				txnMissing[mi] = make(map[string]bool)
+			}
+			txnMissing[mi][t.currency] = true
+			continue
+		}
+		if fx.foreign(t.currency) {
+			if txnRates[mi] == nil {
+				txnRates[mi] = make(map[string]decimal.Decimal)
+			}
+			txnRates[mi][t.currency] = rate
+		}
+		m := cashByPos[t.investmentID]
+		if m == nil {
+			m = make(map[int]cashFlow)
+			cashByPos[t.investmentID] = m
+		}
+		c := m[mi]
+		c.in = c.in.Add(inC)
+		c.out = c.out.Add(outC)
+		m[mi] = c
+	}
+
+	lastIdx := maxIdx
+	if ci := monthIndex(in.currentMonth); ci > lastIdx {
+		lastIdx = ci
+	}
+	positions := sortedPositions(in.positions)
+
+	var prevNwTotal decimal.Decimal
+	out := make([]monthlyReportData, 0, lastIdx-minIdx+1)
+	for idx := minIdx; idx <= lastIdx; idx++ {
+		baseline := idx == minIdx
+		m := monthlyReportData{
+			yearMonth:      monthFromIndex(idx),
+			userBreakdowns: make(map[string]userBreakdown, len(in.members)+1),
+			stalePositions: []uuid.UUID{},
+			missingFx:      []missingFxEntry{},
+			fxRatesUsed:    make(map[string]decimal.Decimal),
+			missingSeen:    make(map[string]bool),
+		}
+		for _, u := range in.members {
+			m.userBreakdowns[u.String()] = userBreakdown{}
+		}
+		m.userBreakdowns[jointKey] = userBreakdown{}
+
+		// Merge transaction-currency rates/missing for this month.
+		for cur, rate := range txnRates[idx] {
+			m.fxRatesUsed[cur] = rate
+		}
+		for cur := range txnMissing[idx] {
+			m.addMissingFx(nil, cur)
+		}
+
+		// ----- earned income (always; converted) -------------------------
+		for _, inc := range incomeByMonth[idx] {
+			conv, rate, ok := fx.convert(inc.amount, inc.currency, idx)
+			if !ok {
+				m.addMissingFx(nil, inc.currency)
+				continue
+			}
+			m.recordRate(fx, inc.currency, rate)
+			m.earnedIncome.add(inc.category, conv)
+			key := ownerKey(inc.ownershipType, inc.soleOwnerID)
+			b := m.userBreakdowns[key]
+			b.EarnedIncome = b.EarnedIncome.Add(conv)
+			m.userBreakdowns[key] = b
+		}
+
+		// ----- net worth (always; carry-forward, converted) --------------
+		for _, p := range positions {
+			if terminatedBefore(p, idx) {
+				continue
+			}
+			carried, ok := latestAtOrBefore(byPos[p.id], idx)
+			if !ok {
+				continue
+			}
+			v, rate, cok := fx.convert(carried.amount, carried.currency, idx)
+			if !cok {
+				m.addMissingFx(&p.id, carried.currency)
+				continue
+			}
+			m.recordRate(fx, carried.currency, rate)
+			if carried.idx < idx {
+				m.stalePositions = append(m.stalePositions, p.id)
+			}
+			switch p.group {
+			case groupAsset:
+				m.nwAssets = m.nwAssets.Add(v)
+			case groupLiability:
+				m.nwLiabilities = m.nwLiabilities.Add(v)
+			case groupReceivable:
+				m.nwReceivables = m.nwReceivables.Add(v)
+			case groupInvestment:
+				m.nwInvestments = m.nwInvestments.Add(v)
+			}
+			signed := v
+			if p.group == groupLiability {
+				signed = v.Neg()
+			}
+			key := ownerKey(p.ownershipType, p.soleOwnerID)
+			b := m.userBreakdowns[key]
+			b.NW = b.NW.Add(signed)
+			m.userBreakdowns[key] = b
+		}
+		m.nwTotal = m.nwAssets.Add(m.nwReceivables).Add(m.nwInvestments).Sub(m.nwLiabilities)
+
+		// ----- income statement (suppressed on baseline) -----------------
+		if !baseline {
+			ret := &investmentReturnAmounts{}
+			for _, p := range positions {
+				if p.group != groupInvestment || terminatedBefore(p, idx) {
+					continue
+				}
+				now, okNow := fx.carried(byPos[p.id], idx)
+				prev, okPrev := fx.carried(byPos[p.id], idx-1)
+				if !okNow || !okPrev {
+					continue // currency unconvertible — flagged in the NW pass
+				}
+				cf := cashByPos[p.id][idx]
+				r := now.Sub(prev).Add(cf.out).Sub(cf.in)
+				ret.add(p.subtype, r)
+				key := ownerKey(p.ownershipType, p.soleOwnerID)
+				b := m.userBreakdowns[key]
+				b.InvestmentReturn = b.InvestmentReturn.Add(r)
+				m.userBreakdowns[key] = b
+			}
+			m.investmentReturn = ret
+
+			avc := decimal.Zero
+			for _, p := range positions {
+				if p.group != groupAsset || terminatedBefore(p, idx) {
+					continue
+				}
+				if p.subtype != "property" && p.subtype != "vehicle" {
+					continue
+				}
+				now, okNow := fx.carried(byPos[p.id], idx)
+				prev, okPrev := fx.carried(byPos[p.id], idx-1)
+				if !okNow || !okPrev {
+					continue
+				}
+				avc = avc.Add(now.Sub(prev))
+			}
+			m.assetValueChange = &avc
+
+			deltaNW := m.nwTotal.Sub(prevNwTotal)
+			exp := m.earnedIncome.total.Add(ret.total).Add(avc).Sub(deltaNW)
+			m.livingExpenses = &exp
+		}
+
+		prevNwTotal = m.nwTotal
+		out = append(out, m)
+	}
+	return out
+}
+
+// carried converts the most recent snapshot with month <= idx; (0,true) when
+// none exists (contributes nothing), (0,false) when one exists but its currency
+// has no rate at idx.
+func (fx fxConverter) carried(ss []monthAmount, idx int) (decimal.Decimal, bool) {
+	c, ok := latestAtOrBefore(ss, idx)
+	if !ok {
+		return decimal.Zero, true
+	}
+	v, _, cok := fx.convert(c.amount, c.currency, idx)
+	return v, cok
+}
+
+// recordRate notes a foreign rate applied this month (fx_rates_used audit).
+func (m *monthlyReportData) recordRate(fx fxConverter, currency string, rate decimal.Decimal) {
+	if fx.foreign(currency) {
+		m.fxRatesUsed[currency] = rate
+	}
+}
+
+// addMissingFx records a (position, currency) that could not be converted,
+// deduplicated within the month.
+func (m *monthlyReportData) addMissingFx(positionID *uuid.UUID, currency string) {
+	key := currency
+	if positionID != nil {
+		key = positionID.String() + "|" + currency
+	}
+	if m.missingSeen[key] {
+		return
+	}
+	m.missingSeen[key] = true
+	m.missingFx = append(m.missingFx, missingFxEntry{PositionID: positionID, Currency: currency})
+}
+
 func transactionCashFlows(t reportTransaction) cashFlow {
 	switch t.txnType {
 	case "buy":
@@ -214,167 +503,6 @@ func transactionCashFlows(t reportTransaction) cashFlow {
 	return cashFlow{}
 }
 
-// generateMonthlyReports derives one report per month from the first month with
-// any snapshot through the later of the current month and the latest snapshot
-// month (provisional current month, ADR-0006). Returns nil when there is no
-// snapshot data.
-//
-// Net worth uses carry-forward (latest snapshot <= M, stale-flagged when older
-// than M). The income statement is the comprehensive-income identity (ADR-0008):
-// ΔNW = earned income + investment return + asset value change − living
-// expenses, all derived here so living expenses is the residual.
-func generateMonthlyReports(in reportEngineInput) []monthlyReportData {
-	if len(in.snapshots) == 0 {
-		return nil
-	}
-
-	byPos := make(map[uuid.UUID][]monthAmount, len(in.positions))
-	var minIdx, maxIdx int
-	for i, s := range in.snapshots {
-		si := monthIndex(s.yearMonth)
-		byPos[s.positionID] = append(byPos[s.positionID], monthAmount{idx: si, amount: s.amount})
-		if i == 0 || si < minIdx {
-			minIdx = si
-		}
-		if i == 0 || si > maxIdx {
-			maxIdx = si
-		}
-	}
-	for _, ss := range byPos {
-		sort.Slice(ss, func(i, j int) bool { return ss[i].idx < ss[j].idx })
-	}
-
-	// income by month, and transaction cash flows by (instrument, month).
-	incomeByMonth := make(map[int][]reportIncome)
-	for _, inc := range in.income {
-		mi := monthIndex(inc.yearMonth)
-		incomeByMonth[mi] = append(incomeByMonth[mi], inc)
-	}
-	cashByPos := make(map[uuid.UUID]map[int]cashFlow)
-	for _, t := range in.transactions {
-		cf := transactionCashFlows(t)
-		mi := monthIndex(t.yearMonth)
-		m := cashByPos[t.investmentID]
-		if m == nil {
-			m = make(map[int]cashFlow)
-			cashByPos[t.investmentID] = m
-		}
-		c := m[mi]
-		c.in = c.in.Add(cf.in)
-		c.out = c.out.Add(cf.out)
-		m[mi] = c
-	}
-
-	lastIdx := maxIdx
-	if ci := monthIndex(in.currentMonth); ci > lastIdx {
-		lastIdx = ci
-	}
-	positions := sortedPositions(in.positions)
-
-	var prevNwTotal decimal.Decimal
-	out := make([]monthlyReportData, 0, lastIdx-minIdx+1)
-	for idx := minIdx; idx <= lastIdx; idx++ {
-		baseline := idx == minIdx
-		m := monthlyReportData{
-			yearMonth:      monthFromIndex(idx),
-			userBreakdowns: make(map[string]userBreakdown, len(in.members)+1),
-			stalePositions: []uuid.UUID{},
-		}
-		for _, u := range in.members {
-			m.userBreakdowns[u.String()] = userBreakdown{}
-		}
-		m.userBreakdowns[jointKey] = userBreakdown{}
-
-		// ----- earned income (always; a tracked fact, not derived) --------
-		for _, inc := range incomeByMonth[idx] {
-			m.earnedIncome.add(inc.category, inc.amount)
-			key := ownerKey(inc.ownershipType, inc.soleOwnerID)
-			b := m.userBreakdowns[key]
-			b.EarnedIncome = b.EarnedIncome.Add(inc.amount)
-			m.userBreakdowns[key] = b
-		}
-
-		// ----- net worth (always; carry-forward, gated on a snapshot) -----
-		for _, p := range positions {
-			if terminatedBefore(p, idx) {
-				continue
-			}
-			carried, ok := latestAtOrBefore(byPos[p.id], idx)
-			if !ok {
-				continue
-			}
-			if carried.idx < idx {
-				m.stalePositions = append(m.stalePositions, p.id)
-			}
-			v := carried.amount
-			switch p.group {
-			case groupAsset:
-				m.nwAssets = m.nwAssets.Add(v)
-			case groupLiability:
-				m.nwLiabilities = m.nwLiabilities.Add(v)
-			case groupReceivable:
-				m.nwReceivables = m.nwReceivables.Add(v)
-			case groupInvestment:
-				m.nwInvestments = m.nwInvestments.Add(v)
-			}
-			signed := v
-			if p.group == groupLiability {
-				signed = v.Neg()
-			}
-			key := ownerKey(p.ownershipType, p.soleOwnerID)
-			b := m.userBreakdowns[key]
-			b.NW = b.NW.Add(signed)
-			m.userBreakdowns[key] = b
-		}
-		m.nwTotal = m.nwAssets.Add(m.nwReceivables).Add(m.nwInvestments).Sub(m.nwLiabilities)
-
-		// ----- income statement (suppressed on the baseline month) --------
-		if !baseline {
-			ret := &investmentReturnAmounts{}
-			for _, p := range positions {
-				if p.group != groupInvestment || terminatedBefore(p, idx) {
-					continue
-				}
-				// Not gated on a snapshot: a transaction in a month the
-				// instrument wasn't snapshotted still contributes its cash
-				// flow (ADR-0008 timing noise — cumulative-correct).
-				delta := carriedValue(byPos[p.id], idx).Sub(carriedValue(byPos[p.id], idx-1))
-				cf := cashByPos[p.id][idx]
-				r := delta.Add(cf.out).Sub(cf.in)
-				ret.add(p.subtype, r)
-				key := ownerKey(p.ownershipType, p.soleOwnerID)
-				b := m.userBreakdowns[key]
-				b.InvestmentReturn = b.InvestmentReturn.Add(r)
-				m.userBreakdowns[key] = b
-			}
-			m.investmentReturn = ret
-
-			avc := decimal.Zero
-			for _, p := range positions {
-				if p.group != groupAsset || terminatedBefore(p, idx) {
-					continue
-				}
-				if p.subtype != "property" && p.subtype != "vehicle" {
-					continue // bank accounts are cash — stay in the residual
-				}
-				avc = avc.Add(carriedValue(byPos[p.id], idx).Sub(carriedValue(byPos[p.id], idx-1)))
-			}
-			m.assetValueChange = &avc
-
-			// Living expenses = the residual that closes the identity.
-			deltaNW := m.nwTotal.Sub(prevNwTotal)
-			exp := m.earnedIncome.total.Add(ret.total).Add(avc).Sub(deltaNW)
-			m.livingExpenses = &exp
-		}
-
-		prevNwTotal = m.nwTotal
-		out = append(out, m)
-	}
-	return out
-}
-
-// terminatedBefore reports whether a position has stopped contributing by month
-// idx — it contributes through its termination month, then drops.
 func terminatedBefore(p reportPosition, idx int) bool {
 	return p.terminatedAt != nil && idx > monthIndex(*p.terminatedAt)
 }
@@ -386,8 +514,6 @@ func sortedPositions(ps []reportPosition) []reportPosition {
 	return out
 }
 
-// latestAtOrBefore returns the most recent snapshot with month <= idx from a
-// slice already sorted ascending by month index.
 func latestAtOrBefore(ss []monthAmount, idx int) (monthAmount, bool) {
 	var found monthAmount
 	ok := false
@@ -400,12 +526,4 @@ func latestAtOrBefore(ss []monthAmount, idx int) (monthAmount, bool) {
 		}
 	}
 	return found, ok
-}
-
-// carriedValue is latestAtOrBefore reduced to its amount, 0 when none exists.
-func carriedValue(ss []monthAmount, idx int) decimal.Decimal {
-	if c, ok := latestAtOrBefore(ss, idx); ok {
-		return c.amount
-	}
-	return decimal.Zero
 }

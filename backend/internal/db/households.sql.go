@@ -11,13 +11,36 @@ import (
 	"github.com/google/uuid"
 )
 
+const countForeignCurrencyPositions = `-- name: CountForeignCurrencyPositions :one
+SELECT
+    (SELECT COUNT(*) FROM assets a       WHERE a.household_id = $1  AND a.deleted_at IS NULL  AND a.native_currency <> $2)
+  + (SELECT COUNT(*) FROM liabilities l  WHERE l.household_id = $1  AND l.deleted_at IS NULL  AND l.native_currency <> $2)
+  + (SELECT COUNT(*) FROM receivables rc WHERE rc.household_id = $1 AND rc.deleted_at IS NULL AND rc.native_currency <> $2)
+  + (SELECT COUNT(*) FROM investments i  WHERE i.household_id = $1  AND i.deleted_at IS NULL  AND i.native_currency <> $2)
+  AS foreign_count
+`
+
+type CountForeignCurrencyPositionsParams struct {
+	HouseholdID    uuid.UUID `json:"household_id"`
+	NativeCurrency string    `json:"native_currency"`
+}
+
+// Count of positions denominated in a currency other than $2 across the four
+// groups — guards turning multi-currency off while foreign positions exist.
+func (q *Queries) CountForeignCurrencyPositions(ctx context.Context, arg CountForeignCurrencyPositionsParams) (int32, error) {
+	row := q.db.QueryRow(ctx, countForeignCurrencyPositions, arg.HouseholdID, arg.NativeCurrency)
+	var foreign_count int32
+	err := row.Scan(&foreign_count)
+	return foreign_count, err
+}
+
 const createHousehold = `-- name: CreateHousehold :one
 INSERT INTO households (
     display_name, reporting_currency
 ) VALUES (
     $1, $2
 )
-RETURNING id, display_name, reporting_currency, created_by, created_at, updated_by, updated_at, deleted_at
+RETURNING id, display_name, reporting_currency, created_by, created_at, updated_by, updated_at, deleted_at, multi_currency_enabled
 `
 
 type CreateHouseholdParams struct {
@@ -37,12 +60,13 @@ func (q *Queries) CreateHousehold(ctx context.Context, arg CreateHouseholdParams
 		&i.UpdatedBy,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.MultiCurrencyEnabled,
 	)
 	return i, err
 }
 
 const getHouseholdByID = `-- name: GetHouseholdByID :one
-SELECT id, display_name, reporting_currency, created_by, created_at, updated_by, updated_at, deleted_at
+SELECT id, display_name, reporting_currency, created_by, created_at, updated_by, updated_at, deleted_at, multi_currency_enabled
 FROM households
 WHERE id = $1 AND deleted_at IS NULL
 `
@@ -59,6 +83,46 @@ func (q *Queries) GetHouseholdByID(ctx context.Context, id uuid.UUID) (Household
 		&i.UpdatedBy,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.MultiCurrencyEnabled,
+	)
+	return i, err
+}
+
+const updateHouseholdSettings = `-- name: UpdateHouseholdSettings :one
+UPDATE households
+SET reporting_currency     = $2,
+    multi_currency_enabled = $3,
+    updated_by             = $4,
+    updated_at             = now()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, display_name, reporting_currency, created_by, created_at, updated_by, updated_at, deleted_at, multi_currency_enabled
+`
+
+type UpdateHouseholdSettingsParams struct {
+	ID                   uuid.UUID  `json:"id"`
+	ReportingCurrency    string     `json:"reporting_currency"`
+	MultiCurrencyEnabled bool       `json:"multi_currency_enabled"`
+	UpdatedBy            *uuid.UUID `json:"updated_by"`
+}
+
+func (q *Queries) UpdateHouseholdSettings(ctx context.Context, arg UpdateHouseholdSettingsParams) (Household, error) {
+	row := q.db.QueryRow(ctx, updateHouseholdSettings,
+		arg.ID,
+		arg.ReportingCurrency,
+		arg.MultiCurrencyEnabled,
+		arg.UpdatedBy,
+	)
+	var i Household
+	err := row.Scan(
+		&i.ID,
+		&i.DisplayName,
+		&i.ReportingCurrency,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedBy,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.MultiCurrencyEnabled,
 	)
 	return i, err
 }

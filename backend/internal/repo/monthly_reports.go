@@ -176,6 +176,14 @@ func (r *MonthlyReportRepo) writeReports(ctx context.Context, hid uuid.UUID, fir
 		if err != nil {
 			return fmt.Errorf("marshal stale positions: %w", err)
 		}
+		fxUsed, err := json.Marshal(rep.fxRatesUsed)
+		if err != nil {
+			return fmt.Errorf("marshal fx rates used: %w", err)
+		}
+		missingFx, err := json.Marshal(rep.missingFx)
+		if err != nil {
+			return fmt.Errorf("marshal missing fx: %w", err)
+		}
 		params := db.UpsertMonthlyReportParams{
 			HouseholdID:           hid,
 			YearMonth:             rep.yearMonth,
@@ -196,6 +204,8 @@ func (r *MonthlyReportRepo) writeReports(ctx context.Context, hid uuid.UUID, fir
 			DerivedLivingExpenses: rep.livingExpenses,   // nil on baseline
 			UserBreakdowns:        ub,
 			StalePositions:        stale,
+			FxRatesUsed:           fxUsed,
+			MissingFx:             missingFx,
 		}
 		if rep.investmentReturn != nil { // suppressed on the baseline month
 			params.InvestmentReturnTotal = ptr(rep.investmentReturn.total)
@@ -282,28 +292,28 @@ func (r *MonthlyReportRepo) loadEngineInput(ctx context.Context, hid uuid.UUID, 
 		return in, fmt.Errorf("list asset snapshots for report: %w", err)
 	}
 	for _, s := range asnaps {
-		in.snapshots = append(in.snapshots, reportSnapshot{positionID: s.PositionID, yearMonth: s.YearMonth, amount: s.Amount})
+		in.snapshots = append(in.snapshots, reportSnapshot{positionID: s.PositionID, yearMonth: s.YearMonth, amount: s.Amount, currency: s.Currency})
 	}
 	lsnaps, err := r.q.ListLiabilitySnapshotsForReport(ctx, hid)
 	if err != nil {
 		return in, fmt.Errorf("list liability snapshots for report: %w", err)
 	}
 	for _, s := range lsnaps {
-		in.snapshots = append(in.snapshots, reportSnapshot{positionID: s.PositionID, yearMonth: s.YearMonth, amount: s.Amount})
+		in.snapshots = append(in.snapshots, reportSnapshot{positionID: s.PositionID, yearMonth: s.YearMonth, amount: s.Amount, currency: s.Currency})
 	}
 	rsnaps, err := r.q.ListReceivableSnapshotsForReport(ctx, hid)
 	if err != nil {
 		return in, fmt.Errorf("list receivable snapshots for report: %w", err)
 	}
 	for _, s := range rsnaps {
-		in.snapshots = append(in.snapshots, reportSnapshot{positionID: s.PositionID, yearMonth: s.YearMonth, amount: s.Amount})
+		in.snapshots = append(in.snapshots, reportSnapshot{positionID: s.PositionID, yearMonth: s.YearMonth, amount: s.Amount, currency: s.Currency})
 	}
 	isnaps, err := r.q.ListInvestmentSnapshotsForReport(ctx, hid)
 	if err != nil {
 		return in, fmt.Errorf("list investment snapshots for report: %w", err)
 	}
 	for _, s := range isnaps {
-		in.snapshots = append(in.snapshots, reportSnapshot{positionID: s.PositionID, yearMonth: s.YearMonth, amount: s.Amount})
+		in.snapshots = append(in.snapshots, reportSnapshot{positionID: s.PositionID, yearMonth: s.YearMonth, amount: s.Amount, currency: s.Currency})
 	}
 
 	incomes, err := r.q.ListIncomeForReport(ctx, hid)
@@ -312,7 +322,7 @@ func (r *MonthlyReportRepo) loadEngineInput(ctx context.Context, hid uuid.UUID, 
 	}
 	for _, inc := range incomes {
 		in.income = append(in.income, reportIncome{
-			yearMonth: inc.Date, amount: inc.Amount, category: inc.Category,
+			yearMonth: inc.Date, amount: inc.Amount, currency: inc.Currency, category: inc.Category,
 			ownershipType: inc.OwnershipType, soleOwnerID: inc.SoleOwnerUserID,
 		})
 	}
@@ -323,7 +333,7 @@ func (r *MonthlyReportRepo) loadEngineInput(ctx context.Context, hid uuid.UUID, 
 	}
 	for _, t := range txns {
 		in.transactions = append(in.transactions, reportTransaction{
-			investmentID: t.InvestmentID, yearMonth: t.TransactionDate, txnType: t.TransactionType,
+			investmentID: t.InvestmentID, yearMonth: t.TransactionDate, currency: t.Currency, txnType: t.TransactionType,
 			amount: t.Amount, quantity: t.Quantity,
 			principalAmount: t.PrincipalAmount, interestAmount: t.InterestAmount,
 			principalDisposition: t.PrincipalDisposition, interestDisposition: t.InterestDisposition,
@@ -336,6 +346,21 @@ func (r *MonthlyReportRepo) loadEngineInput(ctx context.Context, hid uuid.UUID, 
 	}
 	for _, u := range users {
 		in.members = append(in.members, u.ID)
+	}
+
+	hh, err := r.q.GetHouseholdByID(ctx, hid)
+	if err != nil {
+		return in, fmt.Errorf("get household for report: %w", err)
+	}
+	in.reportingCurrency = hh.ReportingCurrency
+	in.multiCurrency = hh.MultiCurrencyEnabled
+
+	rates, err := r.q.ListFxRatesForReport(ctx, hid)
+	if err != nil {
+		return in, fmt.Errorf("list fx rates for report: %w", err)
+	}
+	for _, fr := range rates {
+		in.fxRates = append(in.fxRates, reportFxRate{currency: fr.Currency, yearMonth: fr.YearMonth, rate: fr.Rate})
 	}
 	return in, nil
 }

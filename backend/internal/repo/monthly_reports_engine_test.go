@@ -260,6 +260,98 @@ func TestEngine_IncomeStatement(t *testing.T) {
 	}
 }
 
+// Multi-currency: a foreign holding is converted to the reporting currency at
+// the month's rate, and the rate is recorded in fx_rates_used.
+func TestEngine_FxConversion(t *testing.T) {
+	usdAcct := uuid.New()
+	in := reportEngineInput{
+		reportingCurrency: "IDR",
+		multiCurrency:     true,
+		positions:         []reportPosition{{id: usdAcct, group: groupAsset, subtype: "bank_account", ownershipType: "joint"}},
+		snapshots:         []reportSnapshot{{positionID: usdAcct, yearMonth: ym(2026, time.January), amount: dec("100"), currency: "USD"}},
+		fxRates:           []reportFxRate{{currency: "USD", yearMonth: ym(2026, time.January), rate: dec("16000")}},
+		currentMonth:      ym(2026, time.January),
+	}
+	r := findMonth(t, generateMonthlyReports(in), ym(2026, time.January))
+	if !r.nwTotal.Equal(dec("1600000")) { // 100 USD × 16000
+		t.Errorf("nwTotal: got %s, want 1600000", r.nwTotal)
+	}
+	if got := r.fxRatesUsed["USD"]; !got.Equal(dec("16000")) {
+		t.Errorf("fx_rates_used[USD]: got %s, want 16000", got)
+	}
+	if len(r.missingFx) != 0 {
+		t.Errorf("missingFx: got %v, want empty", r.missingFx)
+	}
+}
+
+// A rate carries forward to later months that have no rate of their own.
+func TestEngine_FxCarryForward(t *testing.T) {
+	usdAcct := uuid.New()
+	in := reportEngineInput{
+		reportingCurrency: "IDR",
+		multiCurrency:     true,
+		positions:         []reportPosition{{id: usdAcct, group: groupAsset, subtype: "bank_account", ownershipType: "joint"}},
+		snapshots: []reportSnapshot{
+			{positionID: usdAcct, yearMonth: ym(2026, time.January), amount: dec("100"), currency: "USD"},
+			{positionID: usdAcct, yearMonth: ym(2026, time.February), amount: dec("100"), currency: "USD"},
+		},
+		fxRates:      []reportFxRate{{currency: "USD", yearMonth: ym(2026, time.January), rate: dec("16000")}}, // Jan only
+		currentMonth: ym(2026, time.February),
+	}
+	feb := findMonth(t, generateMonthlyReports(in), ym(2026, time.February))
+	if !feb.nwTotal.Equal(dec("1600000")) { // carries Jan's rate
+		t.Errorf("Feb nwTotal: got %s, want 1600000 (Jan rate carried)", feb.nwTotal)
+	}
+}
+
+// A foreign currency with no rate at or before the month excludes those
+// positions from net worth and records them in missing_fx — never 1:1.
+func TestEngine_FxMissingRate(t *testing.T) {
+	usdAcct, idrAcct := uuid.New(), uuid.New()
+	in := reportEngineInput{
+		reportingCurrency: "IDR",
+		multiCurrency:     true,
+		positions: []reportPosition{
+			{id: usdAcct, group: groupAsset, subtype: "bank_account", ownershipType: "joint"},
+			{id: idrAcct, group: groupAsset, subtype: "bank_account", ownershipType: "joint"},
+		},
+		snapshots: []reportSnapshot{
+			{positionID: usdAcct, yearMonth: ym(2026, time.January), amount: dec("100"), currency: "USD"},
+			{positionID: idrAcct, yearMonth: ym(2026, time.January), amount: dec("500"), currency: "IDR"},
+		},
+		// no USD rate
+		currentMonth: ym(2026, time.January),
+	}
+	r := findMonth(t, generateMonthlyReports(in), ym(2026, time.January))
+	if !r.nwTotal.Equal(dec("500")) { // only the IDR account counts
+		t.Errorf("nwTotal: got %s, want 500 (USD excluded)", r.nwTotal)
+	}
+	if len(r.missingFx) != 1 || r.missingFx[0].Currency != "USD" || r.missingFx[0].PositionID == nil || *r.missingFx[0].PositionID != usdAcct {
+		t.Errorf("missingFx: got %+v, want one USD entry for the usd account", r.missingFx)
+	}
+}
+
+// Regression: with multi-currency off the converter is a no-op — amounts sum at
+// face value, no missing_fx, no fx_rates_used (the single-currency path).
+func TestEngine_FxOffPathUnchanged(t *testing.T) {
+	acct := uuid.New()
+	in := reportEngineInput{
+		reportingCurrency: "IDR",
+		multiCurrency:     false, // off
+		positions:         []reportPosition{{id: acct, group: groupAsset, subtype: "bank_account", ownershipType: "joint"}},
+		snapshots:         []reportSnapshot{{positionID: acct, yearMonth: ym(2026, time.January), amount: dec("100"), currency: "USD"}},
+		fxRates:           []reportFxRate{{currency: "USD", yearMonth: ym(2026, time.January), rate: dec("16000")}},
+		currentMonth:      ym(2026, time.January),
+	}
+	r := findMonth(t, generateMonthlyReports(in), ym(2026, time.January))
+	if !r.nwTotal.Equal(dec("100")) { // face value, no conversion
+		t.Errorf("nwTotal: got %s, want 100 (off path, no conversion)", r.nwTotal)
+	}
+	if len(r.missingFx) != 0 || len(r.fxRatesUsed) != 0 {
+		t.Errorf("off path should not produce missingFx (%v) or fxRatesUsed (%v)", r.missingFx, r.fxRatesUsed)
+	}
+}
+
 // Investment return counts the transaction cash flow: a Buy reduces return by
 // the cash put in, so a holding that rose 400 on 300 of new cash returns 100.
 func TestEngine_InvestmentReturnWithCashFlow(t *testing.T) {

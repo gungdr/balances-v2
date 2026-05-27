@@ -54,6 +54,16 @@ var (
 	// at the repo layer with a human-readable message and a clean 400.
 	ErrInvalidLifecycle = errors.New("repo: invalid position lifecycle")
 
+	// ErrFxRateExists is returned when creating an FX rate that collides with an
+	// existing (household, year_month, currency) row — the identity is unique,
+	// so the caller should edit the existing rate instead. Mapped to 409.
+	ErrFxRateExists = errors.New("repo: fx rate already exists for that month and currency")
+
+	// ErrForeignPositionsExist is returned when turning multi-currency off while
+	// positions denominated in a non-reporting currency still exist (their
+	// values would silently be treated as reporting currency). Mapped to 409.
+	ErrForeignPositionsExist = errors.New("repo: foreign-currency positions exist")
+
 	// ErrPositionNotActive is returned when a transaction is created against an
 	// Investment whose status is no longer 'active' — most notably after a
 	// Maturity transaction flips it to 'matured' (ADR-0009: Maturity is

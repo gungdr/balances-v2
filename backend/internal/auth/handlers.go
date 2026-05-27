@@ -78,6 +78,7 @@ func (h *Handlers) Mount(r chi.Router) {
 	r.Post("/auth/logout", h.handleLogout)
 	r.With(RequireAuth).Get("/me", h.handleMe)
 	r.With(RequireAuth).Get("/household/members", h.handleListHouseholdMembers)
+	r.With(RequireAuth).Patch("/household/settings", h.handleUpdateHouseholdSettings)
 	r.With(RequireAuth).Post("/invitations", h.handleCreateInvitation)
 }
 
@@ -275,12 +276,14 @@ func (h *Handlers) handleLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 type meResponse struct {
-	ID          uuid.UUID `json:"id"`
-	HouseholdID uuid.UUID `json:"household_id"`
-	DisplayName string    `json:"display_name"`
-	Email       string    `json:"email"`
-	Locale      string    `json:"locale"`
-	TimeZone    string    `json:"time_zone"`
+	ID                   uuid.UUID `json:"id"`
+	HouseholdID          uuid.UUID `json:"household_id"`
+	DisplayName          string    `json:"display_name"`
+	Email                string    `json:"email"`
+	Locale               string    `json:"locale"`
+	TimeZone             string    `json:"time_zone"`
+	ReportingCurrency    string    `json:"reporting_currency"`
+	MultiCurrencyEnabled bool      `json:"multi_currency_enabled"`
 }
 
 func (h *Handlers) handleMe(w http.ResponseWriter, r *http.Request) {
@@ -289,14 +292,22 @@ func (h *Handlers) handleMe(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
+	hh, err := h.q.GetHouseholdByID(r.Context(), user.HouseholdID)
+	if err != nil {
+		slog.Error("get household for /me", "err", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(meResponse{
-		ID:          user.ID,
-		HouseholdID: user.HouseholdID,
-		DisplayName: user.DisplayName,
-		Email:       user.Email,
-		Locale:      user.Locale,
-		TimeZone:    user.TimeZone,
+		ID:                   user.ID,
+		HouseholdID:          user.HouseholdID,
+		DisplayName:          user.DisplayName,
+		Email:                user.Email,
+		Locale:               user.Locale,
+		TimeZone:             user.TimeZone,
+		ReportingCurrency:    hh.ReportingCurrency,
+		MultiCurrencyEnabled: hh.MultiCurrencyEnabled,
 	})
 }
 
@@ -330,4 +341,70 @@ func (h *Handlers) handleListHouseholdMembers(w http.ResponseWriter, r *http.Req
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(out)
+}
+
+type householdSettings struct {
+	ID                   uuid.UUID `json:"id"`
+	DisplayName          string    `json:"display_name"`
+	ReportingCurrency    string    `json:"reporting_currency"`
+	MultiCurrencyEnabled bool      `json:"multi_currency_enabled"`
+}
+
+type updateHouseholdSettingsReq struct {
+	ReportingCurrency    string `json:"reporting_currency"`
+	MultiCurrencyEnabled bool   `json:"multi_currency_enabled"`
+}
+
+// handleUpdateHouseholdSettings sets the reporting currency + multi-currency
+// toggle (ADR-0002). Turning multi-currency off is blocked while positions in a
+// non-reporting currency still exist — their values would silently be summed as
+// reporting currency.
+func (h *Handlers) handleUpdateHouseholdSettings(w http.ResponseWriter, r *http.Request) {
+	user, ok := UserFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	var req updateHouseholdSettingsReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json body", http.StatusBadRequest)
+		return
+	}
+	if len(req.ReportingCurrency) != 3 {
+		http.Error(w, "invalid request: reporting_currency must be a 3-letter code", http.StatusBadRequest)
+		return
+	}
+	if !req.MultiCurrencyEnabled {
+		n, err := h.q.CountForeignCurrencyPositions(r.Context(), db.CountForeignCurrencyPositionsParams{
+			HouseholdID:    user.HouseholdID,
+			NativeCurrency: req.ReportingCurrency,
+		})
+		if err != nil {
+			slog.Error("count foreign positions", "err", err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		if n > 0 {
+			http.Error(w, "cannot disable multi-currency while foreign-currency positions exist", http.StatusConflict)
+			return
+		}
+	}
+	hh, err := h.q.UpdateHouseholdSettings(r.Context(), db.UpdateHouseholdSettingsParams{
+		ID:                   user.HouseholdID,
+		ReportingCurrency:    req.ReportingCurrency,
+		MultiCurrencyEnabled: req.MultiCurrencyEnabled,
+		UpdatedBy:            &user.ID,
+	})
+	if err != nil {
+		slog.Error("update household settings", "err", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(householdSettings{
+		ID:                   hh.ID,
+		DisplayName:          hh.DisplayName,
+		ReportingCurrency:    hh.ReportingCurrency,
+		MultiCurrencyEnabled: hh.MultiCurrencyEnabled,
+	})
 }

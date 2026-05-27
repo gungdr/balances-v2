@@ -76,6 +76,8 @@ type reportResponse struct {
 
 	UserBreakdowns json.RawMessage `json:"user_breakdowns"`
 	StalePositions json.RawMessage `json:"stale_positions"`
+	FxRatesUsed    json.RawMessage `json:"fx_rates_used"`
+	MissingFx      json.RawMessage `json:"missing_fx"`
 }
 
 func toResponse(r db.MonthlyReport, currency string) reportResponse {
@@ -110,6 +112,8 @@ func toResponse(r db.MonthlyReport, currency string) reportResponse {
 
 		UserBreakdowns: rawJSON(r.UserBreakdowns, "{}"),
 		StalePositions: rawJSON(r.StalePositions, "[]"),
+		FxRatesUsed:    rawJSON(r.FxRatesUsed, "{}"),
+		MissingFx:      rawJSON(r.MissingFx, "[]"),
 	}
 	if r.GeneratedAt.Valid {
 		t := r.GeneratedAt.Time

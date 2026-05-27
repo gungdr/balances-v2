@@ -8,6 +8,8 @@ export type Me = {
   email: string
   locale: string
   time_zone: string
+  reporting_currency: string
+  multi_currency_enabled: boolean
 }
 
 // useSession returns:

@@ -92,6 +92,8 @@ export function DashboardScreen() {
 
       <GroupBreakdown selected={selected} currency={currency} />
 
+      <ExchangeRates selected={selected} currency={currency} />
+
       <ThisMonth selected={selected} currency={currency} />
 
       <ByPerson
@@ -162,8 +164,23 @@ function HeadlineCard({
             {staleCount > 1 ? 's' : ''} to keep this up to date.
           </p>
         )}
+        <MissingFxWarning selected={selected} />
       </CardContent>
     </Card>
+  )
+}
+
+function MissingFxWarning({ selected }: { selected: MonthlyReport }) {
+  if (selected.missing_fx.length === 0) return null
+  const currencies = [...new Set(selected.missing_fx.map((m) => m.currency))]
+  const count = selected.missing_fx.filter((m) => m.position_id !== null).length
+  return (
+    <p className="text-sm text-destructive">
+      ⚠ Net worth excludes {count > 0 ? `${count} position${count > 1 ? 's' : ''}` : 'some amounts'} —
+      no {formatYearMonth(selected.year_month)} exchange rate for{' '}
+      {currencies.join(', ')}. Add{' '}
+      {currencies.length > 1 ? 'rates' : 'a rate'} in Settings.
+    </p>
   )
 }
 
@@ -272,6 +289,37 @@ function ByPerson({
               </div>
             </div>
           ))}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ExchangeRates shows the rates applied this month (fx_rates_used) — only when
+// the household is multi-currency and a foreign currency was converted.
+function ExchangeRates({
+  selected,
+  currency,
+}: {
+  selected: MonthlyReport
+  currency: string
+}) {
+  const entries = Object.entries(selected.fx_rates_used)
+  if (entries.length === 0) return null
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Exchange rates this month</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
+          {entries
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([cur, rate]) => (
+              <div key={cur} className="tabular-nums">
+                1 {cur} = {Number(rate).toLocaleString('id-ID')} {currency}
+              </div>
+            ))}
         </div>
       </CardContent>
     </Card>

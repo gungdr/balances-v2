@@ -64,6 +64,19 @@ type BondDetail struct {
 	SeriesCode      *string         `json:"series_code"`
 }
 
+type FxRate struct {
+	ID          uuid.UUID          `json:"id"`
+	HouseholdID uuid.UUID          `json:"household_id"`
+	YearMonth   time.Time          `json:"year_month"`
+	Currency    string             `json:"currency"`
+	Rate        decimal.Decimal    `json:"rate"`
+	CreatedBy   *uuid.UUID         `json:"created_by"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedBy   *uuid.UUID         `json:"updated_by"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
+}
+
 type GoldDetail struct {
 	InvestmentID uuid.UUID       `json:"investment_id"`
 	Form         string          `json:"form"`
@@ -71,14 +84,15 @@ type GoldDetail struct {
 }
 
 type Household struct {
-	ID                uuid.UUID          `json:"id"`
-	DisplayName       string             `json:"display_name"`
-	ReportingCurrency string             `json:"reporting_currency"`
-	CreatedBy         *uuid.UUID         `json:"created_by"`
-	CreatedAt         pgtype.Timestamptz `json:"created_at"`
-	UpdatedBy         *uuid.UUID         `json:"updated_by"`
-	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt         pgtype.Timestamptz `json:"deleted_at"`
+	ID                   uuid.UUID          `json:"id"`
+	DisplayName          string             `json:"display_name"`
+	ReportingCurrency    string             `json:"reporting_currency"`
+	CreatedBy            *uuid.UUID         `json:"created_by"`
+	CreatedAt            pgtype.Timestamptz `json:"created_at"`
+	UpdatedBy            *uuid.UUID         `json:"updated_by"`
+	UpdatedAt            pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt            pgtype.Timestamptz `json:"deleted_at"`
+	MultiCurrencyEnabled bool               `json:"multi_currency_enabled"`
 }
 
 type HouseholdInvitation struct {
