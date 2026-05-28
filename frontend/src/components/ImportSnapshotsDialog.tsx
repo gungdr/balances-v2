@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import type { UseMutationResult } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -11,14 +12,13 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { ApiError } from '@/api/client'
-import {
-  importTemplateUrl,
-  useImportSnapshots,
-  type ImportResult,
-} from '@/hooks/useAssetSnapshots'
+import type { ImportArgs, ImportResult } from '@/hooks/snapshotImport'
 
 type Props = {
-  assetId: string
+  // templateUrl + mutation are owned by the parent so the same dialog drives
+  // import for any amount-shape position group (asset/liability/receivable).
+  templateUrl: string
+  mutation: UseMutationResult<ImportResult, unknown, ImportArgs>
   currency: string
 }
 
@@ -26,12 +26,11 @@ type Props = {
 // upload. "Check file" runs a server-side dry-run (validates + counts, writes
 // nothing); "Import" only lights up once the file is clean. Aimed at a
 // non-technical user backfilling years of statements at once.
-export function ImportSnapshotsDialog({ assetId, currency }: Props) {
+export function ImportSnapshotsDialog({ templateUrl, mutation, currency }: Props) {
   const [open, setOpen] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [result, setResult] = useState<ImportResult | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-  const mutation = useImportSnapshots(assetId)
 
   function reset() {
     setFile(null)
@@ -82,7 +81,7 @@ export function ImportSnapshotsDialog({ assetId, currency }: Props) {
           <div className="grid gap-1.5">
             <Label>1. Download the template</Label>
             <a
-              href={importTemplateUrl(assetId)}
+              href={templateUrl}
               className="text-sm text-primary underline underline-offset-4"
               data-testid="import-template-link"
             >

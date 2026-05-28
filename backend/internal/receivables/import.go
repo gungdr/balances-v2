@@ -1,4 +1,4 @@
-package assets
+package receivables
 
 import (
 	"fmt"
@@ -13,17 +13,17 @@ import (
 const maxImportUpload = 5 << 20 // 5 MB
 
 // handleImportTemplate streams an .xlsx snapshot-import template scoped to the
-// asset (its name + native currency baked into the example + instructions).
+// receivable (its name + native currency baked into the example + instructions).
 func (h *Handlers) handleImportTemplate(w http.ResponseWriter, r *http.Request) {
-	assetID, err := parseIDParam(r, "id")
+	receivableID, err := parseIDParam(r, "id")
 	if err != nil {
 		http.Error(w, "invalid id", http.StatusBadRequest)
 		return
 	}
 
-	name, currency, err := h.repo.AssetImportMeta(r.Context(), assetID)
+	name, currency, err := h.repo.ReceivableImportMeta(r.Context(), receivableID)
 	if err != nil {
-		writeRepoError(w, "import template: asset meta", err)
+		writeRepoError(w, "import template: receivable meta", err)
 		return
 	}
 
@@ -55,7 +55,7 @@ type importResponse struct {
 // With mode=commit it additionally upserts, but only if zero rows errored
 // (all-or-nothing) — otherwise it returns 422 with the row errors.
 func (h *Handlers) handleImportSnapshots(w http.ResponseWriter, r *http.Request) {
-	assetID, err := parseIDParam(r, "id")
+	receivableID, err := parseIDParam(r, "id")
 	if err != nil {
 		http.Error(w, "invalid id", http.StatusBadRequest)
 		return
@@ -71,9 +71,9 @@ func (h *Handlers) handleImportSnapshots(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Ownership check + default currency for blank cells (404 if not owned).
-	_, currency, err := h.repo.AssetImportMeta(r.Context(), assetID)
+	_, currency, err := h.repo.ReceivableImportMeta(r.Context(), receivableID)
 	if err != nil {
-		writeRepoError(w, "import: asset meta", err)
+		writeRepoError(w, "import: receivable meta", err)
 		return
 	}
 
@@ -117,7 +117,7 @@ func (h *Handlers) handleImportSnapshots(w http.ResponseWriter, r *http.Request)
 	}
 
 	dryRun := mode == "preview"
-	res, err := h.repo.ImportAssetSnapshots(r.Context(), assetID, rows, dryRun)
+	res, err := h.repo.ImportReceivableSnapshots(r.Context(), receivableID, rows, dryRun)
 	if err != nil {
 		writeRepoError(w, fmt.Sprintf("import snapshots (%s)", mode), err)
 		return

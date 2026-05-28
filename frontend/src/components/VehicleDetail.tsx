@@ -21,8 +21,11 @@ import {
   useCreateSnapshot,
   useUpdateSnapshot,
   useDeleteSnapshot,
+  useImportSnapshots,
+  importTemplateUrl,
 } from '@/hooks/useAssetSnapshots'
 import { CreateSnapshotDialog } from '@/components/CreateSnapshotDialog'
+import { ImportSnapshotsDialog } from '@/components/ImportSnapshotsDialog'
 import { TerminatePositionDialog } from '@/components/TerminatePositionDialog'
 import { StatusBadge } from '@/components/StatusBadge'
 import { isActiveStatus } from '@/lib/lifecycle'
@@ -48,6 +51,7 @@ export function VehicleDetail({ assetId, onBack }: Props) {
   const createSnapshotMutation = useCreateSnapshot(assetId)
   const updateSnapshotMutation = useUpdateSnapshot(assetId)
   const deleteSnapshotMutation = useDeleteSnapshot(assetId)
+  const importSnapshotMutation = useImportSnapshots(assetId)
   const { data: members } = useHouseholdMembers()
   const { data: currentUser } = useSession()
 
@@ -122,10 +126,17 @@ export function VehicleDetail({ assetId, onBack }: Props) {
         </div>
         <div className="flex gap-2">
           {isActiveStatus(asset.status) && (
-            <CreateSnapshotDialog
-              currency={asset.native_currency}
-              mutation={createSnapshotMutation}
-            />
+            <>
+              <CreateSnapshotDialog
+                currency={asset.native_currency}
+                mutation={createSnapshotMutation}
+              />
+              <ImportSnapshotsDialog
+                templateUrl={importTemplateUrl(asset.id)}
+                mutation={importSnapshotMutation}
+                currency={asset.native_currency}
+              />
+            </>
           )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             Edit

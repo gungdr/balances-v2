@@ -73,6 +73,33 @@ func (q *Queries) CreateLiabilitySnapshot(ctx context.Context, arg CreateLiabili
 	return i, err
 }
 
+const getLiabilityForImport = `-- name: GetLiabilityForImport :one
+SELECT l.display_name, l.native_currency
+FROM liabilities l
+WHERE l.id = $1 AND l.household_id = $2 AND l.deleted_at IS NULL
+`
+
+type GetLiabilityForImportParams struct {
+	ID          uuid.UUID `json:"id"`
+	HouseholdID uuid.UUID `json:"household_id"`
+}
+
+type GetLiabilityForImportRow struct {
+	DisplayName    string `json:"display_name"`
+	NativeCurrency string `json:"native_currency"`
+}
+
+// GetLiabilityForImport returns the display name + native currency of an owned
+// liability. Doubles as the ownership/existence check for the snapshot
+// importer: ErrNoRows means the liability doesn't exist in this household (or
+// is deleted), which the repo maps to ErrNotFound -> 404.
+func (q *Queries) GetLiabilityForImport(ctx context.Context, arg GetLiabilityForImportParams) (GetLiabilityForImportRow, error) {
+	row := q.db.QueryRow(ctx, getLiabilityForImport, arg.ID, arg.HouseholdID)
+	var i GetLiabilityForImportRow
+	err := row.Scan(&i.DisplayName, &i.NativeCurrency)
+	return i, err
+}
+
 const getLiabilitySnapshotByID = `-- name: GetLiabilitySnapshotByID :one
 SELECT s.id, s.liability_id, s.year_month, s.amount, s.currency, s.as_of_date, s.description, s.created_by, s.created_at, s.updated_by, s.updated_at, s.deleted_at
 FROM liability_snapshots s
@@ -261,6 +288,74 @@ func (q *Queries) UpdateLiabilitySnapshot(ctx context.Context, arg UpdateLiabili
 		arg.AsOfDate,
 		arg.Description,
 		arg.UpdatedBy,
+	)
+	var i LiabilitySnapshot
+	err := row.Scan(
+		&i.ID,
+		&i.LiabilityID,
+		&i.YearMonth,
+		&i.Amount,
+		&i.Currency,
+		&i.AsOfDate,
+		&i.Description,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedBy,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const upsertLiabilitySnapshot = `-- name: UpsertLiabilitySnapshot :one
+WITH owned_liability AS (
+    SELECT l.id AS lid
+    FROM liabilities l
+    WHERE l.id = $1 AND l.household_id = $8::uuid AND l.deleted_at IS NULL
+)
+INSERT INTO liability_snapshots (
+    liability_id, year_month, amount, currency, as_of_date, description,
+    created_by, updated_by
+)
+SELECT owned_liability.lid, $2, $3, $4, $5, $6, $7, $7
+FROM owned_liability
+ON CONFLICT (liability_id, year_month) WHERE deleted_at IS NULL
+DO UPDATE SET
+    amount      = EXCLUDED.amount,
+    currency    = EXCLUDED.currency,
+    as_of_date  = EXCLUDED.as_of_date,
+    description = EXCLUDED.description,
+    updated_by  = EXCLUDED.updated_by,
+    updated_at  = now()
+RETURNING id, liability_id, year_month, amount, currency, as_of_date, description, created_by, created_at, updated_by, updated_at, deleted_at
+`
+
+type UpsertLiabilitySnapshotParams struct {
+	ID          uuid.UUID       `json:"id"`
+	YearMonth   time.Time       `json:"year_month"`
+	Amount      decimal.Decimal `json:"amount"`
+	Currency    string          `json:"currency"`
+	AsOfDate    *time.Time      `json:"as_of_date"`
+	Description *string         `json:"description"`
+	CreatedBy   *uuid.UUID      `json:"created_by"`
+	HouseholdID uuid.UUID       `json:"household_id"`
+}
+
+// UpsertLiabilitySnapshot inserts a snapshot or, when one already exists for
+// the (liability_id, year_month) pair, overwrites it (last-write-wins) — the
+// importer needs idempotent re-runs of a multi-year backfill. ON CONFLICT
+// targets the partial unique index, so its predicate (deleted_at IS NULL) is
+// repeated. created_by is only set on insert; updated_by always.
+func (q *Queries) UpsertLiabilitySnapshot(ctx context.Context, arg UpsertLiabilitySnapshotParams) (LiabilitySnapshot, error) {
+	row := q.db.QueryRow(ctx, upsertLiabilitySnapshot,
+		arg.ID,
+		arg.YearMonth,
+		arg.Amount,
+		arg.Currency,
+		arg.AsOfDate,
+		arg.Description,
+		arg.CreatedBy,
+		arg.HouseholdID,
 	)
 	var i LiabilitySnapshot
 	err := row.Scan(

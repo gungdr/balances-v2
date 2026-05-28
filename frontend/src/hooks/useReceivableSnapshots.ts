@@ -1,6 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import type { ReceivableSnapshot } from '@/api/types'
+import {
+  postSnapshotImport,
+  snapshotImportTemplateUrl,
+  type ImportArgs,
+} from './snapshotImport'
 
 // Receivable snapshots live under /api/receivables/{id}/snapshots — per-group
 // per ADR-0022.
@@ -75,6 +80,31 @@ export function useDeleteReceivableSnapshot(receivableId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['receivable-snapshots', receivableId] })
       qc.invalidateQueries({ queryKey: ['receivables'] })
+    },
+  })
+}
+
+// ----- bulk snapshot import (xlsx template) -------------------------------
+
+export function receivableImportTemplateUrl(receivableId: string): string {
+  return snapshotImportTemplateUrl(`/api/receivables/${receivableId}/snapshots`)
+}
+
+export function useImportReceivableSnapshots(receivableId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (args: ImportArgs) =>
+      postSnapshotImport(
+        `/api/receivables/${receivableId}/snapshots`,
+        args.file,
+        args.mode,
+      ),
+    onSuccess: (result) => {
+      // Only a real write should refresh the caches; a preview changed nothing.
+      if (result.committed) {
+        qc.invalidateQueries({ queryKey: ['receivable-snapshots', receivableId] })
+        qc.invalidateQueries({ queryKey: ['receivables'] })
+      }
     },
   })
 }

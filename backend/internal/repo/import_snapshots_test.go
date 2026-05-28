@@ -111,3 +111,194 @@ func TestAssetRepo_ImportAssetSnapshots(t *testing.T) {
 		}
 	})
 }
+
+// TestLiabilityRepo_ImportLiabilitySnapshots mirrors the asset import coverage
+// for the Liability group (dry-run / commit / upsert-by-month / tenancy).
+func TestLiabilityRepo_ImportLiabilitySnapshots(t *testing.T) {
+	tdb := testutil.NewTestDB(t)
+	q := db.New(tdb.Pool)
+
+	alice := testutil.CreateHouseholdWithUser(t, q, "Alice")
+	bob := testutil.CreateHouseholdWithUser(t, q, "Bob")
+	aliceCtx := auth.WithUser(context.Background(), alice)
+	bobCtx := auth.WithUser(context.Background(), bob)
+
+	r := repo.NewLiabilityRepo(tdb.Pool)
+
+	liab, err := r.CreateLiability(aliceCtx, repo.CreateLiabilityParams{
+		DisplayName:      "Alice Car Loan",
+		Subtype:          "personal",
+		OwnershipType:    "joint",
+		NativeCurrency:   "IDR",
+		CounterpartyName: "Uncle Bob",
+	})
+	if err != nil {
+		t.Fatalf("CreateLiability: %v", err)
+	}
+	lid := liab.ID
+
+	ym := func(y int, m time.Month) time.Time {
+		return time.Date(y, m, 1, 0, 0, 0, 0, time.UTC)
+	}
+	rows := []repo.ImportSnapshotRow{
+		{YearMonth: ym(2015, time.January), Amount: decimal.NewFromInt(100), Currency: "IDR"},
+		{YearMonth: ym(2015, time.February), Amount: decimal.NewFromInt(200), Currency: "IDR"},
+	}
+
+	t.Run("dry-run classifies but writes nothing", func(t *testing.T) {
+		res, err := r.ImportLiabilitySnapshots(aliceCtx, lid, rows, true)
+		if err != nil {
+			t.Fatalf("dry-run: %v", err)
+		}
+		if res.ToInsert != 2 || res.ToUpdate != 0 {
+			t.Errorf("counts = %d/%d, want 2/0", res.ToInsert, res.ToUpdate)
+		}
+		snaps, _ := r.ListLiabilitySnapshots(aliceCtx, lid)
+		if len(snaps) != 0 {
+			t.Errorf("dry-run wrote %d snapshots; want 0", len(snaps))
+		}
+	})
+
+	t.Run("commit inserts all rows", func(t *testing.T) {
+		res, err := r.ImportLiabilitySnapshots(aliceCtx, lid, rows, false)
+		if err != nil {
+			t.Fatalf("commit: %v", err)
+		}
+		if res.ToInsert != 2 || res.ToUpdate != 0 {
+			t.Errorf("counts = %d/%d, want 2/0", res.ToInsert, res.ToUpdate)
+		}
+		snaps, _ := r.ListLiabilitySnapshots(aliceCtx, lid)
+		if len(snaps) != 2 {
+			t.Fatalf("after commit got %d snapshots; want 2", len(snaps))
+		}
+	})
+
+	t.Run("re-import upserts by month, last-write-wins", func(t *testing.T) {
+		updated := []repo.ImportSnapshotRow{
+			{YearMonth: ym(2015, time.January), Amount: decimal.NewFromInt(999), Currency: "IDR"},
+			{YearMonth: ym(2015, time.March), Amount: decimal.NewFromInt(300), Currency: "IDR"},
+		}
+		res, err := r.ImportLiabilitySnapshots(aliceCtx, lid, updated, false)
+		if err != nil {
+			t.Fatalf("re-import: %v", err)
+		}
+		if res.ToInsert != 1 || res.ToUpdate != 1 {
+			t.Errorf("counts = %d/%d, want 1/1", res.ToInsert, res.ToUpdate)
+		}
+		snaps, _ := r.ListLiabilitySnapshots(aliceCtx, lid)
+		if len(snaps) != 3 {
+			t.Fatalf("got %d snapshots; want 3 (Jan/Feb/Mar, no dup)", len(snaps))
+		}
+		for _, s := range snaps {
+			if s.YearMonth.Equal(ym(2015, time.January)) && !s.Amount.Equal(decimal.NewFromInt(999)) {
+				t.Errorf("Jan amount = %s, want 999 (overwritten)", s.Amount)
+			}
+		}
+	})
+
+	t.Run("bob cannot import into alice's liability", func(t *testing.T) {
+		_, err := r.ImportLiabilitySnapshots(bobCtx, lid, rows, false)
+		if !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("bob import err = %v, want ErrNotFound", err)
+		}
+		snaps, _ := r.ListLiabilitySnapshots(aliceCtx, lid)
+		if len(snaps) != 3 {
+			t.Errorf("after bob's attempt got %d snapshots; want 3 unchanged", len(snaps))
+		}
+	})
+}
+
+// TestReceivableRepo_ImportReceivableSnapshots mirrors the asset import coverage
+// for the Receivable group.
+func TestReceivableRepo_ImportReceivableSnapshots(t *testing.T) {
+	tdb := testutil.NewTestDB(t)
+	q := db.New(tdb.Pool)
+
+	alice := testutil.CreateHouseholdWithUser(t, q, "Alice")
+	bob := testutil.CreateHouseholdWithUser(t, q, "Bob")
+	aliceCtx := auth.WithUser(context.Background(), alice)
+	bobCtx := auth.WithUser(context.Background(), bob)
+
+	r := repo.NewReceivableRepo(tdb.Pool)
+
+	rec, err := r.CreateReceivable(aliceCtx, repo.CreateReceivableParams{
+		DisplayName:      "Loan to Carol",
+		OwnershipType:    "joint",
+		NativeCurrency:   "IDR",
+		CounterpartyName: "Carol",
+	})
+	if err != nil {
+		t.Fatalf("CreateReceivable: %v", err)
+	}
+	rid := rec.ID
+
+	ym := func(y int, m time.Month) time.Time {
+		return time.Date(y, m, 1, 0, 0, 0, 0, time.UTC)
+	}
+	rows := []repo.ImportSnapshotRow{
+		{YearMonth: ym(2015, time.January), Amount: decimal.NewFromInt(100), Currency: "IDR"},
+		{YearMonth: ym(2015, time.February), Amount: decimal.NewFromInt(200), Currency: "IDR"},
+	}
+
+	t.Run("dry-run classifies but writes nothing", func(t *testing.T) {
+		res, err := r.ImportReceivableSnapshots(aliceCtx, rid, rows, true)
+		if err != nil {
+			t.Fatalf("dry-run: %v", err)
+		}
+		if res.ToInsert != 2 || res.ToUpdate != 0 {
+			t.Errorf("counts = %d/%d, want 2/0", res.ToInsert, res.ToUpdate)
+		}
+		snaps, _ := r.ListReceivableSnapshots(aliceCtx, rid)
+		if len(snaps) != 0 {
+			t.Errorf("dry-run wrote %d snapshots; want 0", len(snaps))
+		}
+	})
+
+	t.Run("commit inserts all rows", func(t *testing.T) {
+		res, err := r.ImportReceivableSnapshots(aliceCtx, rid, rows, false)
+		if err != nil {
+			t.Fatalf("commit: %v", err)
+		}
+		if res.ToInsert != 2 || res.ToUpdate != 0 {
+			t.Errorf("counts = %d/%d, want 2/0", res.ToInsert, res.ToUpdate)
+		}
+		snaps, _ := r.ListReceivableSnapshots(aliceCtx, rid)
+		if len(snaps) != 2 {
+			t.Fatalf("after commit got %d snapshots; want 2", len(snaps))
+		}
+	})
+
+	t.Run("re-import upserts by month, last-write-wins", func(t *testing.T) {
+		updated := []repo.ImportSnapshotRow{
+			{YearMonth: ym(2015, time.January), Amount: decimal.NewFromInt(999), Currency: "IDR"},
+			{YearMonth: ym(2015, time.March), Amount: decimal.NewFromInt(300), Currency: "IDR"},
+		}
+		res, err := r.ImportReceivableSnapshots(aliceCtx, rid, updated, false)
+		if err != nil {
+			t.Fatalf("re-import: %v", err)
+		}
+		if res.ToInsert != 1 || res.ToUpdate != 1 {
+			t.Errorf("counts = %d/%d, want 1/1", res.ToInsert, res.ToUpdate)
+		}
+		snaps, _ := r.ListReceivableSnapshots(aliceCtx, rid)
+		if len(snaps) != 3 {
+			t.Fatalf("got %d snapshots; want 3 (Jan/Feb/Mar, no dup)", len(snaps))
+		}
+		for _, s := range snaps {
+			if s.YearMonth.Equal(ym(2015, time.January)) && !s.Amount.Equal(decimal.NewFromInt(999)) {
+				t.Errorf("Jan amount = %s, want 999 (overwritten)", s.Amount)
+			}
+		}
+	})
+
+	t.Run("bob cannot import into alice's receivable", func(t *testing.T) {
+		_, err := r.ImportReceivableSnapshots(bobCtx, rid, rows, false)
+		if !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("bob import err = %v, want ErrNotFound", err)
+		}
+		snaps, _ := r.ListReceivableSnapshots(aliceCtx, rid)
+		if len(snaps) != 3 {
+			t.Errorf("after bob's attempt got %d snapshots; want 3 unchanged", len(snaps))
+		}
+	})
+}

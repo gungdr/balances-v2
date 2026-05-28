@@ -21,8 +21,11 @@ import {
   useCreateReceivableSnapshot,
   useUpdateReceivableSnapshot,
   useDeleteReceivableSnapshot,
+  useImportReceivableSnapshots,
+  receivableImportTemplateUrl,
 } from '@/hooks/useReceivableSnapshots'
 import { CreateSnapshotDialog } from '@/components/CreateSnapshotDialog'
+import { ImportSnapshotsDialog } from '@/components/ImportSnapshotsDialog'
 import { TerminatePositionDialog } from '@/components/TerminatePositionDialog'
 import { StatusBadge } from '@/components/StatusBadge'
 import { isActiveStatus } from '@/lib/lifecycle'
@@ -49,6 +52,7 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
   const createSnapshotMutation = useCreateReceivableSnapshot(receivableId)
   const updateSnapshotMutation = useUpdateReceivableSnapshot(receivableId)
   const deleteSnapshotMutation = useDeleteReceivableSnapshot(receivableId)
+  const importSnapshotMutation = useImportReceivableSnapshots(receivableId)
   const { data: members } = useHouseholdMembers()
   const { data: currentUser } = useSession()
 
@@ -112,10 +116,17 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
         </div>
         <div className="flex gap-2">
           {isActiveStatus(receivable.status) && (
-            <CreateSnapshotDialog
-              currency={receivable.native_currency}
-              mutation={createSnapshotMutation}
-            />
+            <>
+              <CreateSnapshotDialog
+                currency={receivable.native_currency}
+                mutation={createSnapshotMutation}
+              />
+              <ImportSnapshotsDialog
+                templateUrl={receivableImportTemplateUrl(receivable.id)}
+                mutation={importSnapshotMutation}
+                currency={receivable.native_currency}
+              />
+            </>
           )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             Edit

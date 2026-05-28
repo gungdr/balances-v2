@@ -1,6 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import type { LiabilitySnapshot } from '@/api/types'
+import {
+  postSnapshotImport,
+  snapshotImportTemplateUrl,
+  type ImportArgs,
+} from './snapshotImport'
 
 // Liability snapshots live under /api/liabilities/{id}/snapshots — per-group
 // per ADR-0022. Mutations invalidate the liability list query because each
@@ -76,6 +81,31 @@ export function useDeleteLiabilitySnapshot(liabilityId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['liability-snapshots', liabilityId] })
       qc.invalidateQueries({ queryKey: ['liabilities'] })
+    },
+  })
+}
+
+// ----- bulk snapshot import (xlsx template) -------------------------------
+
+export function liabilityImportTemplateUrl(liabilityId: string): string {
+  return snapshotImportTemplateUrl(`/api/liabilities/${liabilityId}/snapshots`)
+}
+
+export function useImportLiabilitySnapshots(liabilityId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (args: ImportArgs) =>
+      postSnapshotImport(
+        `/api/liabilities/${liabilityId}/snapshots`,
+        args.file,
+        args.mode,
+      ),
+    onSuccess: (result) => {
+      // Only a real write should refresh the caches; a preview changed nothing.
+      if (result.committed) {
+        qc.invalidateQueries({ queryKey: ['liability-snapshots', liabilityId] })
+        qc.invalidateQueries({ queryKey: ['liabilities'] })
+      }
     },
   })
 }

@@ -70,3 +70,39 @@ WHERE s.id = $1
   AND l.household_id = $2
   AND l.deleted_at IS NULL
   AND s.deleted_at IS NULL;
+
+-- GetLiabilityForImport returns the display name + native currency of an owned
+-- liability. Doubles as the ownership/existence check for the snapshot
+-- importer: ErrNoRows means the liability doesn't exist in this household (or
+-- is deleted), which the repo maps to ErrNotFound -> 404.
+-- name: GetLiabilityForImport :one
+SELECT l.display_name, l.native_currency
+FROM liabilities l
+WHERE l.id = $1 AND l.household_id = $2 AND l.deleted_at IS NULL;
+
+-- UpsertLiabilitySnapshot inserts a snapshot or, when one already exists for
+-- the (liability_id, year_month) pair, overwrites it (last-write-wins) — the
+-- importer needs idempotent re-runs of a multi-year backfill. ON CONFLICT
+-- targets the partial unique index, so its predicate (deleted_at IS NULL) is
+-- repeated. created_by is only set on insert; updated_by always.
+-- name: UpsertLiabilitySnapshot :one
+WITH owned_liability AS (
+    SELECT l.id AS lid
+    FROM liabilities l
+    WHERE l.id = $1 AND l.household_id = sqlc.arg('household_id')::uuid AND l.deleted_at IS NULL
+)
+INSERT INTO liability_snapshots (
+    liability_id, year_month, amount, currency, as_of_date, description,
+    created_by, updated_by
+)
+SELECT owned_liability.lid, $2, $3, $4, $5, $6, $7, $7
+FROM owned_liability
+ON CONFLICT (liability_id, year_month) WHERE deleted_at IS NULL
+DO UPDATE SET
+    amount      = EXCLUDED.amount,
+    currency    = EXCLUDED.currency,
+    as_of_date  = EXCLUDED.as_of_date,
+    description = EXCLUDED.description,
+    updated_by  = EXCLUDED.updated_by,
+    updated_at  = now()
+RETURNING *;

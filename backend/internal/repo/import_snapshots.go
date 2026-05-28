@@ -123,3 +123,174 @@ func (r *AssetRepo) ImportAssetSnapshots(ctx context.Context, assetID uuid.UUID,
 	}
 	return &res, nil
 }
+
+// LiabilityImportMeta mirrors AssetImportMeta for the Liability group: display
+// name + native currency of an owned liability, doubling as the ownership
+// check (-> ErrNotFound on a miss).
+func (r *LiabilityRepo) LiabilityImportMeta(ctx context.Context, liabilityID uuid.UUID) (name, currency string, err error) {
+	_, hid, err := currentUser(ctx)
+	if err != nil {
+		return "", "", err
+	}
+	row, err := r.q.GetLiabilityForImport(ctx, db.GetLiabilityForImportParams{ID: liabilityID, HouseholdID: hid})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", "", ErrNotFound
+		}
+		return "", "", fmt.Errorf("liability import meta: %w", err)
+	}
+	return row.DisplayName, row.NativeCurrency, nil
+}
+
+// ImportLiabilitySnapshots is the Liability-group analogue of
+// ImportAssetSnapshots: all-or-nothing upsert in one tx, dry-run classifies
+// without writing, ownership enforced via GetLiabilityForImport.
+func (r *LiabilityRepo) ImportLiabilitySnapshots(ctx context.Context, liabilityID uuid.UUID, rows []ImportSnapshotRow, dryRun bool) (*ImportResult, error) {
+	user, hid, err := currentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := r.q.GetLiabilityForImport(ctx, db.GetLiabilityForImportParams{ID: liabilityID, HouseholdID: hid}); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("import: load liability: %w", err)
+	}
+
+	existing, err := r.q.ListLiabilitySnapshotsForLiability(ctx, db.ListLiabilitySnapshotsForLiabilityParams{
+		LiabilityID: liabilityID,
+		HouseholdID: hid,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("import: list existing snapshots: %w", err)
+	}
+	months := make(map[string]struct{}, len(existing))
+	for _, s := range existing {
+		months[s.YearMonth.Format("2006-01")] = struct{}{}
+	}
+
+	var res ImportResult
+	for _, row := range rows {
+		if _, ok := months[row.YearMonth.Format("2006-01")]; ok {
+			res.ToUpdate++
+		} else {
+			res.ToInsert++
+		}
+	}
+
+	if dryRun || len(rows) == 0 {
+		return &res, nil
+	}
+
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("import: begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	qtx := r.q.WithTx(tx)
+
+	for _, row := range rows {
+		if _, err := qtx.UpsertLiabilitySnapshot(ctx, db.UpsertLiabilitySnapshotParams{
+			ID:          liabilityID,
+			YearMonth:   row.YearMonth,
+			Amount:      row.Amount,
+			Currency:    row.Currency,
+			AsOfDate:    row.AsOfDate,
+			Description: row.Description,
+			CreatedBy:   &user,
+			HouseholdID: hid,
+		}); err != nil {
+			return nil, fmt.Errorf("import: upsert %s: %w", row.YearMonth.Format("2006-01"), err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("import: commit: %w", err)
+	}
+	return &res, nil
+}
+
+// ReceivableImportMeta mirrors AssetImportMeta for the Receivable group.
+func (r *ReceivableRepo) ReceivableImportMeta(ctx context.Context, receivableID uuid.UUID) (name, currency string, err error) {
+	_, hid, err := currentUser(ctx)
+	if err != nil {
+		return "", "", err
+	}
+	row, err := r.q.GetReceivableForImport(ctx, db.GetReceivableForImportParams{ID: receivableID, HouseholdID: hid})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", "", ErrNotFound
+		}
+		return "", "", fmt.Errorf("receivable import meta: %w", err)
+	}
+	return row.DisplayName, row.NativeCurrency, nil
+}
+
+// ImportReceivableSnapshots is the Receivable-group analogue of
+// ImportAssetSnapshots.
+func (r *ReceivableRepo) ImportReceivableSnapshots(ctx context.Context, receivableID uuid.UUID, rows []ImportSnapshotRow, dryRun bool) (*ImportResult, error) {
+	user, hid, err := currentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := r.q.GetReceivableForImport(ctx, db.GetReceivableForImportParams{ID: receivableID, HouseholdID: hid}); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("import: load receivable: %w", err)
+	}
+
+	existing, err := r.q.ListReceivableSnapshotsForReceivable(ctx, db.ListReceivableSnapshotsForReceivableParams{
+		ReceivableID: receivableID,
+		HouseholdID:  hid,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("import: list existing snapshots: %w", err)
+	}
+	months := make(map[string]struct{}, len(existing))
+	for _, s := range existing {
+		months[s.YearMonth.Format("2006-01")] = struct{}{}
+	}
+
+	var res ImportResult
+	for _, row := range rows {
+		if _, ok := months[row.YearMonth.Format("2006-01")]; ok {
+			res.ToUpdate++
+		} else {
+			res.ToInsert++
+		}
+	}
+
+	if dryRun || len(rows) == 0 {
+		return &res, nil
+	}
+
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("import: begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	qtx := r.q.WithTx(tx)
+
+	for _, row := range rows {
+		if _, err := qtx.UpsertReceivableSnapshot(ctx, db.UpsertReceivableSnapshotParams{
+			ID:          receivableID,
+			YearMonth:   row.YearMonth,
+			Amount:      row.Amount,
+			Currency:    row.Currency,
+			AsOfDate:    row.AsOfDate,
+			Description: row.Description,
+			CreatedBy:   &user,
+			HouseholdID: hid,
+		}); err != nil {
+			return nil, fmt.Errorf("import: upsert %s: %w", row.YearMonth.Format("2006-01"), err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("import: commit: %w", err)
+	}
+	return &res, nil
+}

@@ -73,6 +73,33 @@ func (q *Queries) CreateReceivableSnapshot(ctx context.Context, arg CreateReceiv
 	return i, err
 }
 
+const getReceivableForImport = `-- name: GetReceivableForImport :one
+SELECT r.display_name, r.native_currency
+FROM receivables r
+WHERE r.id = $1 AND r.household_id = $2 AND r.deleted_at IS NULL
+`
+
+type GetReceivableForImportParams struct {
+	ID          uuid.UUID `json:"id"`
+	HouseholdID uuid.UUID `json:"household_id"`
+}
+
+type GetReceivableForImportRow struct {
+	DisplayName    string `json:"display_name"`
+	NativeCurrency string `json:"native_currency"`
+}
+
+// GetReceivableForImport returns the display name + native currency of an
+// owned receivable. Doubles as the ownership/existence check for the snapshot
+// importer: ErrNoRows means the receivable doesn't exist in this household (or
+// is deleted), which the repo maps to ErrNotFound -> 404.
+func (q *Queries) GetReceivableForImport(ctx context.Context, arg GetReceivableForImportParams) (GetReceivableForImportRow, error) {
+	row := q.db.QueryRow(ctx, getReceivableForImport, arg.ID, arg.HouseholdID)
+	var i GetReceivableForImportRow
+	err := row.Scan(&i.DisplayName, &i.NativeCurrency)
+	return i, err
+}
+
 const getReceivableSnapshotByID = `-- name: GetReceivableSnapshotByID :one
 SELECT s.id, s.receivable_id, s.year_month, s.amount, s.currency, s.as_of_date, s.description, s.created_by, s.created_at, s.updated_by, s.updated_at, s.deleted_at
 FROM receivable_snapshots s
@@ -261,6 +288,74 @@ func (q *Queries) UpdateReceivableSnapshot(ctx context.Context, arg UpdateReceiv
 		arg.AsOfDate,
 		arg.Description,
 		arg.UpdatedBy,
+	)
+	var i ReceivableSnapshot
+	err := row.Scan(
+		&i.ID,
+		&i.ReceivableID,
+		&i.YearMonth,
+		&i.Amount,
+		&i.Currency,
+		&i.AsOfDate,
+		&i.Description,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedBy,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const upsertReceivableSnapshot = `-- name: UpsertReceivableSnapshot :one
+WITH owned_receivable AS (
+    SELECT r.id AS rid
+    FROM receivables r
+    WHERE r.id = $1 AND r.household_id = $8::uuid AND r.deleted_at IS NULL
+)
+INSERT INTO receivable_snapshots (
+    receivable_id, year_month, amount, currency, as_of_date, description,
+    created_by, updated_by
+)
+SELECT owned_receivable.rid, $2, $3, $4, $5, $6, $7, $7
+FROM owned_receivable
+ON CONFLICT (receivable_id, year_month) WHERE deleted_at IS NULL
+DO UPDATE SET
+    amount      = EXCLUDED.amount,
+    currency    = EXCLUDED.currency,
+    as_of_date  = EXCLUDED.as_of_date,
+    description = EXCLUDED.description,
+    updated_by  = EXCLUDED.updated_by,
+    updated_at  = now()
+RETURNING id, receivable_id, year_month, amount, currency, as_of_date, description, created_by, created_at, updated_by, updated_at, deleted_at
+`
+
+type UpsertReceivableSnapshotParams struct {
+	ID          uuid.UUID       `json:"id"`
+	YearMonth   time.Time       `json:"year_month"`
+	Amount      decimal.Decimal `json:"amount"`
+	Currency    string          `json:"currency"`
+	AsOfDate    *time.Time      `json:"as_of_date"`
+	Description *string         `json:"description"`
+	CreatedBy   *uuid.UUID      `json:"created_by"`
+	HouseholdID uuid.UUID       `json:"household_id"`
+}
+
+// UpsertReceivableSnapshot inserts a snapshot or, when one already exists for
+// the (receivable_id, year_month) pair, overwrites it (last-write-wins) — the
+// importer needs idempotent re-runs of a multi-year backfill. ON CONFLICT
+// targets the partial unique index, so its predicate (deleted_at IS NULL) is
+// repeated. created_by is only set on insert; updated_by always.
+func (q *Queries) UpsertReceivableSnapshot(ctx context.Context, arg UpsertReceivableSnapshotParams) (ReceivableSnapshot, error) {
+	row := q.db.QueryRow(ctx, upsertReceivableSnapshot,
+		arg.ID,
+		arg.YearMonth,
+		arg.Amount,
+		arg.Currency,
+		arg.AsOfDate,
+		arg.Description,
+		arg.CreatedBy,
+		arg.HouseholdID,
 	)
 	var i ReceivableSnapshot
 	err := row.Scan(

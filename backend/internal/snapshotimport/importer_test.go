@@ -144,7 +144,7 @@ func TestParse_BlankRowsSkipped(t *testing.T) {
 // TestRoundTrip proves the generated template is itself parseable and its
 // example row is valid — the format we emit is the format we accept.
 func TestRoundTrip(t *testing.T) {
-	tpl, err := BuildTemplate(TemplateMeta{AssetName: "BCA Tabungan", DefaultCurrency: "IDR"})
+	tpl, err := BuildTemplate(TemplateMeta{PositionName: "BCA Tabungan", DefaultCurrency: "IDR"})
 	if err != nil {
 		t.Fatalf("BuildTemplate: %v", err)
 	}

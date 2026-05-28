@@ -24,6 +24,8 @@ import {
   useCreateSnapshot,
   useUpdateSnapshot,
   useDeleteSnapshot,
+  useImportSnapshots,
+  importTemplateUrl,
 } from '@/hooks/useAssetSnapshots'
 import { CreateSnapshotDialog } from '@/components/CreateSnapshotDialog'
 import { ImportSnapshotsDialog } from '@/components/ImportSnapshotsDialog'
@@ -52,6 +54,7 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
   const createSnapshotMutation = useCreateSnapshot(assetId)
   const updateSnapshotMutation = useUpdateSnapshot(assetId)
   const deleteSnapshotMutation = useDeleteSnapshot(assetId)
+  const importSnapshotMutation = useImportSnapshots(assetId)
   const { data: members } = useHouseholdMembers()
   const { data: currentUser } = useSession()
 
@@ -129,7 +132,8 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
                 mutation={createSnapshotMutation}
               />
               <ImportSnapshotsDialog
-                assetId={asset.id}
+                templateUrl={importTemplateUrl(asset.id)}
+                mutation={importSnapshotMutation}
                 currency={asset.native_currency}
               />
             </>

@@ -59,9 +59,11 @@ type Options struct {
 	ValidCurrency   func(string) bool
 }
 
-// TemplateMeta scopes a generated template to one position.
+// TemplateMeta scopes a generated template to one position. PositionName is the
+// position's display name (asset / liability / receivable — the importer is
+// position-group-agnostic, only the calling repo knows the group).
 type TemplateMeta struct {
-	AssetName       string
+	PositionName    string
 	DefaultCurrency string
 }
 
@@ -113,7 +115,7 @@ func BuildTemplate(meta TemplateMeta) ([]byte, error) {
 
 func instructions(meta TemplateMeta) []string {
 	return []string{
-		fmt.Sprintf("Snapshot import — %s", meta.AssetName),
+		fmt.Sprintf("Snapshot import — %s", meta.PositionName),
 		"",
 		"Fill in the \"Snapshots\" sheet, one row per monthly balance.",
 		"",

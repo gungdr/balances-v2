@@ -21,8 +21,11 @@ import {
   useCreateLiabilitySnapshot,
   useUpdateLiabilitySnapshot,
   useDeleteLiabilitySnapshot,
+  useImportLiabilitySnapshots,
+  liabilityImportTemplateUrl,
 } from '@/hooks/useLiabilitySnapshots'
 import { CreateSnapshotDialog } from '@/components/CreateSnapshotDialog'
+import { ImportSnapshotsDialog } from '@/components/ImportSnapshotsDialog'
 import { TerminatePositionDialog } from '@/components/TerminatePositionDialog'
 import { StatusBadge } from '@/components/StatusBadge'
 import { isActiveStatus } from '@/lib/lifecycle'
@@ -49,6 +52,7 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
   const createSnapshotMutation = useCreateLiabilitySnapshot(liabilityId)
   const updateSnapshotMutation = useUpdateLiabilitySnapshot(liabilityId)
   const deleteSnapshotMutation = useDeleteLiabilitySnapshot(liabilityId)
+  const importSnapshotMutation = useImportLiabilitySnapshots(liabilityId)
   const { data: members } = useHouseholdMembers()
   const { data: currentUser } = useSession()
 
@@ -117,10 +121,17 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
         </div>
         <div className="flex gap-2">
           {isActiveStatus(liability.status) && (
-            <CreateSnapshotDialog
-              currency={liability.native_currency}
-              mutation={createSnapshotMutation}
-            />
+            <>
+              <CreateSnapshotDialog
+                currency={liability.native_currency}
+                mutation={createSnapshotMutation}
+              />
+              <ImportSnapshotsDialog
+                templateUrl={liabilityImportTemplateUrl(liability.id)}
+                mutation={importSnapshotMutation}
+                currency={liability.native_currency}
+              />
+            </>
           )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             Edit
