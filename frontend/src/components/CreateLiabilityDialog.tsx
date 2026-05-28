@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { useCreateLiability } from '@/hooks/useLiabilities'
 import { useSession } from '@/hooks/useSession'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { preferredName } from '@/lib/names'
 import { ApiError } from '@/api/client'
 
 type Props = {
@@ -255,7 +256,7 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
               >
                 {(members ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.display_name}
+                    {preferredName(m)}
                     {user && m.id === user.id ? ' (you)' : ''}
                   </option>
                 ))}

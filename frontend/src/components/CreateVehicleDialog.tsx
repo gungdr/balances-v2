@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { useCreateVehicle } from '@/hooks/useVehicles'
 import { useSession } from '@/hooks/useSession'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { preferredName } from '@/lib/names'
 import { ApiError } from '@/api/client'
 
 const empty = {
@@ -228,7 +229,7 @@ export function CreateVehicleDialog() {
               >
                 {(members ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.display_name}
+                    {preferredName(m)}
                     {user && m.id === user.id ? ' (you)' : ''}
                   </option>
                 ))}

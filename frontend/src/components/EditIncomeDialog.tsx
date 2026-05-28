@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useUpdateIncome } from '@/hooks/useIncome'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { preferredName } from '@/lib/names'
 import { useSession } from '@/hooks/useSession'
 import { ApiError } from '@/api/client'
 import type { Income, IncomeCategory } from '@/api/types'
@@ -190,7 +191,7 @@ export function EditIncomeDialog({ open, onOpenChange, income }: Props) {
               >
                 {(members ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.display_name}
+                    {preferredName(m)}
                     {user && m.id === user.id ? ' (you)' : ''}
                   </option>
                 ))}

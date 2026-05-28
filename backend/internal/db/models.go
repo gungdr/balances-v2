@@ -342,6 +342,7 @@ type User struct {
 	UpdatedBy   *uuid.UUID         `json:"updated_by"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
+	Nickname    *string            `json:"nickname"`
 }
 
 type VehicleDetail struct {

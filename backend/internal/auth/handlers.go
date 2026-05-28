@@ -6,7 +6,9 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
@@ -77,6 +79,7 @@ func (h *Handlers) Mount(r chi.Router) {
 	r.Get("/auth/google/callback", h.handleCallback)
 	r.Post("/auth/logout", h.handleLogout)
 	r.With(RequireAuth).Get("/me", h.handleMe)
+	r.With(RequireAuth).Patch("/me", h.handleUpdateMe)
 	r.With(RequireAuth).Get("/household/members", h.handleListHouseholdMembers)
 	r.With(RequireAuth).Patch("/household/settings", h.handleUpdateHouseholdSettings)
 	r.With(RequireAuth).Post("/invitations", h.handleCreateInvitation)
@@ -279,11 +282,26 @@ type meResponse struct {
 	ID                   uuid.UUID `json:"id"`
 	HouseholdID          uuid.UUID `json:"household_id"`
 	DisplayName          string    `json:"display_name"`
+	Nickname             *string   `json:"nickname"`
 	Email                string    `json:"email"`
 	Locale               string    `json:"locale"`
 	TimeZone             string    `json:"time_zone"`
 	ReportingCurrency    string    `json:"reporting_currency"`
 	MultiCurrencyEnabled bool      `json:"multi_currency_enabled"`
+}
+
+func meResponseFor(user db.User, hh db.Household) meResponse {
+	return meResponse{
+		ID:                   user.ID,
+		HouseholdID:          user.HouseholdID,
+		DisplayName:          user.DisplayName,
+		Nickname:             user.Nickname,
+		Email:                user.Email,
+		Locale:               user.Locale,
+		TimeZone:             user.TimeZone,
+		ReportingCurrency:    hh.ReportingCurrency,
+		MultiCurrencyEnabled: hh.MultiCurrencyEnabled,
+	}
 }
 
 func (h *Handlers) handleMe(w http.ResponseWriter, r *http.Request) {
@@ -299,16 +317,57 @@ func (h *Handlers) handleMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(meResponse{
-		ID:                   user.ID,
-		HouseholdID:          user.HouseholdID,
-		DisplayName:          user.DisplayName,
-		Email:                user.Email,
-		Locale:               user.Locale,
-		TimeZone:             user.TimeZone,
-		ReportingCurrency:    hh.ReportingCurrency,
-		MultiCurrencyEnabled: hh.MultiCurrencyEnabled,
+	_ = json.NewEncoder(w).Encode(meResponseFor(user, hh))
+}
+
+const maxNicknameLen = 32
+
+type updateMeReq struct {
+	Nickname *string `json:"nickname"`
+}
+
+// handleUpdateMe updates the current user's own profile. Today that is only the
+// self-set nickname (the compact owner label, falling back to display_name on
+// read). display_name itself stays Google-sourced and is not editable here.
+// A blank/whitespace nickname clears it (stored NULL); over 32 chars is 400.
+func (h *Handlers) handleUpdateMe(w http.ResponseWriter, r *http.Request) {
+	user, ok := UserFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	var req updateMeReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid json body", http.StatusBadRequest)
+		return
+	}
+	var nickname *string
+	if req.Nickname != nil {
+		if trimmed := strings.TrimSpace(*req.Nickname); trimmed != "" {
+			if utf8.RuneCountInString(trimmed) > maxNicknameLen {
+				http.Error(w, "invalid request: nickname must be 32 characters or fewer", http.StatusBadRequest)
+				return
+			}
+			nickname = &trimmed
+		}
+	}
+	updated, err := h.q.UpdateUserNickname(r.Context(), db.UpdateUserNicknameParams{
+		UpdatedBy: &user.ID,
+		Nickname:  nickname,
 	})
+	if err != nil {
+		slog.Error("update user nickname", "err", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	hh, err := h.q.GetHouseholdByID(r.Context(), updated.HouseholdID)
+	if err != nil {
+		slog.Error("get household for update me", "err", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(meResponseFor(updated, hh))
 }
 
 // householdMember is the public shape — only fields the frontend needs for
@@ -316,6 +375,7 @@ func (h *Handlers) handleMe(w http.ResponseWriter, r *http.Request) {
 type householdMember struct {
 	ID          uuid.UUID `json:"id"`
 	DisplayName string    `json:"display_name"`
+	Nickname    *string   `json:"nickname"`
 	Email       string    `json:"email"`
 }
 
@@ -336,6 +396,7 @@ func (h *Handlers) handleListHouseholdMembers(w http.ResponseWriter, r *http.Req
 		out = append(out, householdMember{
 			ID:          u.ID,
 			DisplayName: u.DisplayName,
+			Nickname:    u.Nickname,
 			Email:       u.Email,
 		})
 	}

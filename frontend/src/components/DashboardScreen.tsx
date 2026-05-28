@@ -11,6 +11,7 @@ import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useFxRates } from '@/hooks/useFxRates'
 import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatYearMonth } from '@/lib/format'
+import { preferredName } from '@/lib/names'
 import {
   availableDisplayCurrencies,
   resolveDisplayRate,
@@ -589,5 +590,5 @@ function personLabel(
   if (key === 'joint') return 'Joint'
   const m = (members ?? []).find((x) => x.id === key)
   if (!m) return 'Unknown'
-  return me && m.id === me.id ? `${m.display_name} (you)` : m.display_name
+  return me && m.id === me.id ? `${preferredName(m)} (you)` : preferredName(m)
 }

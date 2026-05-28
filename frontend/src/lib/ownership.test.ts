@@ -3,10 +3,13 @@ import { ownershipLabel } from '@/lib/ownership'
 import type { HouseholdMember } from '@/api/types'
 import type { Me } from '@/hooks/useSession'
 
-// ownershipLabel only reads id/display_name off members and id off the current
-// user, so fixtures carry just those (cast past the full wire types).
-const member = (id: string, display_name: string): HouseholdMember =>
-  ({ id, display_name }) as HouseholdMember
+// ownershipLabel only reads id/display_name/nickname off members and id off the
+// current user, so fixtures carry just those (cast past the full wire types).
+const member = (
+  id: string,
+  display_name: string,
+  nickname: string | null = null,
+): HouseholdMember => ({ id, display_name, nickname }) as HouseholdMember
 
 const me = (id: string): Me => ({ id }) as Me
 
@@ -27,6 +30,18 @@ describe('ownershipLabel', () => {
   it('suffixes "(you)" when the sole owner is the current user', () => {
     expect(ownershipLabel('sole', 'u-alice', members, me('u-alice'))).toBe(
       'Alice (you)',
+    )
+  })
+
+  it('prefers the owner nickname over display_name', () => {
+    const withNick = [member('u-bob', 'Robert Bobson', 'Bob B')]
+    expect(ownershipLabel('sole', 'u-bob', withNick, me('u-alice'))).toBe('Bob B')
+  })
+
+  it('prefers the nickname even with the "(you)" suffix', () => {
+    const withNick = [member('u-alice', 'Alice Anderson', 'Ali')]
+    expect(ownershipLabel('sole', 'u-alice', withNick, me('u-alice'))).toBe(
+      'Ali (you)',
     )
   })
 

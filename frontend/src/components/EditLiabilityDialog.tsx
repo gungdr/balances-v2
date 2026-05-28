@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useUpdateLiability } from '@/hooks/useLiabilities'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { preferredName } from '@/lib/names'
 import { useSession } from '@/hooks/useSession'
 import { ApiError } from '@/api/client'
 import type { Liability } from '@/api/types'
@@ -198,7 +199,7 @@ export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
               >
                 {(members ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.display_name}
+                    {preferredName(m)}
                     {user && m.id === user.id ? ' (you)' : ''}
                   </option>
                 ))}

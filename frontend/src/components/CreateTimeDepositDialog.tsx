@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { useCreateTimeDeposit } from '@/hooks/useInvestments'
 import { useSession } from '@/hooks/useSession'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { preferredName } from '@/lib/names'
 import { ApiError } from '@/api/client'
 import type { RolloverPolicy } from '@/api/types'
 
@@ -315,7 +316,7 @@ export function CreateTimeDepositDialog() {
                 >
                   {(members ?? []).map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.display_name}
+                      {preferredName(m)}
                       {user && m.id === user.id ? ' (you)' : ''}
                     </option>
                   ))}

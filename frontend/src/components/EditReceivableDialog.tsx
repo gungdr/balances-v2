@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useUpdateReceivable } from '@/hooks/useReceivables'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
+import { preferredName } from '@/lib/names'
 import { useSession } from '@/hooks/useSession'
 import { ApiError } from '@/api/client'
 import type { Receivable } from '@/api/types'
@@ -141,7 +142,7 @@ export function EditReceivableDialog({
               >
                 {(members ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.display_name}
+                    {preferredName(m)}
                     {user && m.id === user.id ? ' (you)' : ''}
                   </option>
                 ))}

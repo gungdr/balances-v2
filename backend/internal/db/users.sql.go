@@ -17,7 +17,7 @@ INSERT INTO users (
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $7
 )
-RETURNING id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at
+RETURNING id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at, nickname
 `
 
 type CreateUserParams struct {
@@ -54,12 +54,13 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.UpdatedBy,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Nickname,
 	)
 	return i, err
 }
 
 const getUserByGoogleSub = `-- name: GetUserByGoogleSub :one
-SELECT id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at
+SELECT id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at, nickname
 FROM users
 WHERE google_sub = $1 AND deleted_at IS NULL
 `
@@ -80,12 +81,13 @@ func (q *Queries) GetUserByGoogleSub(ctx context.Context, googleSub string) (Use
 		&i.UpdatedBy,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Nickname,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at
+SELECT id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at, nickname
 FROM users
 WHERE id = $1 AND deleted_at IS NULL
 `
@@ -106,12 +108,13 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.UpdatedBy,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Nickname,
 	)
 	return i, err
 }
 
 const listUsersByHousehold = `-- name: ListUsersByHousehold :many
-SELECT id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at
+SELECT id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at, nickname
 FROM users
 WHERE household_id = $1
   AND deleted_at IS NULL
@@ -140,6 +143,7 @@ func (q *Queries) ListUsersByHousehold(ctx context.Context, householdID uuid.UUI
 			&i.UpdatedBy,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.Nickname,
 		); err != nil {
 			return nil, err
 		}
@@ -149,4 +153,41 @@ func (q *Queries) ListUsersByHousehold(ctx context.Context, householdID uuid.UUI
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateUserNickname = `-- name: UpdateUserNickname :one
+UPDATE users
+SET nickname   = $2,
+    updated_by = $1,
+    updated_at = now()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at, nickname
+`
+
+type UpdateUserNicknameParams struct {
+	UpdatedBy *uuid.UUID `json:"updated_by"`
+	Nickname  *string    `json:"nickname"`
+}
+
+// Self-attributed: a user updates only their own nickname (id = updated_by).
+// nickname NULL clears it; the length CHECK guards 1..32 chars when set.
+func (q *Queries) UpdateUserNickname(ctx context.Context, arg UpdateUserNicknameParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUserNickname, arg.UpdatedBy, arg.Nickname)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.HouseholdID,
+		&i.DisplayName,
+		&i.Email,
+		&i.GoogleSub,
+		&i.Locale,
+		&i.TimeZone,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedBy,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.Nickname,
+	)
+	return i, err
 }

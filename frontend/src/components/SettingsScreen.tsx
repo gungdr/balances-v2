@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/table'
 import { ApiError } from '@/api/client'
 import { useSession } from '@/hooks/useSession'
+import { useUpdateMe } from '@/hooks/useUpdateMe'
 import { useUpdateHouseholdSettings } from '@/hooks/useHouseholdSettings'
 import {
   useFxRates,
@@ -65,6 +66,8 @@ export function SettingsScreen() {
           invitations.
         </p>
       </div>
+
+      <NicknameCard />
 
       <Card>
         <CardHeader>
@@ -118,6 +121,65 @@ export function SettingsScreen() {
 
       <InviteForm />
     </div>
+  )
+}
+
+function NicknameCard() {
+  const { data: me } = useSession()
+  const updateMe = useUpdateMe()
+  const [draft, setDraft] = useState<string | null>(null)
+
+  if (!me) return null
+
+  // `draft ?? me.nickname ?? ''` — null draft means "untouched, show current";
+  // once the user types, draft is a string (even "") and wins.
+  const value = draft ?? me.nickname ?? ''
+  const trimmed = value.trim()
+  const current = me.nickname ?? ''
+  const dirty = trimmed !== current
+
+  const save = () =>
+    updateMe.mutate(
+      { nickname: trimmed === '' ? null : trimmed },
+      { onSuccess: () => setDraft(null) },
+    )
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Your name</CardTitle>
+        <CardDescription>
+          A short nickname shown in ownership labels and owner pickers. Leave it
+          blank to use your full name ({me.display_name}).
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-end gap-3">
+          <div className="space-y-1">
+            <Label htmlFor="nickname">Nickname</Label>
+            <Input
+              id="nickname"
+              className="w-56"
+              maxLength={32}
+              placeholder={me.display_name}
+              value={value}
+              onChange={(e) => setDraft(e.target.value)}
+            />
+          </div>
+          <Button
+            variant="outline"
+            onClick={save}
+            disabled={updateMe.isPending || !dirty}
+          >
+            Save
+          </Button>
+        </div>
+
+        {updateMe.isError && (
+          <p className="text-sm text-destructive">{errText(updateMe.error)}</p>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 

@@ -387,6 +387,7 @@ export type InvestmentTransaction = {
 export type HouseholdMember = {
   id: string
   display_name: string
+  nickname: string | null
   email: string
 }
 

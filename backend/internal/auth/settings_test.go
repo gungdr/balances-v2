@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/kerti/balances-v2/backend/internal/db"
@@ -58,4 +59,91 @@ func TestHandleMe_IncludesCurrencySettings(t *testing.T) {
 	if body.ReportingCurrency != "IDR" {
 		t.Errorf("reporting_currency: got %q, want IDR", body.ReportingCurrency)
 	}
+	if body.Nickname != nil {
+		t.Errorf("nickname: got %q, want nil (unset by default)", *body.Nickname)
+	}
+}
+
+// aliceNickname reads Alice's nickname from the DB-backed members list (the
+// context user the harness injects is a stale snapshot, so /me wouldn't reflect
+// a fresh PATCH — the members handler re-queries).
+func aliceNickname(t *testing.T, h *authHarness) *string {
+	t.Helper()
+	rec := h.do(t, "GET", "/household/members", nil)
+	requireStatus(t, rec, http.StatusOK)
+	for _, m := range decodeBody[[]householdMember](t, rec) {
+		if m.ID == h.user.ID {
+			return m.Nickname
+		}
+	}
+	t.Fatalf("alice not found in household members")
+	return nil
+}
+
+func TestHandleUpdateMe(t *testing.T) {
+	h := newAuthHarness(t)
+
+	t.Run("200 sets nickname", func(t *testing.T) {
+		rec := h.do(t, "PATCH", "/me", map[string]any{"nickname": "Al"})
+		requireStatus(t, rec, http.StatusOK)
+		body := decodeBody[meResponse](t, rec)
+		if body.Nickname == nil || *body.Nickname != "Al" {
+			t.Fatalf("nickname: got %v, want \"Al\"", body.Nickname)
+		}
+		if got := aliceNickname(t, h); got == nil || *got != "Al" {
+			t.Errorf("persisted nickname: got %v, want \"Al\"", got)
+		}
+	})
+
+	t.Run("200 trims surrounding whitespace", func(t *testing.T) {
+		rec := h.do(t, "PATCH", "/me", map[string]any{"nickname": "  Ally  "})
+		requireStatus(t, rec, http.StatusOK)
+		body := decodeBody[meResponse](t, rec)
+		if body.Nickname == nil || *body.Nickname != "Ally" {
+			t.Fatalf("nickname: got %v, want \"Ally\"", body.Nickname)
+		}
+	})
+
+	t.Run("200 empty string clears to null", func(t *testing.T) {
+		// seed a value first so we observe the clear
+		_ = h.do(t, "PATCH", "/me", map[string]any{"nickname": "Al"})
+		rec := h.do(t, "PATCH", "/me", map[string]any{"nickname": ""})
+		requireStatus(t, rec, http.StatusOK)
+		body := decodeBody[meResponse](t, rec)
+		if body.Nickname != nil {
+			t.Fatalf("nickname: got %q, want nil", *body.Nickname)
+		}
+		if got := aliceNickname(t, h); got != nil {
+			t.Errorf("persisted nickname: got %q, want nil", *got)
+		}
+	})
+
+	t.Run("200 whitespace-only clears to null", func(t *testing.T) {
+		_ = h.do(t, "PATCH", "/me", map[string]any{"nickname": "Al"})
+		rec := h.do(t, "PATCH", "/me", map[string]any{"nickname": "   "})
+		requireStatus(t, rec, http.StatusOK)
+		if body := decodeBody[meResponse](t, rec); body.Nickname != nil {
+			t.Fatalf("nickname: got %q, want nil", *body.Nickname)
+		}
+	})
+
+	t.Run("400 over 32 chars", func(t *testing.T) {
+		rec := h.do(t, "PATCH", "/me", map[string]any{"nickname": strings.Repeat("a", 33)})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("200 exactly 32 chars", func(t *testing.T) {
+		rec := h.do(t, "PATCH", "/me", map[string]any{"nickname": strings.Repeat("a", 32)})
+		requireStatus(t, rec, http.StatusOK)
+	})
+
+	t.Run("400 malformed json", func(t *testing.T) {
+		rec := h.do(t, "PATCH", "/me", "{not json")
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("401 unauthenticated", func(t *testing.T) {
+		rec := h.doRaw(t, "PATCH", "/me", map[string]any{"nickname": "Al"}, nil)
+		requireStatus(t, rec, http.StatusUnauthorized)
+	})
 }

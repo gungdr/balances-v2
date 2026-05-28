@@ -5,6 +5,7 @@ export type Me = {
   id: string
   household_id: string
   display_name: string
+  nickname: string | null
   email: string
   locale: string
   time_zone: string
