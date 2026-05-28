@@ -8,32 +8,29 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { TableCell, TableRow } from '@/components/ui/table'
+import { StatusBadge } from '@/components/StatusBadge'
 import { EditBankAccountDialog } from '@/components/EditBankAccountDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useDeleteBankAccount } from '@/hooks/useBankAccounts'
-import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
-import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatYearMonth } from '@/lib/format'
-import { ownershipLabel } from '@/lib/ownership'
+import { isActiveStatus } from '@/lib/lifecycle'
+import { cn } from '@/lib/utils'
 import type { BankAccountListItem } from '@/api/types'
 
 type Props = {
   item: BankAccountListItem
+  // Resolved by the screen (nickname ?? display_name, or "Joint") so the row
+  // doesn't re-fetch household members per instance.
+  ownerLabel: string
   onSelect: (id: string) => void
 }
 
-export function BankAccountListRow({ item, onSelect }: Props) {
+export function BankAccountListRow({ item, ownerLabel, onSelect }: Props) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const deleteMutation = useDeleteBankAccount()
-  const { data: members } = useHouseholdMembers()
-  const { data: currentUser } = useSession()
-  const ownerLabel = ownershipLabel(
-    item.asset.ownership_type,
-    item.asset.sole_owner_user_id,
-    members,
-    currentUser,
-  )
+
+  const terminated = !isActiveStatus(item.asset.status)
 
   // EditBankAccountDialog wants a {asset, details} BankAccount shape; the
   // list-item also carries latest_snapshot, which the dialog ignores.
@@ -48,11 +45,13 @@ export function BankAccountListRow({ item, onSelect }: Props) {
   return (
     <>
       <TableRow
-        className="cursor-pointer"
+        className={cn('cursor-pointer', terminated && 'text-muted-foreground')}
         onClick={() => onSelect(item.asset.id)}
       >
         <TableCell>
-          <div className="font-medium">{item.asset.display_name}</div>
+          <div className={cn('font-medium', terminated && 'font-normal')}>
+            {item.asset.display_name}
+          </div>
           <div className="text-xs text-muted-foreground">
             {item.details.bank_name} · {item.details.account_number} ·{' '}
             {item.details.account_type}
@@ -60,6 +59,9 @@ export function BankAccountListRow({ item, onSelect }: Props) {
         </TableCell>
         <TableCell>{ownerLabel}</TableCell>
         <TableCell>
+          <StatusBadge group="assets" status={item.asset.status} />
+        </TableCell>
+        <TableCell className="text-right tabular-nums">
           {item.latest_snapshot ? (
             <>
               <div>
@@ -88,10 +90,7 @@ export function BankAccountListRow({ item, onSelect }: Props) {
                 <MoreHorizontal className="size-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuItem onClick={() => setEditOpen(true)}>
                 Edit
               </DropdownMenuItem>

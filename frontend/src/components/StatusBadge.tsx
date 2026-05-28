@@ -1,8 +1,9 @@
 import { statusLabel, type LifecycleGroup } from '@/lib/lifecycle'
 
-// Small inline pill for a position's lifecycle status. Active is muted (the
-// common case, not worth shouting about); any terminal status is amber so a
-// closed/sold/matured position reads as distinct at a glance.
+// Small inline pill for a position's lifecycle status. Active is green (the
+// live state — reads as "on" at a glance); any terminal status (closed/sold/
+// matured/paid off/…) is muted grey: done and inactive, so it recedes and
+// pairs with the greyed-out terminated row rather than firing a false alarm.
 type Props = {
   group: LifecycleGroup
   status: string
@@ -11,8 +12,8 @@ type Props = {
 export function StatusBadge({ group, status }: Props) {
   const active = status === 'active'
   const cls = active
-    ? 'bg-muted text-muted-foreground'
-    : 'bg-amber-100 text-amber-800'
+    ? 'bg-green-100 text-green-800'
+    : 'bg-muted text-muted-foreground'
   return (
     <span
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}
