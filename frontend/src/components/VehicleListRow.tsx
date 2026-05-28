@@ -8,33 +8,28 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { TableCell, TableRow } from '@/components/ui/table'
+import { StatusBadge } from '@/components/StatusBadge'
 import { EditVehicleDialog } from '@/components/EditVehicleDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useDeleteVehicle } from '@/hooks/useVehicles'
-import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
-import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatYearMonth } from '@/lib/format'
-import { ownershipLabel } from '@/lib/ownership'
+import { isActiveStatus } from '@/lib/lifecycle'
+import { cn } from '@/lib/utils'
 import type { VehicleListItem } from '@/api/types'
 
 type Props = {
   item: VehicleListItem
+  // Resolved by the screen (nickname ?? display_name, or "Joint").
+  ownerLabel: string
   onSelect: (id: string) => void
 }
 
-export function VehicleListRow({ item, onSelect }: Props) {
+export function VehicleListRow({ item, ownerLabel, onSelect }: Props) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const deleteMutation = useDeleteVehicle()
-  const { data: members } = useHouseholdMembers()
-  const { data: currentUser } = useSession()
-  const ownerLabel = ownershipLabel(
-    item.asset.ownership_type,
-    item.asset.sole_owner_user_id,
-    members,
-    currentUser,
-  )
 
+  const terminated = !isActiveStatus(item.asset.status)
   const vehicleForEdit = { asset: item.asset, details: item.details }
 
   function handleConfirmDelete() {
@@ -58,17 +53,22 @@ export function VehicleListRow({ item, onSelect }: Props) {
   return (
     <>
       <TableRow
-        className="cursor-pointer"
+        className={cn('cursor-pointer', terminated && 'text-muted-foreground')}
         onClick={() => onSelect(item.asset.id)}
       >
         <TableCell>
-          <div className="font-medium">{item.asset.display_name}</div>
+          <div className={cn('font-medium', terminated && 'font-normal')}>
+            {item.asset.display_name}
+          </div>
           <div className="text-xs text-muted-foreground capitalize">
             {secondary || '—'}
           </div>
         </TableCell>
         <TableCell>{ownerLabel}</TableCell>
         <TableCell>
+          <StatusBadge group="assets" status={item.asset.status} />
+        </TableCell>
+        <TableCell className="text-right tabular-nums">
           {item.latest_snapshot ? (
             <>
               <div>
@@ -97,10 +97,7 @@ export function VehicleListRow({ item, onSelect }: Props) {
                 <MoreHorizontal className="size-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuItem onClick={() => setEditOpen(true)}>
                 Edit
               </DropdownMenuItem>

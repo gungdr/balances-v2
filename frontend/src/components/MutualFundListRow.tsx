@@ -12,6 +12,9 @@ import { EditMutualFundDialog } from '@/components/EditMutualFundDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useDeleteMutualFund } from '@/hooks/useInvestments'
 import { formatCurrency, formatYearMonth } from '@/lib/format'
+import { StatusBadge } from '@/components/StatusBadge'
+import { isActiveStatus } from '@/lib/lifecycle'
+import { cn } from '@/lib/utils'
 import type { MutualFundListItem } from '@/api/types'
 
 type Props = {
@@ -24,6 +27,8 @@ export function MutualFundListRow({ item, onSelect }: Props) {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const deleteMutation = useDeleteMutualFund()
 
+  const terminated = !isActiveStatus(item.investment.status)
+
   function handleConfirmDelete() {
     deleteMutation.mutate(item.investment.id, {
       onSuccess: () => setDeleteOpen(false),
@@ -33,11 +38,13 @@ export function MutualFundListRow({ item, onSelect }: Props) {
   return (
     <>
       <TableRow
-        className="cursor-pointer"
+        className={cn('cursor-pointer', terminated && 'text-muted-foreground')}
         onClick={() => onSelect(item.investment.id)}
       >
         <TableCell>
-          <div className="font-medium">{item.investment.display_name}</div>
+          <div className={cn('font-medium', terminated && 'font-normal')}>
+            {item.investment.display_name}
+          </div>
           {item.investment.description && (
             <div className="text-xs text-muted-foreground">
               {item.investment.description}
@@ -53,6 +60,9 @@ export function MutualFundListRow({ item, onSelect }: Props) {
           )}
         </TableCell>
         <TableCell>
+          <StatusBadge group="investments" status={item.investment.status} />
+        </TableCell>
+        <TableCell className="text-right tabular-nums">
           {item.latest_snapshot ? (
             <>
               <div>

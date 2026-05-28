@@ -1,16 +1,19 @@
 import { useMemo, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { SortableHeader, type SortDir } from '@/components/SortableHeader'
+import { SortableHeader } from '@/components/SortableHeader'
+import { ListHeadline } from '@/components/ListHeadline'
+import { ShowInactiveToggle } from '@/components/ShowInactiveToggle'
 import { useBankAccounts } from '@/hooks/useBankAccounts'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useSession } from '@/hooks/useSession'
+import { useTableSort, type ColumnSort } from '@/hooks/useTableSort'
 import { CreateBankAccountDialog } from '@/components/CreateBankAccountDialog'
 import { BankAccountListRow } from '@/components/BankAccountListRow'
 import { ownershipLabel } from '@/lib/ownership'
 import { isActiveStatus, statusLabel } from '@/lib/lifecycle'
 import { activeCurrencyTotals } from '@/lib/totals'
-import { formatCurrency } from '@/lib/format'
+import { byNumberNullsLast, byText } from '@/lib/sort'
 import type { BankAccountListItem } from '@/api/types'
 
 type Props = {
@@ -19,46 +22,22 @@ type Props = {
 
 type SortKey = 'name' | 'ownership' | 'status' | 'balance'
 
-// First click on a column sorts in this direction; clicking the active column
-// again toggles. Balance leads with the largest (desc) since that reads most
-// naturally for money.
-const DEFAULT_DIR: Record<SortKey, SortDir> = {
-  name: 'asc',
-  ownership: 'asc',
-  status: 'asc',
-  balance: 'desc',
-}
-
-// A list item enriched with the screen-resolved fields we sort on, so the
-// comparator stays simple and the row doesn't re-resolve them.
 type Row = {
   item: BankAccountListItem
   ownerLabel: string
   name: string
   status: string
+  statusText: string
   amount: number | null
 }
+
+const tiebreakByName = (a: Row, b: Row) => a.name.localeCompare(b.name)
 
 export function BankAccountsScreen({ onSelect }: Props) {
   const { data, isPending, error } = useBankAccounts()
   const { data: members } = useHouseholdMembers()
   const { data: currentUser } = useSession()
-  const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({
-    key: 'name',
-    dir: 'asc',
-  })
-  // Terminated accounts are hidden by default to keep the list short; the
-  // headline total is active-only regardless, so this toggle is purely a list
-  // filter.
   const [showInactive, setShowInactive] = useState(false)
-
-  function toggleSort(key: SortKey) {
-    setSort((s) =>
-      s.key === key
-        ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' }
-        : { key, dir: DEFAULT_DIR[key] },
-    )
-  }
 
   const rows = useMemo<Row[]>(
     () =>
@@ -72,42 +51,26 @@ export function BankAccountsScreen({ onSelect }: Props) {
         ),
         name: item.asset.display_name,
         status: item.asset.status,
+        statusText: statusLabel('assets', item.asset.status),
         amount: item.latest_snapshot ? Number(item.latest_snapshot.amount) : null,
       })),
     [data, members, currentUser],
   )
 
-  const sorted = useMemo(() => {
-    const { key, dir } = sort
-    const byName = (a: Row, b: Row) => a.name.localeCompare(b.name)
-    return [...rows].sort((a, b) => {
-      let primary = 0
-      switch (key) {
-        case 'name':
-          primary = byName(a, b)
-          break
-        case 'ownership':
-          primary = a.ownerLabel.localeCompare(b.ownerLabel)
-          break
-        case 'status':
-          primary = statusLabel('assets', a.status).localeCompare(
-            statusLabel('assets', b.status),
-          )
-          break
-        case 'balance': {
-          // Accounts with no snapshot always sort last, regardless of direction.
-          if (a.amount === null || b.amount === null) {
-            if (a.amount === null && b.amount === null) break
-            return a.amount === null ? 1 : -1
-          }
-          primary = a.amount - b.amount
-          break
-        }
-      }
-      const directed = dir === 'asc' ? primary : -primary
-      return directed !== 0 ? directed : byName(a, b)
-    })
-  }, [rows, sort])
+  const columns = useMemo<Record<SortKey, ColumnSort<Row>>>(
+    () => ({
+      name: { dir: 'asc', cmp: byText((r) => r.name) },
+      ownership: { dir: 'asc', cmp: byText((r) => r.ownerLabel) },
+      status: { dir: 'asc', cmp: byText((r) => r.statusText) },
+      balance: { dir: 'desc', cmp: byNumberNullsLast((r) => r.amount) },
+    }),
+    [],
+  )
+
+  const { sorted, sortKey, sortDir, toggle } = useTableSort(rows, columns, {
+    defaultKey: 'name',
+    tiebreak: tiebreakByName,
+  })
 
   const { totals, count } = useMemo(
     () =>
@@ -134,22 +97,14 @@ export function BankAccountsScreen({ onSelect }: Props) {
         <CreateBankAccountDialog />
       </div>
 
-      {totals.length > 0 && (
-        <div className="rounded-lg border p-4" data-testid="bank-accounts-total">
-          <div className="text-sm text-muted-foreground">Total balance</div>
-          <div className="mt-0.5 text-2xl font-semibold tabular-nums">
-            {totals.map((t, i) => (
-              <span key={t.currency}>
-                {i > 0 && <span className="text-muted-foreground"> · </span>}
-                {formatCurrency(String(t.amount), t.currency)}
-              </span>
-            ))}
-          </div>
-          <div className="mt-0.5 text-xs text-muted-foreground">
-            across {count} active account{count === 1 ? '' : 's'}
-          </div>
-        </div>
-      )}
+      <ListHeadline
+        totals={totals}
+        count={count}
+        label="Total balance"
+        noun="account"
+        nounPlural="accounts"
+        testId="bank-accounts-total"
+      />
 
       {isPending && <p className="text-sm text-muted-foreground">Loading…</p>}
 
@@ -176,18 +131,12 @@ export function BankAccountsScreen({ onSelect }: Props) {
       {data && data.length > 0 && (
         <div className="space-y-3">
           {terminatedCount > 0 && (
-            <div className="flex justify-end">
-              <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4"
-                  checked={showInactive}
-                  onChange={(e) => setShowInactive(e.target.checked)}
-                  data-testid="show-inactive"
-                />
-                Show inactive accounts ({terminatedCount})
-              </label>
-            </div>
+            <ShowInactiveToggle
+              count={terminatedCount}
+              nounPlural="accounts"
+              checked={showInactive}
+              onChange={setShowInactive}
+            />
           )}
 
           {visibleRows.length === 0 ? (
@@ -205,31 +154,31 @@ export function BankAccountsScreen({ onSelect }: Props) {
                       <SortableHeader
                         label="Name"
                         testId="sort-name"
-                        active={sort.key === 'name'}
-                        dir={sort.dir}
-                        onSort={() => toggleSort('name')}
+                        active={sortKey === 'name'}
+                        dir={sortDir}
+                        onSort={() => toggle('name')}
                       />
                       <SortableHeader
                         label="Ownership"
                         testId="sort-ownership"
-                        active={sort.key === 'ownership'}
-                        dir={sort.dir}
-                        onSort={() => toggleSort('ownership')}
+                        active={sortKey === 'ownership'}
+                        dir={sortDir}
+                        onSort={() => toggle('ownership')}
                       />
                       <SortableHeader
                         label="Status"
                         testId="sort-status"
-                        active={sort.key === 'status'}
-                        dir={sort.dir}
-                        onSort={() => toggleSort('status')}
+                        active={sortKey === 'status'}
+                        dir={sortDir}
+                        onSort={() => toggle('status')}
                       />
                       <SortableHeader
                         label="Latest balance"
                         testId="sort-balance"
                         align="right"
-                        active={sort.key === 'balance'}
-                        dir={sort.dir}
-                        onSort={() => toggleSort('balance')}
+                        active={sortKey === 'balance'}
+                        dir={sortDir}
+                        onSort={() => toggle('balance')}
                       />
                       <TableHead className="w-12"></TableHead>
                     </TableRow>

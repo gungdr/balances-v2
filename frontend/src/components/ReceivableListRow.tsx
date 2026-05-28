@@ -8,32 +8,28 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { TableCell, TableRow } from '@/components/ui/table'
+import { StatusBadge } from '@/components/StatusBadge'
 import { EditReceivableDialog } from '@/components/EditReceivableDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useDeleteReceivable } from '@/hooks/useReceivables'
-import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
-import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatYearMonth, formatDate } from '@/lib/format'
-import { ownershipLabel } from '@/lib/ownership'
+import { isActiveStatus } from '@/lib/lifecycle'
+import { cn } from '@/lib/utils'
 import type { ReceivableListItem } from '@/api/types'
 
 type Props = {
   item: ReceivableListItem
+  // Resolved by the screen (nickname ?? display_name, or "Joint").
+  ownerLabel: string
   onSelect: (id: string) => void
 }
 
-export function ReceivableListRow({ item, onSelect }: Props) {
+export function ReceivableListRow({ item, ownerLabel, onSelect }: Props) {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const deleteMutation = useDeleteReceivable()
-  const { data: members } = useHouseholdMembers()
-  const { data: currentUser } = useSession()
-  const ownerLabel = ownershipLabel(
-    item.receivable.ownership_type,
-    item.receivable.sole_owner_user_id,
-    members,
-    currentUser,
-  )
+
+  const terminated = !isActiveStatus(item.receivable.status)
 
   function handleConfirmDelete() {
     deleteMutation.mutate(item.receivable.id, {
@@ -44,11 +40,13 @@ export function ReceivableListRow({ item, onSelect }: Props) {
   return (
     <>
       <TableRow
-        className="cursor-pointer"
+        className={cn('cursor-pointer', terminated && 'text-muted-foreground')}
         onClick={() => onSelect(item.receivable.id)}
       >
         <TableCell>
-          <div className="font-medium">{item.receivable.display_name}</div>
+          <div className={cn('font-medium', terminated && 'font-normal')}>
+            {item.receivable.display_name}
+          </div>
           <div className="text-xs text-muted-foreground">
             {item.receivable.counterparty_name}
             {item.receivable.due_date && (
@@ -58,6 +56,9 @@ export function ReceivableListRow({ item, onSelect }: Props) {
         </TableCell>
         <TableCell>{ownerLabel}</TableCell>
         <TableCell>
+          <StatusBadge group="receivables" status={item.receivable.status} />
+        </TableCell>
+        <TableCell className="text-right tabular-nums">
           {item.latest_snapshot ? (
             <>
               <div>
@@ -86,10 +87,7 @@ export function ReceivableListRow({ item, onSelect }: Props) {
                 <MoreHorizontal className="size-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuItem onClick={() => setEditOpen(true)}>
                 Edit
               </DropdownMenuItem>

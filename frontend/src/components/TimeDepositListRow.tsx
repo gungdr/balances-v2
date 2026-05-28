@@ -12,6 +12,9 @@ import { EditTimeDepositDialog } from '@/components/EditTimeDepositDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useDeleteTimeDeposit } from '@/hooks/useInvestments'
 import { formatCurrency, formatYearMonth } from '@/lib/format'
+import { StatusBadge } from '@/components/StatusBadge'
+import { isActiveStatus } from '@/lib/lifecycle'
+import { cn } from '@/lib/utils'
 import { maturityClass, maturityInfo } from '@/lib/maturity'
 import type { TimeDepositListItem } from '@/api/types'
 
@@ -25,6 +28,8 @@ export function TimeDepositListRow({ item, onSelect }: Props) {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const deleteMutation = useDeleteTimeDeposit()
 
+  const terminated = !isActiveStatus(item.investment.status)
+
   function handleConfirmDelete() {
     deleteMutation.mutate(item.investment.id, {
       onSuccess: () => setDeleteOpen(false),
@@ -37,11 +42,13 @@ export function TimeDepositListRow({ item, onSelect }: Props) {
   return (
     <>
       <TableRow
-        className="cursor-pointer"
+        className={cn('cursor-pointer', terminated && 'text-muted-foreground')}
         onClick={() => onSelect(item.investment.id)}
       >
         <TableCell>
-          <div className="font-medium">{item.investment.display_name}</div>
+          <div className={cn('font-medium', terminated && 'font-normal')}>
+            {item.investment.display_name}
+          </div>
           {item.investment.description && (
             <div className="text-xs text-muted-foreground">
               {item.investment.description}
@@ -58,6 +65,9 @@ export function TimeDepositListRow({ item, onSelect }: Props) {
           </div>
         </TableCell>
         <TableCell>
+          <StatusBadge group="investments" status={item.investment.status} />
+        </TableCell>
+        <TableCell className="text-right tabular-nums">
           {item.latest_snapshot ? (
             <>
               <div>
