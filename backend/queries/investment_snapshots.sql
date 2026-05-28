@@ -78,3 +78,37 @@ WHERE s.id = $1
   AND i.household_id = $2
   AND i.deleted_at IS NULL
   AND s.deleted_at IS NULL;
+
+-- UpsertInvestmentSnapshot inserts a snapshot or, when one already exists for
+-- the (investment_id, year_month) pair, overwrites it (last-write-wins) — the
+-- importer needs idempotent re-runs of a multi-year backfill. ON CONFLICT
+-- targets the partial unique index, so its predicate (deleted_at IS NULL) is
+-- repeated. The repo validates the value-column shape against the parent's
+-- subtype before calling this; the DB CHECK is the final backstop.
+-- created_by is only set on insert; updated_by always.
+-- name: UpsertInvestmentSnapshot :one
+WITH owned_investment AS (
+    SELECT i.id AS iid
+    FROM investments i
+    WHERE i.id = $1 AND i.household_id = sqlc.arg('household_id')::uuid AND i.deleted_at IS NULL
+)
+INSERT INTO investment_snapshots (
+    investment_id, year_month, amount, currency,
+    quantity, price_per_unit, accrued_interest,
+    as_of_date, description,
+    created_by, updated_by
+)
+SELECT owned_investment.iid, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10
+FROM owned_investment
+ON CONFLICT (investment_id, year_month) WHERE deleted_at IS NULL
+DO UPDATE SET
+    amount           = EXCLUDED.amount,
+    currency         = EXCLUDED.currency,
+    quantity         = EXCLUDED.quantity,
+    price_per_unit   = EXCLUDED.price_per_unit,
+    accrued_interest = EXCLUDED.accrued_interest,
+    as_of_date       = EXCLUDED.as_of_date,
+    description      = EXCLUDED.description,
+    updated_by       = EXCLUDED.updated_by,
+    updated_at       = now()
+RETURNING *;

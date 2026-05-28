@@ -294,3 +294,117 @@ func (r *ReceivableRepo) ImportReceivableSnapshots(ctx context.Context, receivab
 	}
 	return &res, nil
 }
+
+// ImportInvestmentSnapshotRow is one snapshot to upsert during an investment
+// bulk import. Unlike the flat ImportSnapshotRow it carries the value-shape
+// columns: quantity+price_per_unit (stock/mutual_fund/gold) or accrued_interest
+// (bond/time_deposit). Amount is always set (derived from quantity×price for
+// the quantity-price shape).
+type ImportInvestmentSnapshotRow struct {
+	YearMonth       time.Time
+	Amount          decimal.Decimal
+	Currency        string
+	Quantity        *decimal.Decimal
+	PricePerUnit    *decimal.Decimal
+	AccruedInterest *decimal.Decimal
+	AsOfDate        *time.Time
+	Description     *string
+}
+
+// InvestmentImportMeta returns the display name + native currency + subtype of
+// an owned investment. The subtype tells the HTTP layer which template shape to
+// emit / parse; the lookup doubles as the ownership check (-> ErrNotFound).
+func (r *InvestmentRepo) InvestmentImportMeta(ctx context.Context, investmentID uuid.UUID) (name, currency, subtype string, err error) {
+	_, hid, err := currentUser(ctx)
+	if err != nil {
+		return "", "", "", err
+	}
+	inv, err := r.q.GetInvestmentByID(ctx, db.GetInvestmentByIDParams{ID: investmentID, HouseholdID: hid})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", "", "", ErrNotFound
+		}
+		return "", "", "", fmt.Errorf("investment import meta: %w", err)
+	}
+	return inv.DisplayName, inv.NativeCurrency, inv.Subtype, nil
+}
+
+// ImportInvestmentSnapshots is the Investment-group analogue of
+// ImportAssetSnapshots, with one extra step: every row's value-column shape is
+// validated against the parent's subtype up front (so an all-or-nothing import
+// never half-commits a bad shape; the DB CHECK is the final backstop).
+func (r *InvestmentRepo) ImportInvestmentSnapshots(ctx context.Context, investmentID uuid.UUID, rows []ImportInvestmentSnapshotRow, dryRun bool) (*ImportResult, error) {
+	user, hid, err := currentUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	inv, err := r.q.GetInvestmentByID(ctx, db.GetInvestmentByIDParams{ID: investmentID, HouseholdID: hid})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("import: load investment: %w", err)
+	}
+
+	for _, row := range rows {
+		if err := validateInvestmentSnapshotShape(inv.Subtype, row.Quantity, row.PricePerUnit, row.AccruedInterest); err != nil {
+			return nil, err
+		}
+	}
+
+	existing, err := r.q.ListInvestmentSnapshotsForInvestment(ctx, db.ListInvestmentSnapshotsForInvestmentParams{
+		InvestmentID: investmentID,
+		HouseholdID:  hid,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("import: list existing snapshots: %w", err)
+	}
+	months := make(map[string]struct{}, len(existing))
+	for _, s := range existing {
+		months[s.YearMonth.Format("2006-01")] = struct{}{}
+	}
+
+	var res ImportResult
+	for _, row := range rows {
+		if _, ok := months[row.YearMonth.Format("2006-01")]; ok {
+			res.ToUpdate++
+		} else {
+			res.ToInsert++
+		}
+	}
+
+	if dryRun || len(rows) == 0 {
+		return &res, nil
+	}
+
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("import: begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	qtx := r.q.WithTx(tx)
+
+	for _, row := range rows {
+		if _, err := qtx.UpsertInvestmentSnapshot(ctx, db.UpsertInvestmentSnapshotParams{
+			ID:              investmentID,
+			YearMonth:       row.YearMonth,
+			Amount:          row.Amount,
+			Currency:        row.Currency,
+			Quantity:        row.Quantity,
+			PricePerUnit:    row.PricePerUnit,
+			AccruedInterest: row.AccruedInterest,
+			AsOfDate:        row.AsOfDate,
+			Description:     row.Description,
+			CreatedBy:       &user,
+			HouseholdID:     hid,
+		}); err != nil {
+			return nil, fmt.Errorf("import: upsert %s: %w", row.YearMonth.Format("2006-01"), err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("import: commit: %w", err)
+	}
+	return &res, nil
+}

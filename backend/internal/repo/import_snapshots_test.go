@@ -302,3 +302,140 @@ func TestReceivableRepo_ImportReceivableSnapshots(t *testing.T) {
 		}
 	})
 }
+
+// TestInvestmentRepo_ImportInvestmentSnapshots covers both investment snapshot
+// shapes: quantity-price (stock) and accrued-interest (bond), plus tenancy.
+func TestInvestmentRepo_ImportInvestmentSnapshots(t *testing.T) {
+	tdb := testutil.NewTestDB(t)
+	q := db.New(tdb.Pool)
+
+	alice := testutil.CreateHouseholdWithUser(t, q, "Alice")
+	bob := testutil.CreateHouseholdWithUser(t, q, "Bob")
+	aliceCtx := auth.WithUser(context.Background(), alice)
+	bobCtx := auth.WithUser(context.Background(), bob)
+
+	r := repo.NewInvestmentRepo(tdb.Pool)
+
+	ym := func(y int, m time.Month) time.Time {
+		return time.Date(y, m, 1, 0, 0, 0, 0, time.UTC)
+	}
+	dec := func(s string) *decimal.Decimal { d, _ := decimal.NewFromString(s); return &d }
+
+	t.Run("quantity-price shape (stock)", func(t *testing.T) {
+		stock, err := r.CreateStock(aliceCtx, repo.CreateStockParams{
+			DisplayName:    "BBCA",
+			OwnershipType:  "joint",
+			NativeCurrency: "IDR",
+			Ticker:         "BBCA",
+			Exchange:       "IDX",
+		})
+		if err != nil {
+			t.Fatalf("CreateStock: %v", err)
+		}
+		id := stock.Investment.ID
+		rows := []repo.ImportInvestmentSnapshotRow{
+			{YearMonth: ym(2015, time.January), Amount: decimal.NewFromInt(850000), Currency: "IDR", Quantity: dec("100"), PricePerUnit: dec("8500")},
+			{YearMonth: ym(2015, time.February), Amount: decimal.NewFromInt(900000), Currency: "IDR", Quantity: dec("100"), PricePerUnit: dec("9000")},
+		}
+
+		res, err := r.ImportInvestmentSnapshots(aliceCtx, id, rows, true)
+		if err != nil {
+			t.Fatalf("dry-run: %v", err)
+		}
+		if res.ToInsert != 2 || res.ToUpdate != 0 {
+			t.Errorf("dry-run counts = %d/%d, want 2/0", res.ToInsert, res.ToUpdate)
+		}
+		if snaps, _ := r.ListInvestmentSnapshots(aliceCtx, id); len(snaps) != 0 {
+			t.Errorf("dry-run wrote %d; want 0", len(snaps))
+		}
+
+		if _, err := r.ImportInvestmentSnapshots(aliceCtx, id, rows, false); err != nil {
+			t.Fatalf("commit: %v", err)
+		}
+		snaps, _ := r.ListInvestmentSnapshots(aliceCtx, id)
+		if len(snaps) != 2 {
+			t.Fatalf("after commit got %d; want 2", len(snaps))
+		}
+		// Shape persisted: quantity + price set, accrued nil.
+		for _, s := range snaps {
+			if s.Quantity == nil || s.PricePerUnit == nil || s.AccruedInterest != nil {
+				t.Errorf("stock snapshot shape wrong: qty=%v price=%v accrued=%v", s.Quantity, s.PricePerUnit, s.AccruedInterest)
+			}
+		}
+
+		// Re-import overwrites Jan (last-write-wins), adds Mar.
+		updated := []repo.ImportInvestmentSnapshotRow{
+			{YearMonth: ym(2015, time.January), Amount: decimal.NewFromInt(999000), Currency: "IDR", Quantity: dec("100"), PricePerUnit: dec("9990")},
+			{YearMonth: ym(2015, time.March), Amount: decimal.NewFromInt(1000000), Currency: "IDR", Quantity: dec("100"), PricePerUnit: dec("10000")},
+		}
+		res, err = r.ImportInvestmentSnapshots(aliceCtx, id, updated, false)
+		if err != nil {
+			t.Fatalf("re-import: %v", err)
+		}
+		if res.ToInsert != 1 || res.ToUpdate != 1 {
+			t.Errorf("re-import counts = %d/%d, want 1/1", res.ToInsert, res.ToUpdate)
+		}
+		snaps, _ = r.ListInvestmentSnapshots(aliceCtx, id)
+		if len(snaps) != 3 {
+			t.Fatalf("got %d; want 3 (no dup)", len(snaps))
+		}
+
+		if _, err := r.ImportInvestmentSnapshots(bobCtx, id, rows, false); !errors.Is(err, repo.ErrNotFound) {
+			t.Errorf("bob import err = %v, want ErrNotFound", err)
+		}
+	})
+
+	t.Run("accrued-interest shape (bond)", func(t *testing.T) {
+		couponRate, _ := decimal.NewFromString("6.25")
+		bond, err := r.CreateBond(aliceCtx, repo.CreateBondParams{
+			DisplayName:     "ORI024",
+			OwnershipType:   "joint",
+			NativeCurrency:  "IDR",
+			BondType:        "govt_primary",
+			Issuer:          "Republik Indonesia",
+			FaceValue:       decimal.NewFromInt(10_000_000),
+			CouponRate:      couponRate,
+			CouponFrequency: "monthly",
+			MaturityDate:    time.Date(2029, time.October, 15, 0, 0, 0, 0, time.UTC),
+		})
+		if err != nil {
+			t.Fatalf("CreateBond: %v", err)
+		}
+		id := bond.Investment.ID
+		rows := []repo.ImportInvestmentSnapshotRow{
+			{YearMonth: ym(2015, time.January), Amount: decimal.NewFromInt(10_250_000), Currency: "IDR", AccruedInterest: dec("250000")},
+			{YearMonth: ym(2015, time.February), Amount: decimal.NewFromInt(10_000_000), Currency: "IDR", AccruedInterest: dec("0")},
+		}
+
+		if _, err := r.ImportInvestmentSnapshots(aliceCtx, id, rows, false); err != nil {
+			t.Fatalf("commit: %v", err)
+		}
+		snaps, _ := r.ListInvestmentSnapshots(aliceCtx, id)
+		if len(snaps) != 2 {
+			t.Fatalf("after commit got %d; want 2", len(snaps))
+		}
+		for _, s := range snaps {
+			if s.AccruedInterest == nil || s.Quantity != nil || s.PricePerUnit != nil {
+				t.Errorf("bond snapshot shape wrong: accrued=%v qty=%v price=%v", s.AccruedInterest, s.Quantity, s.PricePerUnit)
+			}
+		}
+	})
+
+	t.Run("wrong shape rejected (accrued row on a stock)", func(t *testing.T) {
+		stock, err := r.CreateStock(aliceCtx, repo.CreateStockParams{
+			DisplayName: "TLKM", OwnershipType: "joint", NativeCurrency: "IDR", Ticker: "TLKM", Exchange: "IDX",
+		})
+		if err != nil {
+			t.Fatalf("CreateStock: %v", err)
+		}
+		bad := []repo.ImportInvestmentSnapshotRow{
+			{YearMonth: ym(2016, time.January), Amount: decimal.NewFromInt(100), Currency: "IDR", AccruedInterest: dec("5")},
+		}
+		if _, err := r.ImportInvestmentSnapshots(aliceCtx, stock.Investment.ID, bad, false); !errors.Is(err, repo.ErrInvalidSnapshotShape) {
+			t.Errorf("err = %v, want ErrInvalidSnapshotShape", err)
+		}
+		if snaps, _ := r.ListInvestmentSnapshots(aliceCtx, stock.Investment.ID); len(snaps) != 0 {
+			t.Errorf("rejected import still wrote %d snapshots; want 0", len(snaps))
+		}
+	})
+}

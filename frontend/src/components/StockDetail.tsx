@@ -21,6 +21,8 @@ import {
   useCreateInvestmentSnapshot,
   useUpdateInvestmentSnapshot,
   useDeleteInvestmentSnapshot,
+  useImportInvestmentSnapshots,
+  investmentImportTemplateUrl,
 } from '@/hooks/useInvestmentSnapshots'
 import {
   useInvestmentTransactions,
@@ -29,6 +31,7 @@ import {
   useDeleteInvestmentTransaction,
 } from '@/hooks/useInvestmentTransactions'
 import { CreateQuantityPriceSnapshotDialog } from '@/components/CreateQuantityPriceSnapshotDialog'
+import { ImportSnapshotsDialog } from '@/components/ImportSnapshotsDialog'
 import { CreateTradeTransactionDialog } from '@/components/CreateTradeTransactionDialog'
 import { CreateCashIncomeTransactionDialog } from '@/components/CreateCashIncomeTransactionDialog'
 import { CreateFeeTransactionDialog } from '@/components/CreateFeeTransactionDialog'
@@ -66,6 +69,10 @@ export function StockDetail({ investmentId, onBack }: Props) {
     'stocks',
   )
   const deleteSnapshotMutation = useDeleteInvestmentSnapshot(
+    investmentId,
+    'stocks',
+  )
+  const importSnapshotMutation = useImportInvestmentSnapshots(
     investmentId,
     'stocks',
   )
@@ -144,10 +151,17 @@ export function StockDetail({ investmentId, onBack }: Props) {
         </div>
         <div className="flex gap-2">
           {isActiveStatus(stock.investment.status) && (
-            <CreateQuantityPriceSnapshotDialog
-              currency={stock.investment.native_currency}
-              mutation={createSnapshotMutation}
-            />
+            <>
+              <CreateQuantityPriceSnapshotDialog
+                currency={stock.investment.native_currency}
+                mutation={createSnapshotMutation}
+              />
+              <ImportSnapshotsDialog
+                templateUrl={investmentImportTemplateUrl(stock.investment.id)}
+                mutation={importSnapshotMutation}
+                currency={stock.investment.native_currency}
+              />
+            </>
           )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             Edit

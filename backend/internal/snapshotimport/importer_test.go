@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/shopspring/decimal"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -36,6 +37,19 @@ var header = []string{"year_month", "as_of_date", "amount", "currency", "descrip
 func parse(t *testing.T, rows [][]string, opts Options) ([]ParsedRow, []RowError) {
 	t.Helper()
 	in := append([][]string{header}, rows...)
+	parsed, errs, err := Parse(bytes.NewReader(buildXLSX(t, in)), opts)
+	if err != nil {
+		t.Fatalf("Parse returned file error: %v", err)
+	}
+	return parsed, errs
+}
+
+// parseShaped is like parse but prepends the shape's own header row, so the
+// data rows line up with the shape's column layout.
+func parseShaped(t *testing.T, shape Shape, rows [][]string, opts Options) ([]ParsedRow, []RowError) {
+	t.Helper()
+	in := append([][]string{headersFor(shape)}, rows...)
+	opts.Shape = shape
 	parsed, errs, err := Parse(bytes.NewReader(buildXLSX(t, in)), opts)
 	if err != nil {
 		t.Fatalf("Parse returned file error: %v", err)
@@ -161,4 +175,111 @@ func TestRoundTrip(t *testing.T) {
 	if got := parsed[0].YearMonth.Format("2006-01"); got != "2015-01" {
 		t.Errorf("example month = %s, want 2015-01", got)
 	}
+}
+
+// ----- ShapeQuantityPrice (stock / mutual_fund / gold) --------------------
+
+func TestParse_QuantityPrice(t *testing.T) {
+	// header: year_month, as_of_date, quantity, price_per_unit, currency, description
+	parsed, errs := parseShaped(t, ShapeQuantityPrice, [][]string{
+		{"2015-01", "2015-01-31", "100", "8500", "IDR", "100 @ 8500"}, // amount = 850000
+		{"2015-02", "", "10", "", "", ""},                             // row 3: missing price
+		{"2015-03", "", "", "9000", "", ""},                           // row 4: missing quantity
+		{"2015-04", "", "1.5", "200.25", "", ""},                      // fractional, amount = 300.375
+	}, Options{DefaultCurrency: "IDR"})
+
+	if len(parsed) != 2 {
+		t.Fatalf("want 2 parsed rows, got %d: %+v", len(parsed), parsed)
+	}
+	if len(errs) != 2 || errs[0].Row != 3 || errs[1].Row != 4 {
+		t.Fatalf("want errors on rows 3 and 4, got %+v", errs)
+	}
+	if parsed[0].Quantity == nil || parsed[0].PricePerUnit == nil {
+		t.Fatalf("row1 should carry quantity + price")
+	}
+	if parsed[0].AccruedInterest != nil {
+		t.Errorf("row1 accrued_interest should be nil, got %v", parsed[0].AccruedInterest)
+	}
+	if parsed[0].Amount.String() != "850000" {
+		t.Errorf("row1 derived amount = %s, want 850000", parsed[0].Amount)
+	}
+	if !parsed[1].Amount.Equal(decimalFromString(t, "300.375")) {
+		t.Errorf("row4 derived amount = %s, want 300.375", parsed[1].Amount)
+	}
+}
+
+func TestRoundTrip_QuantityPrice(t *testing.T) {
+	tpl, err := BuildTemplate(TemplateMeta{PositionName: "BBCA", DefaultCurrency: "IDR", Shape: ShapeQuantityPrice})
+	if err != nil {
+		t.Fatalf("BuildTemplate: %v", err)
+	}
+	parsed, errs, err := Parse(bytes.NewReader(tpl), Options{DefaultCurrency: "IDR", Shape: ShapeQuantityPrice})
+	if err != nil {
+		t.Fatalf("Parse(template): %v", err)
+	}
+	if len(errs) != 0 || len(parsed) != 1 {
+		t.Fatalf("template example should be 1 valid row, got %d parsed / %+v errs", len(parsed), errs)
+	}
+	// Example: 100 units @ 8500 = 850000.
+	if parsed[0].Quantity == nil || parsed[0].PricePerUnit == nil || parsed[0].Amount.String() != "850000" {
+		t.Errorf("example qty-price row malformed: qty=%v price=%v amount=%s",
+			parsed[0].Quantity, parsed[0].PricePerUnit, parsed[0].Amount)
+	}
+}
+
+// ----- ShapeAccruedInterest (bond / time_deposit) -------------------------
+
+func TestParse_AccruedInterest(t *testing.T) {
+	// header: year_month, as_of_date, amount, accrued_interest, currency, description
+	parsed, errs := parseShaped(t, ShapeAccruedInterest, [][]string{
+		{"2015-01", "2015-01-31", "50250000", "250000", "IDR", "incl accrued"},
+		{"2015-02", "", "50000000", "", "", ""}, // blank accrued -> 0
+		{"2015-03", "", "", "100", "", ""},      // row 4: missing amount
+	}, Options{DefaultCurrency: "IDR"})
+
+	if len(parsed) != 2 {
+		t.Fatalf("want 2 parsed rows, got %d: %+v", len(parsed), parsed)
+	}
+	if len(errs) != 1 || errs[0].Row != 4 {
+		t.Fatalf("want 1 error on row 4 (missing amount), got %+v", errs)
+	}
+	if parsed[0].AccruedInterest == nil || parsed[0].AccruedInterest.String() != "250000" {
+		t.Errorf("row1 accrued = %v, want 250000", parsed[0].AccruedInterest)
+	}
+	if parsed[0].Quantity != nil || parsed[0].PricePerUnit != nil {
+		t.Errorf("row1 should not carry quantity/price")
+	}
+	if parsed[0].Amount.String() != "50250000" {
+		t.Errorf("row1 amount = %s, want 50250000 (total incl accrued)", parsed[0].Amount)
+	}
+	// Blank accrued defaults to 0 (non-nil, so the bond/TD shape CHECK passes).
+	if parsed[1].AccruedInterest == nil || !parsed[1].AccruedInterest.IsZero() {
+		t.Errorf("row3 accrued should default to 0 (non-nil), got %v", parsed[1].AccruedInterest)
+	}
+}
+
+func TestRoundTrip_AccruedInterest(t *testing.T) {
+	tpl, err := BuildTemplate(TemplateMeta{PositionName: "FR0090", DefaultCurrency: "IDR", Shape: ShapeAccruedInterest})
+	if err != nil {
+		t.Fatalf("BuildTemplate: %v", err)
+	}
+	parsed, errs, err := Parse(bytes.NewReader(tpl), Options{DefaultCurrency: "IDR", Shape: ShapeAccruedInterest})
+	if err != nil {
+		t.Fatalf("Parse(template): %v", err)
+	}
+	if len(errs) != 0 || len(parsed) != 1 {
+		t.Fatalf("template example should be 1 valid row, got %d parsed / %+v errs", len(parsed), errs)
+	}
+	if parsed[0].AccruedInterest == nil || parsed[0].Amount.String() != "50250000" {
+		t.Errorf("example accrued row malformed: accrued=%v amount=%s", parsed[0].AccruedInterest, parsed[0].Amount)
+	}
+}
+
+func decimalFromString(t *testing.T, s string) decimal.Decimal {
+	t.Helper()
+	d, err := decimal.NewFromString(s)
+	if err != nil {
+		t.Fatalf("decimal %q: %v", s, err)
+	}
+	return d
 }

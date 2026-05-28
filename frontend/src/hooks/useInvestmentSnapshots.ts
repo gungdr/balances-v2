@@ -1,6 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import type { InvestmentSnapshot } from '@/api/types'
+import {
+  postSnapshotImport,
+  snapshotImportTemplateUrl,
+  type ImportArgs,
+} from './snapshotImport'
 
 // Investment snapshots live under /api/investments/{id}/snapshots — one
 // shared table per ADR-0022. quantity + price_per_unit carry the value shape
@@ -116,6 +121,39 @@ export function useDeleteInvestmentSnapshot(
         queryKey: ['investment-snapshots', investmentId],
       })
       qc.invalidateQueries({ queryKey: [listKey] })
+    },
+  })
+}
+
+// ----- bulk snapshot import (xlsx template) -------------------------------
+// The backend picks the template column shape (quantity-price vs
+// accrued-interest) from the investment's subtype, so the frontend stays
+// shape-agnostic — same dialog, same hook, for all five subtypes.
+
+export function investmentImportTemplateUrl(investmentId: string): string {
+  return snapshotImportTemplateUrl(`/api/investments/${investmentId}/snapshots`)
+}
+
+export function useImportInvestmentSnapshots(
+  investmentId: string,
+  listKey: InvestmentListKey,
+) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (args: ImportArgs) =>
+      postSnapshotImport(
+        `/api/investments/${investmentId}/snapshots`,
+        args.file,
+        args.mode,
+      ),
+    onSuccess: (result) => {
+      // Only a real write should refresh the caches; a preview changed nothing.
+      if (result.committed) {
+        qc.invalidateQueries({
+          queryKey: ['investment-snapshots', investmentId],
+        })
+        qc.invalidateQueries({ queryKey: [listKey] })
+      }
     },
   })
 }

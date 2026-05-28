@@ -21,6 +21,8 @@ import {
   useCreateInvestmentSnapshot,
   useUpdateInvestmentSnapshot,
   useDeleteInvestmentSnapshot,
+  useImportInvestmentSnapshots,
+  investmentImportTemplateUrl,
 } from '@/hooks/useInvestmentSnapshots'
 import {
   useInvestmentTransactions,
@@ -29,6 +31,7 @@ import {
   useDeleteInvestmentTransaction,
 } from '@/hooks/useInvestmentTransactions'
 import { CreateAccruedInterestSnapshotDialog } from '@/components/CreateAccruedInterestSnapshotDialog'
+import { ImportSnapshotsDialog } from '@/components/ImportSnapshotsDialog'
 import { CreateTradeTransactionDialog } from '@/components/CreateTradeTransactionDialog'
 import { CreateCashIncomeTransactionDialog } from '@/components/CreateCashIncomeTransactionDialog'
 import { CreateFeeTransactionDialog } from '@/components/CreateFeeTransactionDialog'
@@ -82,6 +85,10 @@ export function BondDetail({ investmentId, onBack }: Props) {
     'bonds',
   )
   const deleteSnapshotMutation = useDeleteInvestmentSnapshot(
+    investmentId,
+    'bonds',
+  )
+  const importSnapshotMutation = useImportInvestmentSnapshots(
     investmentId,
     'bonds',
   )
@@ -173,10 +180,17 @@ export function BondDetail({ investmentId, onBack }: Props) {
         </div>
         <div className="flex gap-2">
           {isActiveStatus(bond.investment.status) && (
-            <CreateAccruedInterestSnapshotDialog
-              currency={bond.investment.native_currency}
-              mutation={createSnapshotMutation}
-            />
+            <>
+              <CreateAccruedInterestSnapshotDialog
+                currency={bond.investment.native_currency}
+                mutation={createSnapshotMutation}
+              />
+              <ImportSnapshotsDialog
+                templateUrl={investmentImportTemplateUrl(bond.investment.id)}
+                mutation={importSnapshotMutation}
+                currency={bond.investment.native_currency}
+              />
+            </>
           )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             Edit

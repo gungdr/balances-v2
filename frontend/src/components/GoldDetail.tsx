@@ -21,6 +21,8 @@ import {
   useCreateInvestmentSnapshot,
   useUpdateInvestmentSnapshot,
   useDeleteInvestmentSnapshot,
+  useImportInvestmentSnapshots,
+  investmentImportTemplateUrl,
 } from '@/hooks/useInvestmentSnapshots'
 import {
   useInvestmentTransactions,
@@ -29,6 +31,7 @@ import {
   useDeleteInvestmentTransaction,
 } from '@/hooks/useInvestmentTransactions'
 import { CreateQuantityPriceSnapshotDialog } from '@/components/CreateQuantityPriceSnapshotDialog'
+import { ImportSnapshotsDialog } from '@/components/ImportSnapshotsDialog'
 import { CreateTradeTransactionDialog } from '@/components/CreateTradeTransactionDialog'
 import { CreateFeeTransactionDialog } from '@/components/CreateFeeTransactionDialog'
 import { TransactionRow } from '@/components/TransactionRow'
@@ -66,6 +69,10 @@ export function GoldDetail({ investmentId, onBack }: Props) {
     'golds',
   )
   const deleteSnapshotMutation = useDeleteInvestmentSnapshot(
+    investmentId,
+    'golds',
+  )
+  const importSnapshotMutation = useImportInvestmentSnapshots(
     investmentId,
     'golds',
   )
@@ -144,10 +151,17 @@ export function GoldDetail({ investmentId, onBack }: Props) {
         </div>
         <div className="flex gap-2">
           {isActiveStatus(gold.investment.status) && (
-            <CreateQuantityPriceSnapshotDialog
-              currency={gold.investment.native_currency}
-              mutation={createSnapshotMutation}
-            />
+            <>
+              <CreateQuantityPriceSnapshotDialog
+                currency={gold.investment.native_currency}
+                mutation={createSnapshotMutation}
+              />
+              <ImportSnapshotsDialog
+                templateUrl={investmentImportTemplateUrl(gold.investment.id)}
+                mutation={importSnapshotMutation}
+                currency={gold.investment.native_currency}
+              />
+            </>
           )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             Edit

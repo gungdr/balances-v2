@@ -24,6 +24,8 @@ import {
   useCreateInvestmentSnapshot,
   useUpdateInvestmentSnapshot,
   useDeleteInvestmentSnapshot,
+  useImportInvestmentSnapshots,
+  investmentImportTemplateUrl,
 } from '@/hooks/useInvestmentSnapshots'
 import {
   useInvestmentTransactions,
@@ -32,6 +34,7 @@ import {
   useDeleteInvestmentTransaction,
 } from '@/hooks/useInvestmentTransactions'
 import { CreateAccruedInterestSnapshotDialog } from '@/components/CreateAccruedInterestSnapshotDialog'
+import { ImportSnapshotsDialog } from '@/components/ImportSnapshotsDialog'
 import { CreateMaturityTransactionDialog } from '@/components/CreateMaturityTransactionDialog'
 import { TransactionRow } from '@/components/TransactionRow'
 import { TerminatePositionDialog } from '@/components/TerminatePositionDialog'
@@ -80,6 +83,10 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
     'time-deposits',
   )
   const deleteSnapshotMutation = useDeleteInvestmentSnapshot(
+    investmentId,
+    'time-deposits',
+  )
+  const importSnapshotMutation = useImportInvestmentSnapshots(
     investmentId,
     'time-deposits',
   )
@@ -164,10 +171,17 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
         </div>
         <div className="flex gap-2">
           {isActiveStatus(td.investment.status) && (
-            <CreateAccruedInterestSnapshotDialog
-              currency={td.investment.native_currency}
-              mutation={createSnapshotMutation}
-            />
+            <>
+              <CreateAccruedInterestSnapshotDialog
+                currency={td.investment.native_currency}
+                mutation={createSnapshotMutation}
+              />
+              <ImportSnapshotsDialog
+                templateUrl={investmentImportTemplateUrl(td.investment.id)}
+                mutation={importSnapshotMutation}
+                currency={td.investment.native_currency}
+              />
+            </>
           )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             Edit

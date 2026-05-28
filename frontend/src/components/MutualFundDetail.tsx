@@ -21,6 +21,8 @@ import {
   useCreateInvestmentSnapshot,
   useUpdateInvestmentSnapshot,
   useDeleteInvestmentSnapshot,
+  useImportInvestmentSnapshots,
+  investmentImportTemplateUrl,
 } from '@/hooks/useInvestmentSnapshots'
 import {
   useInvestmentTransactions,
@@ -29,6 +31,7 @@ import {
   useDeleteInvestmentTransaction,
 } from '@/hooks/useInvestmentTransactions'
 import { CreateQuantityPriceSnapshotDialog } from '@/components/CreateQuantityPriceSnapshotDialog'
+import { ImportSnapshotsDialog } from '@/components/ImportSnapshotsDialog'
 import { CreateTradeTransactionDialog } from '@/components/CreateTradeTransactionDialog'
 import { CreateCashIncomeTransactionDialog } from '@/components/CreateCashIncomeTransactionDialog'
 import { CreateFeeTransactionDialog } from '@/components/CreateFeeTransactionDialog'
@@ -66,6 +69,10 @@ export function MutualFundDetail({ investmentId, onBack }: Props) {
     'mutual-funds',
   )
   const deleteSnapshotMutation = useDeleteInvestmentSnapshot(
+    investmentId,
+    'mutual-funds',
+  )
+  const importSnapshotMutation = useImportInvestmentSnapshots(
     investmentId,
     'mutual-funds',
   )
@@ -145,10 +152,17 @@ export function MutualFundDetail({ investmentId, onBack }: Props) {
         </div>
         <div className="flex gap-2">
           {isActiveStatus(mf.investment.status) && (
-            <CreateQuantityPriceSnapshotDialog
-              currency={mf.investment.native_currency}
-              mutation={createSnapshotMutation}
-            />
+            <>
+              <CreateQuantityPriceSnapshotDialog
+                currency={mf.investment.native_currency}
+                mutation={createSnapshotMutation}
+              />
+              <ImportSnapshotsDialog
+                templateUrl={investmentImportTemplateUrl(mf.investment.id)}
+                mutation={importSnapshotMutation}
+                currency={mf.investment.native_currency}
+              />
+            </>
           )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             Edit
