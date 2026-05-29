@@ -10,8 +10,36 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            shared: &shared
+              - '.github/workflows/ci.yml'
+              - 'Makefile'
+              - 'codecov.yml'
+              - '.golangci.yml'
+            backend:
+              - *shared
+              - 'backend/**'
+            frontend:
+              - *shared
+              - 'frontend/**'
+
   backend-lint:
     name: Backend lint
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -26,6 +54,8 @@ jobs:
 
   backend-test:
     name: Backend test
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -48,6 +78,8 @@ jobs:
 
   frontend-checks:
     name: Frontend checks
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -70,3 +102,26 @@ jobs:
           files: frontend/coverage/lcov.info
           flags: frontend
           fail_ci_if_error: true
+
+  # Single aggregator so branch protection can require one stable check even
+  # though the jobs above are path-gated (a skipped required job blocks merges;
+  # skipped != success). Passes when every dependency is success-or-skipped.
+  ci-gate:
+    name: CI gate
+    if: always()
+    needs: [changes, backend-lint, backend-test, frontend-checks]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify no required job failed
+        run: |
+          for r in \
+            "${{ needs.changes.result }}" \
+            "${{ needs.backend-lint.result }}" \
+            "${{ needs.backend-test.result }}" \
+            "${{ needs.frontend-checks.result }}"; do
+            if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then
+              echo "A required job did not pass (result: $r)"
+              exit 1
+            fi
+          done
+          echo "All required jobs passed or were skipped."

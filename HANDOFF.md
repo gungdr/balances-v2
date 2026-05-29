@@ -37,8 +37,11 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
-thresholds are informational-only until alpha. For the detailed writeup of any milestone above, see
-`CHANGELOG.md`.
+thresholds are informational-only until alpha. The jobs are now path-gated (a `changes` job via
+`dorny/paths-filter` runs backend jobs on `backend/**`, frontend on `frontend/**`, and the
+cross-cutting set — `ci.yml`, `Makefile`, `codecov.yml`, `.golangci.yml` — on both); a `ci-gate`
+aggregator always reports one stable status so branch protection has a safe required check before
+any branch protection exists. For the detailed writeup of any milestone above, see `CHANGELOG.md`.
 
 ## What's next
 
@@ -274,13 +277,6 @@ invite-form relocation, the `users.nickname` build, vitest setup) — is preserv
   "22K", etc.) but typing `0.999` for 24K is awkward. Carat picker deferred — constraint is "must
   distinguish 24K (.999) from Antam bar (.9999) without sub-percent precision loss". Possible shape:
   a `<select>` of 24K/22K/20K/18K/14K/10K + **Custom**, with 24K → `0.9999`.
-- **Path-filtered CI.** `.github/workflows/ci.yml` runs all three jobs on every push/PR, including
-  doc-only changes. Add `paths:` filters (backend jobs on `backend/**`, frontend on `frontend/**`);
-  cross-cutting files (`ci.yml`, `Makefile`, `codecov.yml`, `.golangci.yml`, root configs) must
-  trigger both. Required-check gotcha: under branch protection a skipped job blocks merges (skipped
-  ≠ success) — add a `ci-gate` aggregator (`if: always()`, succeeds when each dep is
-  success-or-skipped) as the single required check from day one. No branch protection today, so low
-  risk now.
 - **Nickname feature not e2e-smoke-tested.** `users.nickname` shipped without a Playwright spec
   (Google-OAuth-only). Eyeball the Settings "Your name" card + an owner picker on the dev server, or
   add a spec once E2E auth injection covers it.
