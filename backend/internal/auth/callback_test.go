@@ -87,11 +87,13 @@ func TestHandleCallback_ExchangeError(t *testing.T) {
 func TestHandleCallback_ExistingUserSignIn(t *testing.T) {
 	h := newAuthHarness(t)
 	// Harness user already has google_sub "test-sub-Alice" from the fixture.
+	const wantPicture = "https://lh3.googleusercontent.com/a/alice.jpg"
 	h.installStubOAuth(&googleClaims{
 		Sub:           h.user.GoogleSub,
 		Email:         h.user.Email,
 		EmailVerified: true,
 		Name:          h.user.DisplayName,
+		Picture:       wantPicture,
 	}, nil)
 
 	req := callbackRequest("s", "the-code")
@@ -127,15 +129,27 @@ func TestHandleCallback_ExistingUserSignIn(t *testing.T) {
 	if session.UserID != h.user.ID {
 		t.Errorf("session.user_id: want %s, got %s", h.user.ID, session.UserID)
 	}
+
+	// The login should have backfilled the Google picture onto the existing
+	// user row (the fixture user starts with no picture).
+	refreshed, err := h.q.GetUserByGoogleSub(context.Background(), h.user.GoogleSub)
+	if err != nil {
+		t.Fatalf("GetUserByGoogleSub: %v", err)
+	}
+	if refreshed.PictureUrl == nil || *refreshed.PictureUrl != wantPicture {
+		t.Errorf("picture_url: want %q, got %v", wantPicture, refreshed.PictureUrl)
+	}
 }
 
 func TestHandleCallback_NewFounder(t *testing.T) {
 	h := newAuthHarness(t)
+	const wantPicture = "https://lh3.googleusercontent.com/a/founder.jpg"
 	h.installStubOAuth(&googleClaims{
 		Sub:           "new-google-sub-founder",
 		Email:         "newfounder@example.com",
 		EmailVerified: true,
 		Name:          "New Founder",
+		Picture:       wantPicture,
 	}, nil)
 
 	req := callbackRequest("s", "the-code")
@@ -158,6 +172,9 @@ func TestHandleCallback_NewFounder(t *testing.T) {
 	}
 	if user.Email != "newfounder@example.com" {
 		t.Errorf("email: got %q", user.Email)
+	}
+	if user.PictureUrl == nil || *user.PictureUrl != wantPicture {
+		t.Errorf("picture_url: want %q, got %v", wantPicture, user.PictureUrl)
 	}
 }
 

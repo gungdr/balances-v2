@@ -343,6 +343,7 @@ type User struct {
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
 	Nickname    *string            `json:"nickname"`
+	PictureUrl  *string            `json:"picture_url"`
 }
 
 type VehicleDetail struct {

@@ -75,6 +75,9 @@ type googleClaims struct {
 	Email         string `json:"email"`
 	EmailVerified bool   `json:"email_verified"`
 	Name          string `json:"name"`
+	// Picture is the Google account avatar URL, present in the ID token when
+	// the "profile" scope is granted. May be empty for accounts without a photo.
+	Picture string `json:"picture"`
 }
 
 func (g *googleOAuth) exchange(ctx context.Context, code string) (*googleClaims, error) {

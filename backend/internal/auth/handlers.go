@@ -154,7 +154,17 @@ func (h *Handlers) handleCallback(w http.ResponseWriter, r *http.Request) {
 	user, err := h.q.GetUserByGoogleSub(ctx, claims.Sub)
 	switch {
 	case err == nil:
-		// existing user — just sign them in
+		// Existing user — refresh the Google-sourced picture if it changed.
+		// This also backfills users created before picture_url existed; the
+		// equality guard skips the write on steady-state logins.
+		if pic := nullableString(claims.Picture); !equalStringPtr(user.PictureUrl, pic) {
+			user, err = h.q.SetUserPicture(ctx, db.SetUserPictureParams{ID: user.ID, PictureUrl: pic})
+			if err != nil {
+				slog.Error("refresh user picture", "err", err)
+				http.Error(w, "internal error", http.StatusInternalServerError)
+				return
+			}
+		}
 	case errors.Is(err, pgx.ErrNoRows):
 		user, err = h.bootstrapNewUser(ctx, claims, inviteToken)
 		if err != nil {
@@ -194,6 +204,25 @@ func (h *Handlers) handleCallback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, h.frontendURL, http.StatusFound)
 }
 
+// nullableString maps an empty string to NULL (nil) and any non-empty value to
+// a pointer. Used for optional Google claims (e.g. picture) where "" and absent
+// are equivalent and should both store NULL.
+func nullableString(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+// equalStringPtr reports whether two optional strings hold the same value,
+// treating two nils as equal. Used to skip a no-op picture write on login.
+func equalStringPtr(a, b *string) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return *a == *b
+}
+
 // bootstrapNewUser creates either a founder (new household + user, no
 // invitation) or a household member (existing household referenced by a valid
 // invitation). The invitation path verifies the Google-supplied email matches
@@ -228,6 +257,7 @@ func (h *Handlers) bootstrapNewUser(ctx context.Context, c *googleClaims, invite
 		GoogleSub:   c.Sub,
 		Locale:      "id-ID",
 		TimeZone:    "Asia/Jakarta",
+		PictureUrl:  nullableString(c.Picture),
 		CreatedBy:   &invite.CreatedBy,
 	})
 	if err != nil {
@@ -254,6 +284,7 @@ func (h *Handlers) createFounder(ctx context.Context, c *googleClaims) (db.User,
 		GoogleSub:   c.Sub,
 		Locale:      "id-ID",
 		TimeZone:    "Asia/Jakarta",
+		PictureUrl:  nullableString(c.Picture),
 		CreatedBy:   nil,
 	})
 }
@@ -284,6 +315,7 @@ type meResponse struct {
 	DisplayName          string    `json:"display_name"`
 	Nickname             *string   `json:"nickname"`
 	Email                string    `json:"email"`
+	PictureURL           *string   `json:"picture_url"`
 	Locale               string    `json:"locale"`
 	TimeZone             string    `json:"time_zone"`
 	ReportingCurrency    string    `json:"reporting_currency"`
@@ -297,6 +329,7 @@ func meResponseFor(user db.User, hh db.Household) meResponse {
 		DisplayName:          user.DisplayName,
 		Nickname:             user.Nickname,
 		Email:                user.Email,
+		PictureURL:           user.PictureUrl,
 		Locale:               user.Locale,
 		TimeZone:             user.TimeZone,
 		ReportingCurrency:    hh.ReportingCurrency,

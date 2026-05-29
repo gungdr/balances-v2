@@ -10,9 +10,9 @@ WHERE google_sub = $1 AND deleted_at IS NULL;
 
 -- name: CreateUser :one
 INSERT INTO users (
-    household_id, display_name, email, google_sub, locale, time_zone, created_by, updated_by
+    household_id, display_name, email, google_sub, locale, time_zone, picture_url, created_by, updated_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $7
+    $1, $2, $3, $4, $5, $6, $7, $8, $8
 )
 RETURNING *;
 
@@ -22,6 +22,18 @@ FROM users
 WHERE household_id = $1
   AND deleted_at IS NULL
 ORDER BY display_name ASC;
+
+-- name: SetUserPicture :one
+-- Refresh the Google-sourced profile picture on login. This is a system sync
+-- from the OIDC claims, not a user edit, so updated_by is deliberately left
+-- alone (it stays the last human editor). The caller only invokes this when the
+-- incoming picture differs from the stored one, to avoid touching the row on
+-- every login. NULL clears it (Google omitted one).
+UPDATE users
+SET picture_url = $2,
+    updated_at  = now()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING *;
 
 -- name: UpdateUserNickname :one
 -- Self-attributed: a user updates only their own nickname (id = updated_by).

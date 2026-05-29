@@ -13,11 +13,11 @@ import (
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
-    household_id, display_name, email, google_sub, locale, time_zone, created_by, updated_by
+    household_id, display_name, email, google_sub, locale, time_zone, picture_url, created_by, updated_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $7
+    $1, $2, $3, $4, $5, $6, $7, $8, $8
 )
-RETURNING id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at, nickname
+RETURNING id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at, nickname, picture_url
 `
 
 type CreateUserParams struct {
@@ -27,6 +27,7 @@ type CreateUserParams struct {
 	GoogleSub   string     `json:"google_sub"`
 	Locale      string     `json:"locale"`
 	TimeZone    string     `json:"time_zone"`
+	PictureUrl  *string    `json:"picture_url"`
 	CreatedBy   *uuid.UUID `json:"created_by"`
 }
 
@@ -38,6 +39,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.GoogleSub,
 		arg.Locale,
 		arg.TimeZone,
+		arg.PictureUrl,
 		arg.CreatedBy,
 	)
 	var i User
@@ -55,12 +57,13 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.Nickname,
+		&i.PictureUrl,
 	)
 	return i, err
 }
 
 const getUserByGoogleSub = `-- name: GetUserByGoogleSub :one
-SELECT id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at, nickname
+SELECT id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at, nickname, picture_url
 FROM users
 WHERE google_sub = $1 AND deleted_at IS NULL
 `
@@ -82,12 +85,13 @@ func (q *Queries) GetUserByGoogleSub(ctx context.Context, googleSub string) (Use
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.Nickname,
+		&i.PictureUrl,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at, nickname
+SELECT id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at, nickname, picture_url
 FROM users
 WHERE id = $1 AND deleted_at IS NULL
 `
@@ -109,12 +113,13 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.Nickname,
+		&i.PictureUrl,
 	)
 	return i, err
 }
 
 const listUsersByHousehold = `-- name: ListUsersByHousehold :many
-SELECT id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at, nickname
+SELECT id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at, nickname, picture_url
 FROM users
 WHERE household_id = $1
   AND deleted_at IS NULL
@@ -144,6 +149,7 @@ func (q *Queries) ListUsersByHousehold(ctx context.Context, householdID uuid.UUI
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.Nickname,
+			&i.PictureUrl,
 		); err != nil {
 			return nil, err
 		}
@@ -155,13 +161,53 @@ func (q *Queries) ListUsersByHousehold(ctx context.Context, householdID uuid.UUI
 	return items, nil
 }
 
+const setUserPicture = `-- name: SetUserPicture :one
+UPDATE users
+SET picture_url = $2,
+    updated_at  = now()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at, nickname, picture_url
+`
+
+type SetUserPictureParams struct {
+	ID         uuid.UUID `json:"id"`
+	PictureUrl *string   `json:"picture_url"`
+}
+
+// Refresh the Google-sourced profile picture on login. This is a system sync
+// from the OIDC claims, not a user edit, so updated_by is deliberately left
+// alone (it stays the last human editor). The caller only invokes this when the
+// incoming picture differs from the stored one, to avoid touching the row on
+// every login. NULL clears it (Google omitted one).
+func (q *Queries) SetUserPicture(ctx context.Context, arg SetUserPictureParams) (User, error) {
+	row := q.db.QueryRow(ctx, setUserPicture, arg.ID, arg.PictureUrl)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.HouseholdID,
+		&i.DisplayName,
+		&i.Email,
+		&i.GoogleSub,
+		&i.Locale,
+		&i.TimeZone,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedBy,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.Nickname,
+		&i.PictureUrl,
+	)
+	return i, err
+}
+
 const updateUserNickname = `-- name: UpdateUserNickname :one
 UPDATE users
 SET nickname   = $2,
     updated_by = $1,
     updated_at = now()
 WHERE id = $1 AND deleted_at IS NULL
-RETURNING id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at, nickname
+RETURNING id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at, nickname, picture_url
 `
 
 type UpdateUserNicknameParams struct {
@@ -188,6 +234,7 @@ func (q *Queries) UpdateUserNickname(ctx context.Context, arg UpdateUserNickname
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.Nickname,
+		&i.PictureUrl,
 	)
 	return i, err
 }

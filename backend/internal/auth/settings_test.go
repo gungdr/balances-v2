@@ -62,6 +62,17 @@ func TestHandleMe_IncludesCurrencySettings(t *testing.T) {
 	if body.Nickname != nil {
 		t.Errorf("nickname: got %q, want nil (unset by default)", *body.Nickname)
 	}
+	if body.PictureURL != nil {
+		t.Errorf("picture_url: got %q, want nil (unset by default)", *body.PictureURL)
+	}
+}
+
+func TestMeResponseFor_MapsPicture(t *testing.T) {
+	pic := "https://lh3.googleusercontent.com/a/pic.jpg"
+	got := meResponseFor(db.User{PictureUrl: &pic}, db.Household{})
+	if got.PictureURL == nil || *got.PictureURL != pic {
+		t.Errorf("PictureURL: want %q, got %v", pic, got.PictureURL)
+	}
 }
 
 // aliceNickname reads Alice's nickname from the DB-backed members list (the
