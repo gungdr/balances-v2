@@ -1,8 +1,8 @@
 # Changelog — milestone history
 
-The **historical record** of balances-v2: the blow-by-blow of what each milestone shipped, plus
-the design decisions settled during each grilling round. Split out of `HANDOFF.md` on 2026-05-29
-so the handoff doc could stay a thin live-state pointer.
+The **historical record** of balances-v2: the blow-by-blow of what each milestone shipped, plus the
+design decisions settled during each grilling round. Split out of `HANDOFF.md` on 2026-05-29 so the
+handoff doc could stay a thin live-state pointer.
 
 See `HANDOFF.md` for current state, conventions, and the deferred backlog; `CONTEXT.md` and
 `docs/adr/*` for the design. Content here was relocated, not edited — only line-wrapped (~100
@@ -76,12 +76,12 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
   repo + handlers + 17-subtest tenancy/shape test). Single polymorphic `investment_transactions`
   with a `transaction_type` enum (`buy`/`sell`/`coupon`/`dividend`/`distribution`/`fee`/`maturity`)
   + a CASE-driven CHECK enforcing type→shape at the DB level.
-  `validateInvestmentTransactionType(subtype, type)` enforces the subtype→type matrix (Stock →
-  Buy/Sell/Dividend/Fee; MutualFund → +Distribution; Bond → +Coupon+Maturity; Gold → Buy/Sell/Fee;
-  TimeDeposit → Maturity only); `validateInvestmentTransactionShape` catches missing-field combos
-  with friendlier errors than the CHECK. New sentinels `ErrInvalidTransactionType` +
-  `ErrInvalidTransactionShape` → 400. Per ADR-0003, transactions don't auto-propagate to
-  bank-account snapshots.
+    `validateInvestmentTransactionType(subtype, type)` enforces the subtype→type matrix (Stock →
+    Buy/Sell/Dividend/Fee; MutualFund → +Distribution; Bond → +Coupon+Maturity; Gold → Buy/Sell/Fee;
+    TimeDeposit → Maturity only); `validateInvestmentTransactionShape` catches missing-field combos
+    with friendlier errors than the CHECK. New sentinels `ErrInvalidTransactionType` +
+    `ErrInvalidTransactionShape` → 400. Per ADR-0003, transactions don't auto-propagate to
+    bank-account snapshots.
 - **M4.4 frontend complete.** Per-shape dialog forks (Create + Edit) for Trade, CashIncome, Fee,
   Maturity = 8 dialogs. One shared `TransactionRow` switches the Edit dialog on `transaction_type`
   (unified backend endpoint → one updateMutation). All 5 detail pages
@@ -168,10 +168,10 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     queries + repo methods on the *parent* tables (4 not 10 — assets covers bank/property/vehicle,
     investments covers all 5 subtypes); `validatePositionLifecycle` checks the per-group status set
     + biconditional; new sentinels `ErrInvalidLifecycle` → 400, `ErrPositionNotActive` → 409.
-    `CreateInvestmentTransaction` now wraps insert + maturity-flip in one pgx tx: a Maturity sets
-    `status='matured'` + `terminated_at` atomically; a further transaction on a non-active
-    investment → 409. Guard order: type → shape → active-check (structurally-invalid still get their
-    400).
+      `CreateInvestmentTransaction` now wraps insert + maturity-flip in one pgx tx: a Maturity sets
+      `status='matured'` + `terminated_at` atomically; a further transaction on a non-active
+      investment → 409. Guard order: type → shape → active-check (structurally-invalid still get
+      their 400).
   - **HTTP:** `PATCH /api/{assets,liabilities,receivables,investments}/{id}/lifecycle`; validator
     `required_unless=Status active` for the date, repo owns the status-set check.
   - **Tests:** `repo/lifecycle_tenancy_test.go` (terminate each group, biconditional both ways,
@@ -377,7 +377,7 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
   - **HTTP DTO** carries the full income statement (nullable → JSON null on baseline).
   - **Tests:** engine `TransactionCashFlows` (table, all types), `IncomeStatement` (identity closes
     + depreciation isolated + baseline suppression), `InvestmentReturnWithCashFlow`. Race-clean,
-    lint clean.
+      lint clean.
   - **Frontend:** types extended; `DashboardScreen` "This month" panel — earned income / investment
     return / property+vehicle value change (shown only ≠0) / living-expenses with **sign-aware
     relabel** (negative residual → "Unexplained increase") + `ⓘ` hints + a "Net worth change" total;
@@ -637,247 +637,248 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:
 
 **Backend**
-- `backend/internal/migrations/00005_liabilities_receivables.sql` — 4 new tables. Liabilities carry 
-the `subtype` enum (`personal` | `institutional`) and inline metadata (counterparty, principal, 
-rate, term, dates). Receivables have no subtype, just counterparty + due_date. Both use the 
-amount-shape snapshot table per ADR-0022.
-- `backend/queries/{liabilities,liability_snapshots,receivables,receivable_snapshots}.sql` — full 
-CRUD plus batch latest-snapshot joins for list views. Snapshot queries always JOIN the parent table 
-with `household_id = $X` for belt+suspenders tenancy enforcement.
-- `backend/internal/repo/{liabilities,receivables}.go` — `LiabilityRepo` and `ReceivableRepo` with 
-full CRUD + snapshot CRUD. Each is its own struct; they do **not** share helpers with `AssetRepo` 
-beyond the package-private `currentUser` helper.
-- `backend/internal/{liabilities,receivables}/` — HTTP packages mounted under `/api/liabilities` 
-and `/api/receivables`, each with `/{id}/snapshots/*` sub-routes.
+- `backend/internal/migrations/00005_liabilities_receivables.sql` — 4 new tables. Liabilities carry
+  the `subtype` enum (`personal` | `institutional`) and inline metadata (counterparty, principal,
+  rate, term, dates). Receivables have no subtype, just counterparty + due_date. Both use the
+  amount-shape snapshot table per ADR-0022.
+- `backend/queries/{liabilities,liability_snapshots,receivables,receivable_snapshots}.sql` — full
+  CRUD plus batch latest-snapshot joins for list views. Snapshot queries always JOIN the parent
+  table with `household_id = $X` for belt+suspenders tenancy enforcement.
+- `backend/internal/repo/{liabilities,receivables}.go` — `LiabilityRepo` and `ReceivableRepo` with
+  full CRUD + snapshot CRUD. Each is its own struct; they do **not** share helpers with `AssetRepo`
+  beyond the package-private `currentUser` helper.
+- `backend/internal/{liabilities,receivables}/` — HTTP packages mounted under `/api/liabilities` and
+  `/api/receivables`, each with `/{id}/snapshots/*` sub-routes.
 
 **Frontend**
-- Snapshot UI **lifted** to be group-agnostic. `CreateSnapshotDialog`, `EditSnapshotDialog`, and 
-`SnapshotRow` accept `useMutation` results as props (`mutation`, `updateMutation`, 
-`deleteMutation`) instead of calling group-specific hooks internally. **Each detail page now owns 
-its own create/update/delete snapshot mutations and passes them down.** This is the key refactor 
-that lets us avoid `LiabilitySnapshotRow` / `ReceivableSnapshotRow` duplication.
-- `BankAccountChart` renamed to **`SnapshotChart`** and its prop type generalised to `{year_month: 
-string; amount: string}[]`. All five detail pages share it.
-- New hooks: `useLiabilities`, `useLiabilitySnapshots`, `useReceivables`, `useReceivableSnapshots`. 
-Mutation `onSuccess` handlers invalidate both the list key (`['liabilities']` or `['receivables']`) 
-and the snapshot key (`['liability-snapshots', id]` etc).
+- Snapshot UI **lifted** to be group-agnostic. `CreateSnapshotDialog`, `EditSnapshotDialog`, and
+  `SnapshotRow` accept `useMutation` results as props (`mutation`, `updateMutation`,
+  `deleteMutation`) instead of calling group-specific hooks internally. **Each detail page now owns
+  its own create/update/delete snapshot mutations and passes them down.** This is the key refactor
+  that lets us avoid `LiabilitySnapshotRow` / `ReceivableSnapshotRow` duplication.
+- `BankAccountChart` renamed to **`SnapshotChart`** and its prop type generalised to `{year_month:
+  string; amount: string}[]`. All five detail pages share it.
+- New hooks: `useLiabilities`, `useLiabilitySnapshots`, `useReceivables`, `useReceivableSnapshots`.
+  Mutation `onSuccess` handlers invalidate both the list key (`['liabilities']` or
+  `['receivables']`) and the snapshot key (`['liability-snapshots', id]` etc).
 - Liabilities use **two-level nav** (Personal / Institutional inner tabs); Receivables is flat.
 
 **Tests**
-- `backend/internal/repo/{liabilities,receivables}_tenancy_test.go` — 9 subtests each. Covers core 
-CRUD + snapshot CRUD across two households. All pass.
+- `backend/internal/repo/{liabilities,receivables}_tenancy_test.go` — 9 subtests each. Covers core
+  CRUD + snapshot CRUD across two households. All pass.
 
 ## What M4.3a backend shipped
 
-- `backend/internal/migrations/00006_investments.sql` — `investments` + `stock_details` + 
-`mutual_fund_details` + `gold_details` + `investment_snapshots`. Subtype enum carries all five 
-values up front (bond/time_deposit reachable in M4.3b without an ALTER); status enum carries 
-`active`/`sold`/`matured`. Snapshot table has the XOR CHECK from ADR-0022 plus a partial unique 
-index on `(investment_id, year_month) WHERE deleted_at IS NULL`.
-- `backend/queries/{investments,stocks,mutual_funds,golds,investment_snapshots}.sql` — full CRUD 
-plus batch latest-snapshot joins and detail joins for list views. Snapshot queries JOIN 
-`investments` to enforce tenancy.
-- `backend/internal/repo/{investments,stocks,mutual_funds,golds}.go` — `InvestmentRepo` with 
-per-subtype CRUD (txn-wrapped parent + detail writes), shared `softDeleteInvestment` helper, 
-snapshot CRUD with `validateInvestmentSnapshotShape`. New `repo.ErrInvalidSnapshotShape` sentinel.
-- `backend/internal/investments/*` — HTTP package mounted under `/api/investments`, with `/stocks`, 
-`/mutual-funds`, `/golds` subtype CRUD and `/{id}/snapshots` snapshot CRUD. `repoErrorStatus` maps 
-`ErrInvalidSnapshotShape` to 400.
-- `backend/internal/repo/investments_tenancy_test.go` — covers cross-tenant rejection across all 
-three subtypes, the subtype guard between them, snapshot tenancy, alice-side happy-path CRUD, and a 
-separate `TestInvestmentRepo_SnapshotShapeValidation` exercising the repo's shape XOR.
+- `backend/internal/migrations/00006_investments.sql` — `investments` + `stock_details` +
+  `mutual_fund_details` + `gold_details` + `investment_snapshots`. Subtype enum carries all five
+  values up front (bond/time_deposit reachable in M4.3b without an ALTER); status enum carries
+  `active`/`sold`/`matured`. Snapshot table has the XOR CHECK from ADR-0022 plus a partial unique
+  index on `(investment_id, year_month) WHERE deleted_at IS NULL`.
+- `backend/queries/{investments,stocks,mutual_funds,golds,investment_snapshots}.sql` — full CRUD
+  plus batch latest-snapshot joins and detail joins for list views. Snapshot queries JOIN
+  `investments` to enforce tenancy.
+- `backend/internal/repo/{investments,stocks,mutual_funds,golds}.go` — `InvestmentRepo` with
+  per-subtype CRUD (txn-wrapped parent + detail writes), shared `softDeleteInvestment` helper,
+  snapshot CRUD with `validateInvestmentSnapshotShape`. New `repo.ErrInvalidSnapshotShape` sentinel.
+- `backend/internal/investments/*` — HTTP package mounted under `/api/investments`, with `/stocks`,
+  `/mutual-funds`, `/golds` subtype CRUD and `/{id}/snapshots` snapshot CRUD. `repoErrorStatus` maps
+  `ErrInvalidSnapshotShape` to 400.
+- `backend/internal/repo/investments_tenancy_test.go` — covers cross-tenant rejection across all
+  three subtypes, the subtype guard between them, snapshot tenancy, alice-side happy-path CRUD, and
+  a separate `TestInvestmentRepo_SnapshotShapeValidation` exercising the repo's shape XOR.
 
 ## What M4.3a-frontend shipped
 
-- `frontend/src/hooks/useInvestments.ts` — per-subtype CRUD (stocks / mutual-funds / golds) against 
-`/api/investments/*`. Each subtype has its own list/detail/create/update/delete hooks; list queries 
-cache under `['stocks']`, `['mutual-funds']`, `['golds']`.
-- `frontend/src/hooks/useInvestmentSnapshots.ts` — shared snapshot CRUD at 
-`/api/investments/{id}/snapshots`. The mutation hooks take a `listKey: 'stocks' | 'mutual-funds' | 
-'golds'` so they can invalidate the right parent list when a snapshot changes (each list inlines 
-`latest_snapshot`).
-- `frontend/src/components/{Stocks,MutualFunds,Golds}Screen.tsx`, 
-`{Stock,MutualFund,Gold}ListRow.tsx`, `Create{Stock,MutualFund,Gold}Dialog.tsx`, 
-`Edit{Stock,MutualFund,Gold}Dialog.tsx` — list, row, and dialog set per subtype. Edit dialogs 
-accept either the detail `Stock`/`MutualFund`/`Gold` aggregate or the list-row `*ListItem` so both 
-call sites can reuse them.
-- `frontend/src/components/{Stock,MutualFund,Gold}Detail.tsx` — detail pages mirror 
-`LiabilityDetail`: own snapshot mutations, pass them as props to the snapshot dialogs/row, share 
-`SnapshotChart`. Each detail page hardcodes its `quantityUnit` for the row ("sh" / "units" / "g").
-- `frontend/src/components/CreateInvestmentSnapshotDialog.tsx` + `EditInvestmentSnapshotDialog.tsx` 
-+ `InvestmentSnapshotRow.tsx` — **separate** from the amount-only 
-`CreateSnapshotDialog`/`EditSnapshotDialog`/`SnapshotRow`. They take Quantity + Price-per-unit 
-inputs and derive `amount = qty × price` client-side (shown as a preview, sent on the wire 
-alongside the two factors). The backend's `validateInvestmentSnapshotShape` re-checks the 
-subtype→shape mapping. This was a deliberate fork — see the convention note below.
-- `frontend/src/lib/gold.ts` — `formatGoldPurity` helper that renders "24K (.999+)", "22K", "18K", 
-or falls through to a percentage. Used in `GoldListRow` and `GoldDetail`.
-- `frontend/src/api/types.ts` — added `Investment`, `InvestmentSnapshot`, 
-`Stock`/`MutualFund`/`Gold` aggregates and `*ListItem` variants. `InvestmentSubtype` carries all 
-five values for forward compatibility with M4.3b.
-- `frontend/src/App.tsx` — Investments replaces the placeholder with a three-level nav (Group > 
-Investments > {Stocks, Mutual Funds, Gold}). `Selection` union extended with `{kind: 
-'stock'|'mutual_fund'|'gold', investmentId}`.
-- Bundle size: ~840KB / ~228KB gzipped (was ~790KB before M4.3a-frontend; later code-split in the 
-Recharts side quest, see below).
+- `frontend/src/hooks/useInvestments.ts` — per-subtype CRUD (stocks / mutual-funds / golds) against
+  `/api/investments/*`. Each subtype has its own list/detail/create/update/delete hooks; list
+  queries cache under `['stocks']`, `['mutual-funds']`, `['golds']`.
+- `frontend/src/hooks/useInvestmentSnapshots.ts` — shared snapshot CRUD at
+  `/api/investments/{id}/snapshots`. The mutation hooks take a `listKey: 'stocks' | 'mutual-funds' |
+  'golds'` so they can invalidate the right parent list when a snapshot changes (each list inlines
+  `latest_snapshot`).
+- `frontend/src/components/{Stocks,MutualFunds,Golds}Screen.tsx`,
+  `{Stock,MutualFund,Gold}ListRow.tsx`, `Create{Stock,MutualFund,Gold}Dialog.tsx`,
+  `Edit{Stock,MutualFund,Gold}Dialog.tsx` — list, row, and dialog set per subtype. Edit dialogs
+  accept either the detail `Stock`/`MutualFund`/`Gold` aggregate or the list-row `*ListItem` so both
+  call sites can reuse them.
+- `frontend/src/components/{Stock,MutualFund,Gold}Detail.tsx` — detail pages mirror
+  `LiabilityDetail`: own snapshot mutations, pass them as props to the snapshot dialogs/row, share
+  `SnapshotChart`. Each detail page hardcodes its `quantityUnit` for the row ("sh" / "units" / "g").
+- `frontend/src/components/CreateInvestmentSnapshotDialog.tsx` + `EditInvestmentSnapshotDialog.tsx`
++ `InvestmentSnapshotRow.tsx` — **separate** from the amount-only
+  `CreateSnapshotDialog`/`EditSnapshotDialog`/`SnapshotRow`. They take Quantity + Price-per-unit
+  inputs and derive `amount = qty × price` client-side (shown as a preview, sent on the wire
+  alongside the two factors). The backend's `validateInvestmentSnapshotShape` re-checks the
+  subtype→shape mapping. This was a deliberate fork — see the convention note below.
+- `frontend/src/lib/gold.ts` — `formatGoldPurity` helper that renders "24K (.999+)", "22K", "18K",
+  or falls through to a percentage. Used in `GoldListRow` and `GoldDetail`.
+- `frontend/src/api/types.ts` — added `Investment`, `InvestmentSnapshot`,
+  `Stock`/`MutualFund`/`Gold` aggregates and `*ListItem` variants. `InvestmentSubtype` carries all
+  five values for forward compatibility with M4.3b.
+- `frontend/src/App.tsx` — Investments replaces the placeholder with a three-level nav (Group >
+  Investments > {Stocks, Mutual Funds, Gold}). `Selection` union extended with `{kind:
+  'stock'|'mutual_fund'|'gold', investmentId}`.
+- Bundle size: ~840KB / ~228KB gzipped (was ~790KB before M4.3a-frontend; later code-split in the
+  Recharts side quest, see below).
 
 ## What M4.3b backend shipped
 
-- `backend/internal/migrations/00007_bonds_time_deposits.sql` — adds `bond_details` (bond_type enum 
-`govt_primary|secondary_market`, issuer, face_value, coupon_rate, coupon_frequency enum 
-`monthly|quarterly|semi_annual|annual` default monthly, maturity_date) and `time_deposit_details` 
-(bank_name, principal, interest_rate, term_months, placement_date, maturity_date, rollover_policy 
-enum `auto_renew_principal|auto_renew_with_interest|no_rollover`). No new indexes (deferred per the 
-spec grilling — M4.2 precedent).
-- `backend/queries/{bonds,time_deposits}.sql` — Create/Get/List-by-IDs/Update on each details 
-table. No detail-table soft-delete; parent's `softDeleteInvestment` cascades.
-- `backend/internal/repo/{bonds,time_deposits}.go` — `CreateBond` / `CreateTimeDeposit` 
-(txn-wrapped parent + details), `Get/Update/Delete` with subtype guard mirroring stocks/golds. 
-`validateInvestmentSnapshotShape` already covered `bond` and `time_deposit` since M4.3a; no change 
-needed in `investments.go`.
-- `backend/internal/investments/{bonds,time_deposits}.go` — HTTP handlers mounted under 
-`/api/investments/bonds` and `/api/investments/time-deposits`. `maturity_date` / `placement_date` 
-accepted as `YYYY-MM-DD` strings; Go-side `time.Parse` rather than relying on validator.
-- `backend/internal/repo/investments_tenancy_test.go` — extended to five subtypes. New subtests 
-cover bond/time_deposit list isolation, bob get/update/delete on each, subtype guard from bond → 
-stock/time_deposit, alice happy-path update + delete on bond + TD. 
-`TestInvestmentRepo_SnapshotShapeValidation` now exercises the accrued-interest XOR branch (missing 
-accrued rejected, quantity+price rejected, accrued-only accepted).
+- `backend/internal/migrations/00007_bonds_time_deposits.sql` — adds `bond_details` (bond_type enum
+  `govt_primary|secondary_market`, issuer, face_value, coupon_rate, coupon_frequency enum
+  `monthly|quarterly|semi_annual|annual` default monthly, maturity_date) and `time_deposit_details`
+  (bank_name, principal, interest_rate, term_months, placement_date, maturity_date, rollover_policy
+  enum `auto_renew_principal|auto_renew_with_interest|no_rollover`). No new indexes (deferred per
+  the spec grilling — M4.2 precedent).
+- `backend/queries/{bonds,time_deposits}.sql` — Create/Get/List-by-IDs/Update on each details table.
+  No detail-table soft-delete; parent's `softDeleteInvestment` cascades.
+- `backend/internal/repo/{bonds,time_deposits}.go` — `CreateBond` / `CreateTimeDeposit` (txn-wrapped
+  parent + details), `Get/Update/Delete` with subtype guard mirroring stocks/golds.
+  `validateInvestmentSnapshotShape` already covered `bond` and `time_deposit` since M4.3a; no change
+  needed in `investments.go`.
+- `backend/internal/investments/{bonds,time_deposits}.go` — HTTP handlers mounted under
+  `/api/investments/bonds` and `/api/investments/time-deposits`. `maturity_date` / `placement_date`
+  accepted as `YYYY-MM-DD` strings; Go-side `time.Parse` rather than relying on validator.
+- `backend/internal/repo/investments_tenancy_test.go` — extended to five subtypes. New subtests
+  cover bond/time_deposit list isolation, bob get/update/delete on each, subtype guard from bond →
+  stock/time_deposit, alice happy-path update + delete on bond + TD.
+  `TestInvestmentRepo_SnapshotShapeValidation` now exercises the accrued-interest XOR branch
+  (missing accrued rejected, quantity+price rejected, accrued-only accepted).
 
 ## What M4.4 shipped
 
 **Backend**
-- `backend/internal/migrations/00010_investment_transactions.sql` — single 
-`investment_transactions` table with a `transaction_type` enum and a CASE-driven CHECK enforcing 
-type→shape (Buy/Sell need amount+quantity+price; Coupon/Dividend/Distribution need amount; Fee 
-needs amount, optional paired quantity+price; Maturity needs principal+interest+both dispositions). 
-Two indexes: `investment_id` and `(investment_id, transaction_date DESC)`.
-- `backend/queries/investment_transactions.sql` — CRUD with `WITH owned_investment` parent-tenancy 
-enforcement on Create; UPDATE/Get/List use the standard FROM-JOIN tenancy pattern. 
-`transaction_type` is **not** in the UPDATE column list — immutable post-create (changing type 
-would invalidate the shape).
-- `backend/internal/repo/investment_transactions.go` — `CreateInvestmentTransaction` / 
-`ListInvestmentTransactions` / `UpdateInvestmentTransaction` / `DeleteInvestmentTransaction` on 
-`InvestmentRepo`. `validateInvestmentTransactionType(subtype, txnType)` enforces the per-subtype 
-matrix; `validateInvestmentTransactionShape(p)` enforces the per-type field combo. `repo.TxnType*` 
-constants and `repo.Disposition*` constants exported for cross-package use.
-- `backend/internal/investments/transactions.go` + mount: routes at 
-`/api/investments/{id}/transactions` (POST/GET on root, PATCH/DELETE on `{transactionID}`).
-- `backend/internal/repo/investment_transactions_tenancy_test.go` — 17 subtests covering bob's 
-rejection across List/Create/Update/Delete, the 4-direction subtype→type matrix (Coupon-on-Stock, 
-Buy-on-TD, Maturity-on-Stock, Dividend-on-Bond), shape-rejection (Buy without quantity, Maturity 
-without dispositions, Fee with qty but no price, Dividend with qty), and alice's happy-path 
-List/Update/Delete + Maturity round-trip preserving dispositions.
+- `backend/internal/migrations/00010_investment_transactions.sql` — single `investment_transactions`
+  table with a `transaction_type` enum and a CASE-driven CHECK enforcing type→shape (Buy/Sell need
+  amount+quantity+price; Coupon/Dividend/Distribution need amount; Fee needs amount, optional paired
+  quantity+price; Maturity needs principal+interest+both dispositions). Two indexes: `investment_id`
+  and `(investment_id, transaction_date DESC)`.
+- `backend/queries/investment_transactions.sql` — CRUD with `WITH owned_investment` parent-tenancy
+  enforcement on Create; UPDATE/Get/List use the standard FROM-JOIN tenancy pattern.
+  `transaction_type` is **not** in the UPDATE column list — immutable post-create (changing type
+  would invalidate the shape).
+- `backend/internal/repo/investment_transactions.go` — `CreateInvestmentTransaction` /
+  `ListInvestmentTransactions` / `UpdateInvestmentTransaction` / `DeleteInvestmentTransaction` on
+  `InvestmentRepo`. `validateInvestmentTransactionType(subtype, txnType)` enforces the per-subtype
+  matrix; `validateInvestmentTransactionShape(p)` enforces the per-type field combo. `repo.TxnType*`
+  constants and `repo.Disposition*` constants exported for cross-package use.
+- `backend/internal/investments/transactions.go` + mount: routes at
+  `/api/investments/{id}/transactions` (POST/GET on root, PATCH/DELETE on `{transactionID}`).
+- `backend/internal/repo/investment_transactions_tenancy_test.go` — 17 subtests covering bob's
+  rejection across List/Create/Update/Delete, the 4-direction subtype→type matrix (Coupon-on-Stock,
+  Buy-on-TD, Maturity-on-Stock, Dividend-on-Bond), shape-rejection (Buy without quantity, Maturity
+  without dispositions, Fee with qty but no price, Dividend with qty), and alice's happy-path
+  List/Update/Delete + Maturity round-trip preserving dispositions.
 
 **Frontend**
-- `frontend/src/hooks/useInvestmentTransactions.ts` — list/create/update/delete hooks. No `listKey` 
-(transactions aren't denormalized onto subtype list rows; if that changes later, take the 
-snapshot-listKey pattern).
-- Shape-forked dialog set: `Create/EditTradeTransactionDialog` (Buy + Sell — txnType prop fixes 
-title and direction), `Create/EditCashIncomeTransactionDialog` (Coupon + Dividend + Distribution), 
-`Create/EditFeeTransactionDialog`, `Create/EditMaturityTransactionDialog`. Trade dialog derives 
-`cash = qty × price` client-side and ships all three on the wire (mirrors 
-`CreateQuantityPriceSnapshotDialog`). Maturity defaults its two dispositions from an optional 
-`rolloverPolicy` prop — TD passes it; Bond doesn't.
-- `frontend/src/components/TransactionRow.tsx` — single row component that picks the right Edit 
-dialog based on `transaction.transaction_type` (the backend endpoint is unified, so one 
-updateMutation suffices). Renders a colour-coded Cash impact column (Buy/Fee out → destructive, 
-Sell/Coupon/Dividend/Distribution in → emerald, Maturity → emerald cash-out portions, "rolled" when 
-both portions roll). Subline under Type shows shape-specific details (qty×price, P/I + disposition 
-badges, etc.).
-- `frontend/src/lib/reconciliation.ts` — `reconcileQuantity(latestSnapshot, transactions)` returns 
-`{ expected, actual, matches }` for Stock/MF/Gold detail pages. Display-only soft warning; not 
-enforced.
-- All 5 detail pages 
-(`StockDetail`/`MutualFundDetail`/`BondDetail`/`GoldDetail`/`TimeDepositDetail`) gained a 
-Transactions Card below Snapshots, with subtype-appropriate "+ Type" buttons, a separate 
-transaction-page state (PAGE_SIZE = 12, same as snapshots), and a row layout (Date / Type / Cash 
-impact / Notes / Actions).
+- `frontend/src/hooks/useInvestmentTransactions.ts` — list/create/update/delete hooks. No `listKey`
+  (transactions aren't denormalized onto subtype list rows; if that changes later, take the
+  snapshot-listKey pattern).
+- Shape-forked dialog set: `Create/EditTradeTransactionDialog` (Buy + Sell — txnType prop fixes
+  title and direction), `Create/EditCashIncomeTransactionDialog` (Coupon + Dividend + Distribution),
+  `Create/EditFeeTransactionDialog`, `Create/EditMaturityTransactionDialog`. Trade dialog derives
+  `cash = qty × price` client-side and ships all three on the wire (mirrors
+  `CreateQuantityPriceSnapshotDialog`). Maturity defaults its two dispositions from an optional
+  `rolloverPolicy` prop — TD passes it; Bond doesn't.
+- `frontend/src/components/TransactionRow.tsx` — single row component that picks the right Edit
+  dialog based on `transaction.transaction_type` (the backend endpoint is unified, so one
+  updateMutation suffices). Renders a colour-coded Cash impact column (Buy/Fee out → destructive,
+  Sell/Coupon/Dividend/Distribution in → emerald, Maturity → emerald cash-out portions, "rolled"
+  when both portions roll). Subline under Type shows shape-specific details (qty×price, P/I +
+  disposition badges, etc.).
+- `frontend/src/lib/reconciliation.ts` — `reconcileQuantity(latestSnapshot, transactions)` returns
+  `{ expected, actual, matches }` for Stock/MF/Gold detail pages. Display-only soft warning; not
+  enforced.
+- All 5 detail pages
+  (`StockDetail`/`MutualFundDetail`/`BondDetail`/`GoldDetail`/`TimeDepositDetail`) gained a
+  Transactions Card below Snapshots, with subtype-appropriate "+ Type" buttons, a separate
+  transaction-page state (PAGE_SIZE = 12, same as snapshots), and a row layout (Date / Type / Cash
+  impact / Notes / Actions).
 
 ## M4.4 design decisions (settled during the pre-implementation grilling)
 
-The architectural core of these is captured in **ADR-0023** (investment
-transaction table strategy: single polymorphic table, type→shape CHECK,
-subtype→type matrix in the repo). The tactical decisions below sit on
-top of that ADR.
+The architectural core of these is captured in **ADR-0023** (investment transaction table strategy:
+single polymorphic table, type→shape CHECK, subtype→type matrix in the repo). The tactical decisions
+below sit on top of that ADR.
 
 
-1. **Single polymorphic `investment_transactions` table** with type enum + nullable per-shape 
-columns + DB-level CHECK on type→shape (mirrors `investment_snapshots` per ADR-0022). Per-type 
-tables were rejected — chronological "all transactions for instrument X" queries are natural in one 
-table; cross-type sqlc queries would be 7-way UNIONs.
-2. **TimeDeposit gets Maturity only.** Initial placement lives in `time_deposit_details.principal` 
-via the Create dialog; no redundant "Buy" placement transaction. Bond gets the full set (Buy + Sell 
+1. **Single polymorphic `investment_transactions` table** with type enum + nullable per-shape
+   columns + DB-level CHECK on type→shape (mirrors `investment_snapshots` per ADR-0022). Per-type
+   tables were rejected — chronological "all transactions for instrument X" queries are natural in
+   one table; cross-type sqlc queries would be 7-way UNIONs.
+2. **TimeDeposit gets Maturity only.** Initial placement lives in `time_deposit_details.principal`
+   via the Create dialog; no redundant "Buy" placement transaction. Bond gets the full set (Buy +
+   Sell
 + Coupon + Fee + Maturity) because secondary-market trades exist.
-3. **Bond face_value stays as total** (not per-lot). Deepening to lots was deferred — current 
-schema is sufficient for snapshot-shape tracking; revisit if a real reconciliation need surfaces.
-4. **Reconciliation is display-only.** A snapshot quantity that disagrees with `Σ(Buys.qty) − 
-Σ(Sells.qty) − Σ(Fees.qty_deducted)` shows a soft amber warning on the detail page. Statements 
-remain the source of truth (ADR-0003 philosophy). No write-time block.
-5. **transaction_type is immutable post-create.** Changing it would invalidate the shape; users 
-delete + re-create instead.
-6. **One Trade/CashIncome dialog handles multiple types via a `txnType` prop** rather than 
-splitting Buy/Sell or Coupon/Dividend/Distribution into separate files. Fields are identical within 
-shape; the title/verb pivots on the prop. Honours "name by shape, not by group" by analogy.
-7. **Maturity's `rolloverPolicy` prop is optional** — TD passes it (defaults dispositions from the 
-bank's configured policy), Bond doesn't (no policy, defaults to both cash-out).
+3. **Bond face_value stays as total** (not per-lot). Deepening to lots was deferred — current schema
+   is sufficient for snapshot-shape tracking; revisit if a real reconciliation need surfaces.
+4. **Reconciliation is display-only.** A snapshot quantity that disagrees with `Σ(Buys.qty) −
+   Σ(Sells.qty) − Σ(Fees.qty_deducted)` shows a soft amber warning on the detail page. Statements
+   remain the source of truth (ADR-0003 philosophy). No write-time block.
+5. **transaction_type is immutable post-create.** Changing it would invalidate the shape; users
+   delete + re-create instead.
+6. **One Trade/CashIncome dialog handles multiple types via a `txnType` prop** rather than splitting
+   Buy/Sell or Coupon/Dividend/Distribution into separate files. Fields are identical within shape;
+   the title/verb pivots on the prop. Honours "name by shape, not by group" by analogy.
+7. **Maturity's `rolloverPolicy` prop is optional** — TD passes it (defaults dispositions from the
+   bank's configured policy), Bond doesn't (no policy, defaults to both cash-out).
 
 ## What M4.3b-frontend shipped
 
-- **Snapshot dialog set rename + fork**: existing `CreateInvestmentSnapshotDialog` / 
-`EditInvestmentSnapshotDialog` / `InvestmentSnapshotRow` renamed to `*QuantityPriceSnapshot*` to 
-make the convention "name by shape, not by group" uniform. New 
-`Create/EditAccruedInterestSnapshotDialog` + `AccruedInterestSnapshotRow` trio carries the 
-accrued-interest shape — Total value + Accrued inputs, with derived "Of which principal" helper 
-line. Bond/TD detail pages own their snapshot mutations and pass them in as props, same pattern as 
-M4.3a-frontend.
-- **Bond UI** (`BondsScreen`, `BondListRow`, `BondDetail`, `Create/EditBondDialog`): list row shows 
-`series_code` (mono, line 1) + `<bond_type> · <issuer> · <coupon_rate>% <coupon_frequency>` (line 
-2) + maturity styled by urgency (line 3). 4-tier urgency in `lib/maturity.ts`: default (muted), 
-approaching (≤90d, bold), imminent (≤30d, bold + amber, countdown format), matured (muted + ⚠ 
-prefix).
-- **TimeDeposit UI** (`TimeDepositsScreen`, `TimeDepositListRow`, `TimeDepositDetail`, 
-`Create/EditTimeDepositDialog`): list row shows bank_name + rate·term + maturity. Create dialog 
-auto-derives `maturity_date` from `placement_date + term_months` whenever either changes; user can 
-override (banks sometimes nudge for holidays). Rollover-policy picker has a one-line helper caption.
+- **Snapshot dialog set rename + fork**: existing `CreateInvestmentSnapshotDialog` /
+  `EditInvestmentSnapshotDialog` / `InvestmentSnapshotRow` renamed to `*QuantityPriceSnapshot*` to
+  make the convention "name by shape, not by group" uniform. New
+  `Create/EditAccruedInterestSnapshotDialog` + `AccruedInterestSnapshotRow` trio carries the
+  accrued-interest shape — Total value + Accrued inputs, with derived "Of which principal" helper
+  line. Bond/TD detail pages own their snapshot mutations and pass them in as props, same pattern as
+  M4.3a-frontend.
+- **Bond UI** (`BondsScreen`, `BondListRow`, `BondDetail`, `Create/EditBondDialog`): list row shows
+  `series_code` (mono, line 1) + `<bond_type> · <issuer> · <coupon_rate>% <coupon_frequency>` (line
+  2) + maturity styled by urgency (line 3). 4-tier urgency in `lib/maturity.ts`: default (muted),
+  approaching (≤90d, bold), imminent (≤30d, bold + amber, countdown format), matured (muted + ⚠
+  prefix).
+- **TimeDeposit UI** (`TimeDepositsScreen`, `TimeDepositListRow`, `TimeDepositDetail`,
+  `Create/EditTimeDepositDialog`): list row shows bank_name + rate·term + maturity. Create dialog
+  auto-derives `maturity_date` from `placement_date + term_months` whenever either changes; user can
+  override (banks sometimes nudge for holidays). Rollover-policy picker has a one-line helper
+  caption.
 - **Pre-M4.3b-frontend migration prep**:
-  - `migrations/00008_rates_to_percent.sql` — `UPDATE` rates × 100 in 5 columns 
-(`liabilities.interest_rate`, `property_details.annual_amortization_rate`, 
-`vehicle_details.annual_depreciation_rate`, `bond_details.coupon_rate`, 
-`time_deposit_details.interest_rate`). Frontend create/edit forms type `5.5` for "5.5%", no 
-client-side scaling.
-  - `migrations/00009_bond_series_code.sql` — `bond_details.series_code` (nullable TEXT). 
-Required-vs-optional decision: nullable because corporate bonds without a published code exist. 
-Stock.ticker is required (exchanges always have one); bond series codes are softer.
-- **App.tsx nav**: `InvestmentSubtypeNav` extended to 5 values; tab order **Stocks → Mutual Funds → 
-Bonds → Time Deposits → Gold** (equities → funds → fixed-income pair → physical); Selection union 
-extended with `bond` + `time_deposit` variants.
+  - `migrations/00008_rates_to_percent.sql` — `UPDATE` rates × 100 in 5 columns
+    (`liabilities.interest_rate`, `property_details.annual_amortization_rate`,
+    `vehicle_details.annual_depreciation_rate`, `bond_details.coupon_rate`,
+    `time_deposit_details.interest_rate`). Frontend create/edit forms type `5.5` for "5.5%", no
+    client-side scaling.
+  - `migrations/00009_bond_series_code.sql` — `bond_details.series_code` (nullable TEXT).
+    Required-vs-optional decision: nullable because corporate bonds without a published code exist.
+    Stock.ticker is required (exchanges always have one); bond series codes are softer.
+- **App.tsx nav**: `InvestmentSubtypeNav` extended to 5 values; tab order **Stocks → Mutual Funds →
+  Bonds → Time Deposits → Gold** (equities → funds → fixed-income pair → physical); Selection union
+  extended with `bond` + `time_deposit` variants.
 
 ## M4.3 design decisions (settled during the grilling round)
 
-1. **Snapshot routes are per-group**: `/api/investments/{id}/snapshots`. Mirrors ADR-0022 and the 
-M4.2 pattern.
+1. **Snapshot routes are per-group**: `/api/investments/{id}/snapshots`. Mirrors ADR-0022 and the
+   M4.2 pattern.
 2. **Subtypes shipped in two batches** to validate each snapshot shape independently:
    - M4.3a = Stock + MutualFund + Gold (quantity+price shape) — **done**
    - M4.3b = Bond + TimeDeposit (accrued-interest shape) — **done** (backend + frontend)
-3. **XOR shape integrity is two-layer**: DB CHECK rejects rows that satisfy no shape or both; the 
-repo's `validateInvestmentSnapshotShape(subtype, ...)` rejects rows that pick the wrong shape for 
-their parent's subtype (Postgres CHECK can't reference another table). Returns 
-`repo.ErrInvalidSnapshotShape`, mapped to 400 in handlers.
-4. **Transactions stay out of M4.3** — deferred to M4.4 
-(Buy/Sell/Coupon/Dividend/Distribution/Fee/Maturity).
-5. **Three-level nav** (Investments > {subtype}) is acceptable for M4.3-frontend; React Router 
-migration still flagged for M4.9.
-6. **Snapshot `amount` is dirty for the accrued-interest shape** — for Bond/TimeDeposit, `amount` 
-is the total position value (already includes accrued interest); `accrued_interest` is a 
-*breakdown* column for income-tracking visibility and is never additive at aggregation time. 
-Documented in ADR-0022 and CONTEXT.md (the Snapshot definition).
-7. **Floating-rate bonds (SBR, ST) use a plain `coupon_rate` field** — the user edits it on each 
-rate reset. No structured rate_type / spread / base model; KISS, defer until UI needs filtering or 
-display badges.
-8. **Early TimeDeposit withdrawal folds into the `sold` status** — `sold` is the generic "fully 
-exited before scheduled term" outcome per CONTEXT.md; the frontend renders a subtype-aware label 
-("Withdrawn early" for TD).
+3. **XOR shape integrity is two-layer**: DB CHECK rejects rows that satisfy no shape or both; the
+   repo's `validateInvestmentSnapshotShape(subtype, ...)` rejects rows that pick the wrong shape for
+   their parent's subtype (Postgres CHECK can't reference another table). Returns
+   `repo.ErrInvalidSnapshotShape`, mapped to 400 in handlers.
+4. **Transactions stay out of M4.3** — deferred to M4.4
+   (Buy/Sell/Coupon/Dividend/Distribution/Fee/Maturity).
+5. **Three-level nav** (Investments > {subtype}) is acceptable for M4.3-frontend; React Router
+   migration still flagged for M4.9.
+6. **Snapshot `amount` is dirty for the accrued-interest shape** — for Bond/TimeDeposit, `amount` is
+   the total position value (already includes accrued interest); `accrued_interest` is a *breakdown*
+   column for income-tracking visibility and is never additive at aggregation time. Documented in
+   ADR-0022 and CONTEXT.md (the Snapshot definition).
+7. **Floating-rate bonds (SBR, ST) use a plain `coupon_rate` field** — the user edits it on each
+   rate reset. No structured rate_type / spread / base model; KISS, defer until UI needs filtering
+   or display badges.
+8. **Early TimeDeposit withdrawal folds into the `sold` status** — `sold` is the generic "fully
+   exited before scheduled term" outcome per CONTEXT.md; the frontend renders a subtype-aware label
+   ("Withdrawn early" for TD).
 
 
 
@@ -886,80 +887,80 @@ exited before scheduled term" outcome per CONTEXT.md; the frontend renders a sub
 - Property/vehicle amortization-rate UI helper (Q8a)
 - Fee cash→quantity helper (Q12, lands in M4.6 with Transactions)
 - TimeDeposit "duplicate matured TD" helper (Q14c-iv, M4.6)
-- ~~Side-by-side multi-currency dashboard view (Q15c, M5)~~ **DONE** — headline-only `≈` 
-projection; see the "M5 COMPLETE" entry above
+- ~~Side-by-side multi-currency dashboard view (Q15c, M5)~~ **DONE** — headline-only `≈` projection;
+  see the "M5 COMPLETE" entry above
 - React Router migration (M4.9)
-- ~~Settings/Household page that holds the invite form~~ **invite form moved DONE**: `<InviteForm 
-/>` now lives in `SettingsScreen` (was rendered globally outside the Tabs at the bottom of *every* 
-tab — the "bank-accounts tab" framing was stale; it showed everywhere). Pure relocation, no API 
-change; Settings subtitle broadened to mention household invitations. **`users.nickname` DONE 
-(M6):** migration `00015_user_nickname` adds `nickname TEXT` (nullable, `CHECK len BETWEEN 1 AND 
-32`); the app stores NULL (never `''`) when cleared. Self-attributed via `PATCH /api/me` 
-(`handleUpdateMe`: trims, blank→NULL, >32 chars→400) — `display_name` stays Google-sourced + the 
-API/reports source of truth; `nickname` rides alongside it on `/me` + `/household/members`. 
-Frontend: `lib/names.ts#preferredName(nickname ?? display_name)` (blank-guarded) is the single 
-resolution point — `ownershipLabel` calls it (so all 5 list rows + 10 detail pages + `IncomeRow` 
-get it free), plus a **full picker sweep**: all 22 sole-owner `<select>`s (10 Create + 10 Edit 
-position dialogs + Create/EditIncome) and `DashboardScreen` by-person labels now render 
-`preferredName(m)`; the "(you)" suffix logic is unchanged. Edit UI is a "Your name" card on 
-`SettingsScreen` (`useUpdateMe` invalidates `['session']` + `['household-members']`). Tests: 
-backend `TestHandleUpdateMe` 
-(set/trim/clear-via-empty/clear-via-whitespace/32-ok/33→400/bad-json/401) + nickname assertion in 
-the `/me` test; vitest `names.test.ts` (5) + `ownership.test.ts` nickname cases (52 total). Backend 
-suite + golangci-lint clean; frontend lint+tsc+build clean. **Not e2e-smoke-tested** (no Playwright 
-spec added; Google-OAuth-only — eyeball the Settings card + an owner picker on the dev server).
-- **Per-bond `coupon_disposition` field** (escalation path): the M4.3b-frontend follow-up shipped a 
-global `accrued=0` default in `CreateAccruedInterestSnapshotDialog` plus copy explaining the 
-override path. If users find themselves repeatedly overriding (e.g. mostly secondary-market bond 
-holders) or repeatedly forgetting to override, escalate to a per-bond enum `coupon_disposition: 
-'pays_out' | 'accrues'` on `bond_details` and pivot the form on that field. Currently no signal 
-that we need it.
-- **Bond lots/quantity modeling**: M4.4 settled this as defer — Buy/Sell bond transactions carry 
-`quantity` (lot-style) + `price_per_unit`, but `bond_details.face_value` remains a user-edited 
-total with no enforced reconciliation against the transaction ledger. Will revisit only if real 
-usage shows the disconnect is confusing.
-- **Snapshot future-date validation**: `year_month` and `as_of_date` on the create/update snapshot 
-endpoints currently accept any date, including future ones. A snapshot is by definition a past 
-observation, so a snapshot with `year_month > current month` or `as_of_date > today` is nonsense. 
-Scope: 5 create + 5 update handlers (asset, liability, receivable, investment quantity-price, 
-investment accrued-interest), matching `max` attributes on the frontend date/month inputs, and 
-400-path tests. Application-layer validation only — existing rows (including the post-May-2026 
-BankAccount test snapshots inserted during the PaginationControls smoke test) are grandfathered. 
-**Apply the same to transaction_date on the M4.4 transactions endpoints** (5 transaction shapes 
-share one endpoint, so just one create + one update path to guard).
-- **TimeDeposit "duplicate matured TD" helper**: when a Maturity transaction has 
-`principal_disposition = 'rolled_to_new'`, a fresh TD position must exist to receive the rolled 
-amount. Currently the user creates the new TD manually. ROADMAP M6 + HANDOFF Q14c-iv flagged a 
-"duplicate this TD" helper that pre-fills a Create TD dialog from the matured row's details with 
-`placement_date = maturity_date` and `principal = old.principal + rolled_interest`. Defer until 
-M4.6 polish — the manual path is workable.
-- **Transaction-list aggregations**: no "transactions count" or "last transaction date" surfaced on 
-the subtype list rows yet. Would add a column to `*ListItem` aggregates and a sqlc query. If/when 
-it lands, take the snapshot `listKey` pattern in `useInvestmentTransactions` for invalidation.
-- **Gold purity input UX**: free-text decimal works (`formatGoldPurity` renders "24K (.999+)", 
-"22K", etc. correctly) but typing `0.999` for 24K is awkward. Carat picker considered and deferred 
-— design constraint is *"must distinguish 24K (.999) from Antam bar (.9999) without sub-percent 
-precision loss"*. Possible shape: `<select>` with 24K, 22K, 20K, 18K, 14K, 10K, **Custom** where 
-24K maps to `0.9999`.
-- **Path-filtered CI**: `.github/workflows/ci.yml` currently runs all three jobs (backend-lint / 
-backend-test / frontend-checks) on every push and PR, including doc-only changes (`docs/**`, 
-`*.md`, ADRs, HANDOFF). Add `paths:` filters so backend jobs run only on `backend/**` changes and 
-frontend job runs only on `frontend/**`. **Cross-cutting files must trigger both**: 
-`.github/workflows/ci.yml`, `Makefile`, `codecov.yml`, `.golangci.yml`, root configs. 
-**Required-check gotcha**: if branch protection is ever enabled requiring these jobs, a skipped job 
-blocks merges (GitHub treats skipped ≠ success). Fix is a `ci-gate` aggregator job with `if: 
-always()` that depends on the three, succeeds when each is success-or-skipped, and is the only 
-required check. No branch protection today, so low risk now — but structure with the aggregator 
-from day one to avoid retrofitting. Codecov caveat: `fail_ci_if_error: true` is fine when backend 
-job skips (no run = no missing-report complaint), but if a Codecov status check is later wired into 
-branch protection, same skipped-≠-success problem applies.
+- ~~Settings/Household page that holds the invite form~~ **invite form moved DONE**: `<InviteForm
+  />` now lives in `SettingsScreen` (was rendered globally outside the Tabs at the bottom of *every*
+  tab — the "bank-accounts tab" framing was stale; it showed everywhere). Pure relocation, no API
+  change; Settings subtitle broadened to mention household invitations. **`users.nickname` DONE
+  (M6):** migration `00015_user_nickname` adds `nickname TEXT` (nullable, `CHECK len BETWEEN 1 AND
+  32`); the app stores NULL (never `''`) when cleared. Self-attributed via `PATCH /api/me`
+  (`handleUpdateMe`: trims, blank→NULL, >32 chars→400) — `display_name` stays Google-sourced + the
+  API/reports source of truth; `nickname` rides alongside it on `/me` + `/household/members`.
+  Frontend: `lib/names.ts#preferredName(nickname ?? display_name)` (blank-guarded) is the single
+  resolution point — `ownershipLabel` calls it (so all 5 list rows + 10 detail pages + `IncomeRow`
+  get it free), plus a **full picker sweep**: all 22 sole-owner `<select>`s (10 Create + 10 Edit
+  position dialogs + Create/EditIncome) and `DashboardScreen` by-person labels now render
+  `preferredName(m)`; the "(you)" suffix logic is unchanged. Edit UI is a "Your name" card on
+  `SettingsScreen` (`useUpdateMe` invalidates `['session']` + `['household-members']`). Tests:
+  backend `TestHandleUpdateMe`
+  (set/trim/clear-via-empty/clear-via-whitespace/32-ok/33→400/bad-json/401) + nickname assertion in
+  the `/me` test; vitest `names.test.ts` (5) + `ownership.test.ts` nickname cases (52 total).
+  Backend suite + golangci-lint clean; frontend lint+tsc+build clean. **Not e2e-smoke-tested** (no
+  Playwright spec added; Google-OAuth-only — eyeball the Settings card + an owner picker on the dev
+  server).
+- **Per-bond `coupon_disposition` field** (escalation path): the M4.3b-frontend follow-up shipped a
+  global `accrued=0` default in `CreateAccruedInterestSnapshotDialog` plus copy explaining the
+  override path. If users find themselves repeatedly overriding (e.g. mostly secondary-market bond
+  holders) or repeatedly forgetting to override, escalate to a per-bond enum `coupon_disposition:
+  'pays_out' | 'accrues'` on `bond_details` and pivot the form on that field. Currently no signal
+  that we need it.
+- **Bond lots/quantity modeling**: M4.4 settled this as defer — Buy/Sell bond transactions carry
+  `quantity` (lot-style) + `price_per_unit`, but `bond_details.face_value` remains a user-edited
+  total with no enforced reconciliation against the transaction ledger. Will revisit only if real
+  usage shows the disconnect is confusing.
+- **Snapshot future-date validation**: `year_month` and `as_of_date` on the create/update snapshot
+  endpoints currently accept any date, including future ones. A snapshot is by definition a past
+  observation, so a snapshot with `year_month > current month` or `as_of_date > today` is nonsense.
+  Scope: 5 create + 5 update handlers (asset, liability, receivable, investment quantity-price,
+  investment accrued-interest), matching `max` attributes on the frontend date/month inputs, and
+  400-path tests. Application-layer validation only — existing rows (including the post-May-2026
+  BankAccount test snapshots inserted during the PaginationControls smoke test) are grandfathered.
+  **Apply the same to transaction_date on the M4.4 transactions endpoints** (5 transaction shapes
+  share one endpoint, so just one create + one update path to guard).
+- **TimeDeposit "duplicate matured TD" helper**: when a Maturity transaction has
+  `principal_disposition = 'rolled_to_new'`, a fresh TD position must exist to receive the rolled
+  amount. Currently the user creates the new TD manually. ROADMAP M6 + HANDOFF Q14c-iv flagged a
+  "duplicate this TD" helper that pre-fills a Create TD dialog from the matured row's details with
+  `placement_date = maturity_date` and `principal = old.principal + rolled_interest`. Defer until
+  M4.6 polish — the manual path is workable.
+- **Transaction-list aggregations**: no "transactions count" or "last transaction date" surfaced on
+  the subtype list rows yet. Would add a column to `*ListItem` aggregates and a sqlc query. If/when
+  it lands, take the snapshot `listKey` pattern in `useInvestmentTransactions` for invalidation.
+- **Gold purity input UX**: free-text decimal works (`formatGoldPurity` renders "24K (.999+)",
+  "22K", etc. correctly) but typing `0.999` for 24K is awkward. Carat picker considered and deferred
+  — design constraint is *"must distinguish 24K (.999) from Antam bar (.9999) without sub-percent
+  precision loss"*. Possible shape: `<select>` with 24K, 22K, 20K, 18K, 14K, 10K, **Custom** where
+  24K maps to `0.9999`.
+- **Path-filtered CI**: `.github/workflows/ci.yml` currently runs all three jobs (backend-lint /
+  backend-test / frontend-checks) on every push and PR, including doc-only changes (`docs/**`,
+  `*.md`, ADRs, HANDOFF). Add `paths:` filters so backend jobs run only on `backend/**` changes and
+  frontend job runs only on `frontend/**`. **Cross-cutting files must trigger both**:
+  `.github/workflows/ci.yml`, `Makefile`, `codecov.yml`, `.golangci.yml`, root configs.
+  **Required-check gotcha**: if branch protection is ever enabled requiring these jobs, a skipped
+  job blocks merges (GitHub treats skipped ≠ success). Fix is a `ci-gate` aggregator job with `if:
+  always()` that depends on the three, succeeds when each is success-or-skipped, and is the only
+  required check. No branch protection today, so low risk now — but structure with the aggregator
+  from day one to avoid retrofitting. Codecov caveat: `fail_ci_if_error: true` is fine when backend
+  job skips (no run = no missing-report complaint), but if a Codecov status check is later wired
+  into branch protection, same skipped-≠-success problem applies.
 
-- ~~**Frontend unit tests (vitest) + Codecov frontend flag**~~ **DONE** — Vitest 4.1.7 + 
-`@vitest/coverage-v8`, standalone `vitest.config.ts` (coverage scoped to `src/lib/**`), CI runs 
-`npm run test:coverage` and uploads `frontend/coverage/lcov.info` with `flags: frontend`. All pure 
-`lib/*` helpers now covered (`reconciliation`, `ownership`, `maturity`, `lifecycle`, `gold`, 
-`format`), 36 tests, `src/lib` ~98% stmt / 100% branch. Only `utils.ts` (`cn`) skipped as 
-boilerplate. **Still not added** (deferred to when component tests begin, per ADR-0021): RTL + MSW 
-+ jsdom. **Do not** add Playwright/E2E to the coverage metric — it's a behavioural net, not a 
-coverage instrument.
-
+- ~~**Frontend unit tests (vitest) + Codecov frontend flag**~~ **DONE** — Vitest 4.1.7 +
+  `@vitest/coverage-v8`, standalone `vitest.config.ts` (coverage scoped to `src/lib/**`), CI runs
+  `npm run test:coverage` and uploads `frontend/coverage/lcov.info` with `flags: frontend`. All pure
+  `lib/*` helpers now covered (`reconciliation`, `ownership`, `maturity`, `lifecycle`, `gold`,
+  `format`), 36 tests, `src/lib` ~98% stmt / 100% branch. Only `utils.ts` (`cn`) skipped as
+  boilerplate. **Still not added** (deferred to when component tests begin, per ADR-0021): RTL + MSW
++ jsdom. **Do not** add Playwright/E2E to the coverage metric — it's a behavioural net, not a
+  coverage instrument.
