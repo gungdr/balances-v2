@@ -12,9 +12,7 @@ test('bank account snapshot create → edit → delete', async ({ page }) => {
   const desc = `E2E snapshot ${Date.now()}`
   const editedDesc = `${desc} edited`
 
-  await page.goto('/')
-  await page.getByRole('tab', { name: 'Assets' }).click()
-  await page.getByRole('tab', { name: 'Bank Accounts' }).click()
+  await page.goto('/assets/bank-accounts')
 
   // --- Create the parent bank account ---
   await page.getByRole('button', { name: '+ New bank account' }).first().click()

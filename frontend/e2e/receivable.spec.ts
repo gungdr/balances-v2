@@ -11,8 +11,7 @@ test('receivable create → edit → delete round-trip', async ({ page }) => {
   const name = `E2E receivable ${Date.now()}`
   const editedName = `${name} edited`
 
-  await page.goto('/')
-  await page.getByRole('tab', { name: 'Receivables' }).click()
+  await page.goto('/receivables')
 
   // --- Create (display name + counterparty required; currency/ownership default) ---
   await page.getByRole('button', { name: '+ New receivable' }).first().click()

@@ -1,16 +1,23 @@
+import type { CSSProperties } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { Outlet } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { UserAvatar } from '@/components/UserAvatar'
+import { AppSidebar } from '@/components/AppSidebar'
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from '@/components/ui/sidebar'
+import { useSession } from '@/hooks/useSession'
 import { api } from '@/api/client'
-import type { Me } from '@/hooks/useSession'
 
-type Props = {
-  user: Me
-  children: React.ReactNode
-}
-
-export function AppShell({ user, children }: Props) {
+// The authenticated layout: persistent sidebar on desktop, a hamburger-opened
+// drawer on phones (handled by SidebarProvider/Sidebar). The routed page renders
+// into <Outlet/>. Mounted only when signed in, so useSession always has a user.
+export function AppShell() {
   const qc = useQueryClient()
+  const { data: user } = useSession()
 
   async function handleSignOut() {
     try {
@@ -22,26 +29,45 @@ export function AppShell({ user, children }: Props) {
     }
   }
 
+  if (!user) return null
+
   return (
-    <div className="min-h-screen flex flex-col bg-muted/30">
-      <header className="border-b border-border bg-background">
-        <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
-          <div className="font-semibold">balances</div>
+    <SidebarProvider
+      // Narrower than shadcn's 16rem default; the longest label ("Institutional")
+      // fits comfortably at the reduced font size. Mobile drawer keeps its own
+      // wider width (set inside the Sheet branch of the Sidebar component).
+      style={{ '--sidebar-width': '12rem' } as CSSProperties}
+    >
+      <AppSidebar />
+      <SidebarInset>
+        <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-border bg-background px-4 py-3 md:px-6">
+          <div className="flex items-center gap-2">
+            {/* Drawer toggle: phones only — the sidebar is always visible on desktop. */}
+            <SidebarTrigger className="md:hidden" />
+            <div className="font-semibold md:hidden">balances</div>
+          </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <UserAvatar name={user.display_name} pictureUrl={user.picture_url} />
-              <div className="text-sm">
+              <UserAvatar
+                name={user.display_name}
+                pictureUrl={user.picture_url}
+              />
+              <div className="hidden text-sm sm:block">
                 <div className="text-foreground">{user.display_name}</div>
-                <div className="text-muted-foreground text-xs">{user.email}</div>
+                <div className="text-xs text-muted-foreground">{user.email}</div>
               </div>
             </div>
             <Button variant="outline" size="sm" onClick={handleSignOut}>
               Sign out
             </Button>
           </div>
-        </div>
-      </header>
-      <main className="max-w-4xl mx-auto w-full p-6">{children}</main>
-    </div>
+        </header>
+        <main className="w-full p-4 md:p-6">
+          <div className="mx-auto w-full max-w-4xl">
+            <Outlet />
+          </div>
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }

@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test'
 
 // Full income write-flow through the real UI + backend: create an entry, edit
-// it, delete it. There is no router yet (in-state nav), so navigation goes
-// through the Income tab rather than a URL. Assertions key off a unique
+// it, delete it. Navigation is by URL (React Router, ADR-0025). Assertions key
+// off a unique
 // description — the amount renders IDR-formatted, so it's a poor anchor. The
 // test is self-cleaning: it deletes what it creates, leaving income empty as
 // the seed does. See ADR-0024.
@@ -10,8 +10,7 @@ test('income create → edit → delete round-trip', async ({ page }) => {
   const desc = `E2E income ${Date.now()}`
   const editedDesc = `${desc} edited`
 
-  await page.goto('/')
-  await page.getByRole('tab', { name: 'Income' }).click()
+  await page.goto('/income')
 
   // --- Create ---
   await page.getByRole('button', { name: '+ New income' }).first().click()

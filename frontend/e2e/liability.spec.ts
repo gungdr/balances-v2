@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 // Position-group CRUD through the real UI + backend for the Liabilities group
-// (two-level nav: Personal / Institutional subtabs): create a personal
+// (Personal / Institutional subtypes): create a personal
 // liability, edit it, delete it, all from the list row's action menu. Closes
 // the last position group with no E2E coverage. Only display name + counterparty
 // are required; principal/rate/term/dates are optional. Anchors on a unique
@@ -10,9 +10,7 @@ test('liability create → edit → delete round-trip', async ({ page }) => {
   const name = `E2E liability ${Date.now()}`
   const editedName = `${name} edited`
 
-  await page.goto('/')
-  await page.getByRole('tab', { name: 'Liabilities' }).click()
-  await page.getByRole('tab', { name: 'Personal' }).click()
+  await page.goto('/liabilities/personal')
 
   // --- Create (display name + counterparty required; subtype fixed to Personal) ---
   await page.getByRole('button', { name: '+ New liability' }).first().click()

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
-// Property CRUD through the real UI + backend — an Assets subtype reached via
-// the Assets > Properties subtab. Structurally a mirror of receivable.spec /
+// Property CRUD through the real UI + backend — an Assets subtype reached at
+// /assets/properties. Structurally a mirror of receivable.spec /
 // liability.spec (list-row action menu, no detail navigation); included for
 // asset-subtype parity. Only the display name is required (type/currency
 // default). Anchors on a unique display name; self-cleaning. See ADR-0024.
@@ -9,9 +9,7 @@ test('property create → edit → delete round-trip', async ({ page }) => {
   const name = `E2E property ${Date.now()}`
   const editedName = `${name} edited`
 
-  await page.goto('/')
-  await page.getByRole('tab', { name: 'Assets' }).click()
-  await page.getByRole('tab', { name: 'Properties' }).click()
+  await page.goto('/assets/properties')
 
   // --- Create (display name only; type/currency default) ---
   await page.getByRole('button', { name: '+ New property' }).first().click()

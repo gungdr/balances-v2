@@ -6,8 +6,7 @@ import { test, expect } from '@playwright/test'
 // consequences of the biconditional status=active ⟺ terminated_at IS NULL:
 // the StatusBadge flips Active⇄Closed, and the "+ New snapshot" button is gated
 // off on a non-active position and returns on reopen. Self-cleaning: deletes
-// the account it creates, leaving the seed's empty bank-account list. The seed
-// lands on Assets > Bank Accounts by default (in-state nav, no router). See
+// the account it creates, leaving the seed's empty bank-account list. See
 // ADR-0024.
 test('bank account lifecycle: close → reopen → delete', async ({ page }) => {
   const name = `E2E account ${Date.now()}`
@@ -17,9 +16,7 @@ test('bank account lifecycle: close → reopen → delete', async ({ page }) => 
   const badge = (label: string) =>
     page.locator('span').filter({ hasText: new RegExp(`^${label}$`) })
 
-  await page.goto('/')
-  await page.getByRole('tab', { name: 'Assets' }).click()
-  await page.getByRole('tab', { name: 'Bank Accounts' }).click()
+  await page.goto('/assets/bank-accounts')
 
   // --- Create (minimal required fields; currency/type/ownership default) ---
   await page.getByRole('button', { name: '+ New bank account' }).first().click()

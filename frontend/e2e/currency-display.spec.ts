@@ -14,11 +14,8 @@ test('dashboard side-by-side currency: project net worth into USD', async ({ pag
   const now = new Date()
   const month = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`
 
-  await page.goto('/')
-
   // --- Seed a net worth: bank account + one snapshot (IDR) ---
-  await page.getByRole('tab', { name: 'Assets' }).click()
-  await page.getByRole('tab', { name: 'Bank Accounts' }).click()
+  await page.goto('/assets/bank-accounts')
   await page.getByRole('button', { name: '+ New bank account' }).first().click()
   const acctDialog = page.getByRole('dialog')
   await acctDialog.getByLabel('Display name').fill(account)
@@ -37,7 +34,7 @@ test('dashboard side-by-side currency: project net worth into USD', async ({ pag
   await page.getByRole('button', { name: '← Back' }).click()
 
   // --- Settings: enable multi-currency, then enter a USD rate for this month ---
-  await page.getByRole('tab', { name: 'Settings' }).click()
+  await page.getByRole('link', { name: 'Settings' }).click()
   // Controlled checkbox: the toggle is async (mutation → session refetch), so
   // click and let the FX-rates card's appearance confirm the flip stuck.
   await page.getByLabel('Enable multi-currency tracking').click()
@@ -49,7 +46,7 @@ test('dashboard side-by-side currency: project net worth into USD', async ({ pag
   await expect(page.getByRole('cell', { name: 'USD' })).toBeVisible()
 
   // --- Dashboard: pick "Also in: USD" → headline gains the ≈ approximation ---
-  await page.getByRole('tab', { name: 'Dashboard' }).click()
+  await page.getByRole('link', { name: 'Dashboard' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Net Worth' })).toBeVisible()
   await page.getByTestId('dashboard-secondary-currency').selectOption('USD')
 
@@ -59,8 +56,7 @@ test('dashboard side-by-side currency: project net worth into USD', async ({ pag
   await expect(approx).not.toContainText('no USD rate yet')
 
   // --- Cleanup: snapshot + account, then the rate, then turn multi-currency off ---
-  await page.getByRole('tab', { name: 'Assets' }).click()
-  await page.getByRole('tab', { name: 'Bank Accounts' }).click()
+  await page.getByRole('link', { name: 'Bank Accounts' }).click()
   await page.getByRole('row', { name: new RegExp(account) }).getByText(account).click()
   await expect(page.getByRole('heading', { level: 1, name: account })).toBeVisible()
   const row = page.getByRole('row', { name: new RegExp(desc) })
@@ -72,7 +68,7 @@ test('dashboard side-by-side currency: project net worth into USD', async ({ pag
   await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click()
   await expect(page.getByText(account)).toHaveCount(0)
 
-  await page.getByRole('tab', { name: 'Settings' }).click()
+  await page.getByRole('link', { name: 'Settings' }).click()
   await page.getByRole('row', { name: /USD/ }).getByRole('button', { name: 'Delete' }).click()
   await expect(page.getByText('No rates entered yet.')).toBeVisible()
   await page.getByLabel('Enable multi-currency tracking').click()

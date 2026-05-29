@@ -13,9 +13,7 @@ test('stock buy + mismatched snapshot raises the reconciliation warning', async 
 }) => {
   const name = `E2E stock ${Date.now()}`
 
-  await page.goto('/')
-  await page.getByRole('tab', { name: 'Investments' }).click()
-  await page.getByRole('tab', { name: 'Stocks' }).click()
+  await page.goto('/investments/stocks')
 
   // --- Create the stock position ---
   await page.getByRole('button', { name: '+ New stock' }).first().click()

@@ -11,11 +11,8 @@ test('dashboard rebuild: per-month + rebuild-all', async ({ page }) => {
   const account = `E2E rebuild account ${Date.now()}`
   const desc = `E2E rebuild snapshot ${Date.now()}`
 
-  await page.goto('/')
-
   // --- Seed a net worth: bank account + one snapshot ---
-  await page.getByRole('tab', { name: 'Assets' }).click()
-  await page.getByRole('tab', { name: 'Bank Accounts' }).click()
+  await page.goto('/assets/bank-accounts')
   await page.getByRole('button', { name: '+ New bank account' }).first().click()
   const acctDialog = page.getByRole('dialog')
   await acctDialog.getByLabel('Display name').fill(account)
@@ -36,10 +33,11 @@ test('dashboard rebuild: per-month + rebuild-all', async ({ page }) => {
 
   // --- Dashboard now has a figure → the rebuild footer renders ---
   // No reload: the snapshot write invalidates ['reports'] globally (main.tsx),
-  // so stepping back to the dashboard shows the fresh net worth. The detail page
-  // replaces the tab bar, so go back to it first.
+  // so navigating to the dashboard shows the fresh net worth without a full
+  // refetch. The sidebar persists on detail pages; ← Back returns to the list,
+  // then the Dashboard menu item opens the dashboard.
   await page.getByRole('button', { name: '← Back' }).click()
-  await page.getByRole('tab', { name: 'Dashboard' }).click()
+  await page.getByRole('link', { name: 'Dashboard' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Net Worth' })).toBeVisible()
 
   // --- Rebuild this month (per-month scope: /api/reports/YYYY-MM/rebuild) ---
@@ -61,8 +59,7 @@ test('dashboard rebuild: per-month + rebuild-all', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: 'Net Worth' })).toBeVisible()
 
   // --- Cleanup: delete the snapshot, then the parent account ---
-  await page.getByRole('tab', { name: 'Assets' }).click()
-  await page.getByRole('tab', { name: 'Bank Accounts' }).click()
+  await page.getByRole('link', { name: 'Bank Accounts' }).click()
   await page.getByRole('row', { name: new RegExp(account) }).getByText(account).click()
   await expect(page.getByRole('heading', { level: 1, name: account })).toBeVisible()
 

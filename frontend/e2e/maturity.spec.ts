@@ -16,9 +16,7 @@ test('time deposit maturity flips status to matured and gates the row', async ({
   const badge = (label: string) =>
     page.locator('span').filter({ hasText: new RegExp(`^${label}$`) })
 
-  await page.goto('/')
-  await page.getByRole('tab', { name: 'Investments' }).click()
-  await page.getByRole('tab', { name: 'Time Deposits' }).click()
+  await page.goto('/investments/time-deposits')
 
   // --- Create (term + placement auto-derive maturity; set it explicitly too) ---
   await page.getByRole('button', { name: '+ New time deposit' }).first().click()

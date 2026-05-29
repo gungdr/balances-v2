@@ -11,9 +11,7 @@ test('bond accrued-interest snapshot create → delete', async ({ page }) => {
   const name = `E2E bond ${Date.now()}`
   const desc = `E2E accrued ${Date.now()}`
 
-  await page.goto('/')
-  await page.getByRole('tab', { name: 'Investments' }).click()
-  await page.getByRole('tab', { name: 'Bonds' }).click()
+  await page.goto('/investments/bonds')
 
   // --- Create the bond position ---
   await page.getByRole('button', { name: '+ New bond' }).first().click()

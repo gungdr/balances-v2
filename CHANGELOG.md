@@ -645,6 +645,32 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
   - **Tests:** callback create + existing-user backfill + `/me` nil/set mapping (backend race-clean,
     golangci-lint 0); `names.test.ts` +5 `initials` cases → vitest **68**; lint + build clean. UI not
     agent-eyeballed and no Playwright spec — Google-OAuth-only, picture backfills on next sign-in.
+- **React Router migration + sidebar nav shell (M6, frontend-only — ADR-0025).** Delivered the M4.9
+  backlog item and fixed the mobile tab overflow in one pass.
+  - **Routing:** `react-router` v7. `App.tsx` went from a ~300-line nested-`Tabs` state machine (four
+    selection-state hooks + a hand-rolled detail overlay) to a `createBrowserRouter` config behind an
+    auth gate. URLs mirror the domain hierarchy: `/assets/bank-accounts/:id`,
+    `/liabilities/personal/:id` (detail **nested under subtype** so the dynamic `:id` never overlaps
+    the literal subtype segments), `/investments/{stocks,mutual-funds,bonds,time-deposits,gold}[/:id]`,
+    flat `/receivables[/:id]` + `/income`, `/settings`, and a `*` → dashboard catch-all.
+  - **Screens untouched.** The ~20 list/detail components kept their `onSelect(id)`/`onBack()`/id-prop
+    contract; two thin wrappers (`ListRoute`, `DetailRoute`) bridge it to `useNavigate`/`useParams`,
+    so the router lives only in `App.tsx`.
+  - **`src/lib/routes.ts`** — centralised path constants + builders (`routes.bankAccount(id)`), the
+    link-safety stand-in for TanStack Router's compile-time checks. Why React Router over TanStack:
+    stability + docs + the named plan; see ADR-0025.
+  - **Nav shell:** `shadcn add sidebar` (sidebar/sheet/tooltip/separator/skeleton + `use-mobile`).
+    `AppShell` = `SidebarProvider` + data-driven `AppSidebar` + `SidebarInset` with the page in an
+    `<Outlet/>` — persistent sidebar on desktop, drawer on phones; subtype sub-items always expanded;
+    active state by path prefix. Avatar + sign-out stay in the header. `use-mobile` rewritten with
+    `useSyncExternalStore` to satisfy `react-hooks/set-state-in-effect`.
+  - **Group home placeholders:** `AssetsHome`/`LiabilitiesHome`/`InvestmentsHome` (subtyped groups
+    only) — stubs for the future per-group dashboards, reachable at `/assets`, `/liabilities`,
+    `/investments`.
+  - **Tests:** all 14 Playwright specs reworked to `goto('/path')` for entry + persistent sidebar
+    `link` clicks for no-reload mid-test nav (preserving `rebuild.spec`'s client-side `['reports']`
+    invalidation intent); stale "no router / in-state nav" comments fixed. lint + build + vitest
+    (**68**) + e2e (**14**) all green. Sidebar visual/mobile-drawer not yet agent-eyeballed.
 
 ## What M4.2 shipped
 

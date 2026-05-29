@@ -32,8 +32,10 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
   comprehensive-income lines, and side-by-side currency display (Q15c).
 - **M6 (in progress)** — shipped so far: snapshot importer (xlsx, all 10 groups + 5 investment
   subtypes), self-set `users.nickname` for compact owner labels, list-screen polish swept across all
-  10 groups, the header Google-profile-picture avatar (`users.picture_url`), and a backend-coverage
-  backfill after the importer/lifecycle handlers landed untested (codecov backend back to 83.7%).
+  10 groups, the header Google-profile-picture avatar (`users.picture_url`), a backend-coverage
+  backfill after the importer/lifecycle handlers landed untested (codecov backend back to 83.7%), and
+  the React Router migration + sidebar nav shell (ADR-0025 — delivers the M4.9 backlog item and fixes
+  the mobile tab overflow).
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
@@ -60,7 +62,9 @@ M6 is the v1-polish milestone (see `docs/ROADMAP.md`). Still open in M6:
 - **Migration consolidation** — squash the ~15 accumulated pre-alpha migrations into one
   initial-schema migration before the first production deploy.
 - **Deploy** — choose a hosting target and ship it; configure a real Resend domain for production
-  email; document DB backup/restore.
+  email; document DB backup/restore. **SPA history fallback required** (serve `index.html` for
+  unknown non-`/api` paths) now that routing is client-side — vite dev/preview already do it, the
+  production static server must too (ADR-0025).
 
 Don't auto-start the next item — the user pauses between milestones to direct. The deferred backlog
 below holds the smaller, optional items.
@@ -125,8 +129,21 @@ These are not ADRs because they're tactical, but they're load-bearing:
   amount}[]`.
 - **Title Case** for nav labels, page H1s, data-section card titles. **Sentence case** for
   descriptions, empty-state messages, verb-phrase button labels. See M4.1 close commit for examples.
-- **Two-level nav** for groups with subtypes; **flat** for groups without. Liabilities = two-level.
-  Receivables = flat. Investments will be two-level.
+- **Routing is React Router** (ADR-0025). URLs mirror the domain hierarchy; every path comes from
+  `src/lib/routes.ts` constants/builders, never a literal string — that's the deliberate link-safety
+  convention (the stand-in for a type-safe router). Screens/details stay router-unaware (their
+  `onSelect`/`onBack`/id-prop contract is unchanged); the `ListRoute`/`DetailRoute` wrappers in
+  `App.tsx` bridge them to `useNavigate`/`useParams`. Adding a route = add a `routes.ts` entry + one
+  wrapper line in the router config; don't reach for `useNavigate` inside a screen.
+- **Nav is the shadcn Sidebar** (`AppSidebar`, data-driven from a single `NAV` array): persistent on
+  desktop, drawer on phones. Subtyped groups (Assets, Liabilities, Investments) show always-expanded
+  sub-items and get a placeholder **group home** page (`/assets`, `/liabilities`, `/investments`) —
+  stubs for the future per-group dashboards. Flat groups (Receivables, Income) list at their root
+  path, no home. Liability **detail nests under its subtype** (`/liabilities/personal/:id`) so the
+  dynamic `:id` never overlaps the literal subtype segments. Add a destination = add it to `NAV`.
+- **E2E navigates by URL.** Specs `goto('/path')` to enter a screen; for mid-test nav that must avoid
+  a reload, click persistent sidebar `link`s (the old `getByRole('tab', …)` nav is gone). See
+  `rebuild.spec` (preserves client-side `['reports']` invalidation) and `currency-display.spec`.
 - **React Query useEffect gotcha.** Never put a `useMutation` result in a `useEffect` deps array —
   it's recreated every render and will loop. There's a comment to this effect in
   `EditSnapshotDialog`; replicate the pattern when needed.
@@ -256,7 +273,6 @@ original wording of everything here — including items already resolved (side-b
 invite-form relocation, the `users.nickname` build, vitest setup) — is preserved verbatim in
 `CHANGELOG.md`.
 
-- **React Router migration** (M4.9).
 - **Snapshot future-date validation.** `year_month` and `as_of_date` on the create/update snapshot
   endpoints currently accept any date, including future ones. A snapshot is by definition a past
   observation, so `year_month > current month` or `as_of_date > today` is nonsense. Scope: 5 create

@@ -1,75 +1,353 @@
-import { useState } from 'react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import type { ReactNode } from 'react'
+import {
+  createBrowserRouter,
+  Navigate,
+  RouterProvider,
+  useNavigate,
+  useParams,
+  type NavigateFunction,
+} from 'react-router'
 import { useSession } from '@/hooks/useSession'
+import { routes } from '@/lib/routes'
 import { SignInScreen } from '@/components/SignInScreen'
 import { AppShell } from '@/components/AppShell'
+import { DashboardScreen } from '@/components/DashboardScreen'
+import { AssetsHome } from '@/components/AssetsHome'
 import { BankAccountsScreen } from '@/components/BankAccountsScreen'
 import { BankAccountDetail } from '@/components/BankAccountDetail'
 import { PropertiesScreen } from '@/components/PropertiesScreen'
 import { PropertyDetail } from '@/components/PropertyDetail'
 import { VehiclesScreen } from '@/components/VehiclesScreen'
 import { VehicleDetail } from '@/components/VehicleDetail'
+import { LiabilitiesHome } from '@/components/LiabilitiesHome'
 import { LiabilitiesScreen } from '@/components/LiabilitiesScreen'
 import { LiabilityDetail } from '@/components/LiabilityDetail'
 import { ReceivablesScreen } from '@/components/ReceivablesScreen'
 import { ReceivableDetail } from '@/components/ReceivableDetail'
+import { InvestmentsHome } from '@/components/InvestmentsHome'
 import { StocksScreen } from '@/components/StocksScreen'
 import { StockDetail } from '@/components/StockDetail'
 import { MutualFundsScreen } from '@/components/MutualFundsScreen'
 import { MutualFundDetail } from '@/components/MutualFundDetail'
-import { GoldsScreen } from '@/components/GoldsScreen'
-import { GoldDetail } from '@/components/GoldDetail'
 import { BondsScreen } from '@/components/BondsScreen'
 import { BondDetail } from '@/components/BondDetail'
 import { TimeDepositsScreen } from '@/components/TimeDepositsScreen'
 import { TimeDepositDetail } from '@/components/TimeDepositDetail'
+import { GoldsScreen } from '@/components/GoldsScreen'
+import { GoldDetail } from '@/components/GoldDetail'
 import { IncomeScreen } from '@/components/IncomeScreen'
-import { DashboardScreen } from '@/components/DashboardScreen'
 import { SettingsScreen } from '@/components/SettingsScreen'
 
-type Group =
-  | 'dashboard'
-  | 'assets'
-  | 'liabilities'
-  | 'receivables'
-  | 'investments'
-  | 'income'
-  | 'settings'
-type AssetSubtype = 'bank_account' | 'property' | 'vehicle'
-type LiabilitySubtype = 'personal' | 'institutional'
-type InvestmentSubtypeNav =
-  | 'stock'
-  | 'mutual_fund'
-  | 'bond'
-  | 'time_deposit'
-  | 'gold'
+// The list screens and detail pages predate the router: they take an
+// `onSelect(id)` / `onBack()` callback and the entity id as a prop, with no
+// router awareness. These two thin wrappers bridge that contract to the router
+// so the ~20 screen/detail components stay untouched — the router lives only
+// here. ListRoute hands the screen a navigate fn; DetailRoute also pulls the
+// `:id` path param.
+function ListRoute({
+  render,
+}: {
+  render: (nav: NavigateFunction) => ReactNode
+}) {
+  return <>{render(useNavigate())}</>
+}
 
-type Selection =
-  | { kind: AssetSubtype; assetId: string }
-  | { kind: 'liability'; liabilityId: string }
-  | { kind: 'receivable'; receivableId: string }
-  | { kind: 'stock'; investmentId: string }
-  | { kind: 'mutual_fund'; investmentId: string }
-  | { kind: 'bond'; investmentId: string }
-  | { kind: 'time_deposit'; investmentId: string }
-  | { kind: 'gold'; investmentId: string }
+function DetailRoute({
+  render,
+}: {
+  render: (id: string, nav: NavigateFunction) => ReactNode
+}) {
+  const { id } = useParams()
+  return <>{render(id!, useNavigate())}</>
+}
+
+const router = createBrowserRouter([
+  {
+    element: <AppShell />,
+    children: [
+      { index: true, element: <DashboardScreen /> },
+
+      // Assets
+      { path: 'assets', element: <AssetsHome /> },
+      {
+        path: 'assets/bank-accounts',
+        element: (
+          <ListRoute
+            render={(nav) => (
+              <BankAccountsScreen
+                onSelect={(id) => nav(routes.bankAccount(id))}
+              />
+            )}
+          />
+        ),
+      },
+      {
+        path: 'assets/bank-accounts/:id',
+        element: (
+          <DetailRoute
+            render={(id, nav) => (
+              <BankAccountDetail
+                assetId={id}
+                onBack={() => nav(routes.bankAccounts)}
+              />
+            )}
+          />
+        ),
+      },
+      {
+        path: 'assets/properties',
+        element: (
+          <ListRoute
+            render={(nav) => (
+              <PropertiesScreen onSelect={(id) => nav(routes.property(id))} />
+            )}
+          />
+        ),
+      },
+      {
+        path: 'assets/properties/:id',
+        element: (
+          <DetailRoute
+            render={(id, nav) => (
+              <PropertyDetail
+                assetId={id}
+                onBack={() => nav(routes.properties)}
+              />
+            )}
+          />
+        ),
+      },
+      {
+        path: 'assets/vehicles',
+        element: (
+          <ListRoute
+            render={(nav) => (
+              <VehiclesScreen onSelect={(id) => nav(routes.vehicle(id))} />
+            )}
+          />
+        ),
+      },
+      {
+        path: 'assets/vehicles/:id',
+        element: (
+          <DetailRoute
+            render={(id, nav) => (
+              <VehicleDetail assetId={id} onBack={() => nav(routes.vehicles)} />
+            )}
+          />
+        ),
+      },
+
+      // Liabilities
+      { path: 'liabilities', element: <LiabilitiesHome /> },
+      {
+        path: 'liabilities/personal',
+        element: (
+          <ListRoute
+            render={(nav) => (
+              <LiabilitiesScreen
+                subtype="personal"
+                onSelect={(id) => nav(routes.liability('personal', id))}
+              />
+            )}
+          />
+        ),
+      },
+      {
+        path: 'liabilities/personal/:id',
+        element: (
+          <DetailRoute
+            render={(id, nav) => (
+              <LiabilityDetail
+                liabilityId={id}
+                onBack={() => nav(routes.liabilitiesPersonal)}
+              />
+            )}
+          />
+        ),
+      },
+      {
+        path: 'liabilities/institutional',
+        element: (
+          <ListRoute
+            render={(nav) => (
+              <LiabilitiesScreen
+                subtype="institutional"
+                onSelect={(id) => nav(routes.liability('institutional', id))}
+              />
+            )}
+          />
+        ),
+      },
+      {
+        path: 'liabilities/institutional/:id',
+        element: (
+          <DetailRoute
+            render={(id, nav) => (
+              <LiabilityDetail
+                liabilityId={id}
+                onBack={() => nav(routes.liabilitiesInstitutional)}
+              />
+            )}
+          />
+        ),
+      },
+
+      // Receivables (flat)
+      {
+        path: 'receivables',
+        element: (
+          <ListRoute
+            render={(nav) => (
+              <ReceivablesScreen onSelect={(id) => nav(routes.receivable(id))} />
+            )}
+          />
+        ),
+      },
+      {
+        path: 'receivables/:id',
+        element: (
+          <DetailRoute
+            render={(id, nav) => (
+              <ReceivableDetail
+                receivableId={id}
+                onBack={() => nav(routes.receivables)}
+              />
+            )}
+          />
+        ),
+      },
+
+      // Investments
+      { path: 'investments', element: <InvestmentsHome /> },
+      {
+        path: 'investments/stocks',
+        element: (
+          <ListRoute
+            render={(nav) => (
+              <StocksScreen onSelect={(id) => nav(routes.stock(id))} />
+            )}
+          />
+        ),
+      },
+      {
+        path: 'investments/stocks/:id',
+        element: (
+          <DetailRoute
+            render={(id, nav) => (
+              <StockDetail investmentId={id} onBack={() => nav(routes.stocks)} />
+            )}
+          />
+        ),
+      },
+      {
+        path: 'investments/mutual-funds',
+        element: (
+          <ListRoute
+            render={(nav) => (
+              <MutualFundsScreen
+                onSelect={(id) => nav(routes.mutualFund(id))}
+              />
+            )}
+          />
+        ),
+      },
+      {
+        path: 'investments/mutual-funds/:id',
+        element: (
+          <DetailRoute
+            render={(id, nav) => (
+              <MutualFundDetail
+                investmentId={id}
+                onBack={() => nav(routes.mutualFunds)}
+              />
+            )}
+          />
+        ),
+      },
+      {
+        path: 'investments/bonds',
+        element: (
+          <ListRoute
+            render={(nav) => (
+              <BondsScreen onSelect={(id) => nav(routes.bond(id))} />
+            )}
+          />
+        ),
+      },
+      {
+        path: 'investments/bonds/:id',
+        element: (
+          <DetailRoute
+            render={(id, nav) => (
+              <BondDetail investmentId={id} onBack={() => nav(routes.bonds)} />
+            )}
+          />
+        ),
+      },
+      {
+        path: 'investments/time-deposits',
+        element: (
+          <ListRoute
+            render={(nav) => (
+              <TimeDepositsScreen
+                onSelect={(id) => nav(routes.timeDeposit(id))}
+              />
+            )}
+          />
+        ),
+      },
+      {
+        path: 'investments/time-deposits/:id',
+        element: (
+          <DetailRoute
+            render={(id, nav) => (
+              <TimeDepositDetail
+                investmentId={id}
+                onBack={() => nav(routes.timeDeposits)}
+              />
+            )}
+          />
+        ),
+      },
+      {
+        path: 'investments/gold',
+        element: (
+          <ListRoute
+            render={(nav) => (
+              <GoldsScreen onSelect={(id) => nav(routes.goldItem(id))} />
+            )}
+          />
+        ),
+      },
+      {
+        path: 'investments/gold/:id',
+        element: (
+          <DetailRoute
+            render={(id, nav) => (
+              <GoldDetail investmentId={id} onBack={() => nav(routes.gold)} />
+            )}
+          />
+        ),
+      },
+
+      // Income (flat flow event)
+      { path: 'income', element: <IncomeScreen /> },
+
+      { path: 'settings', element: <SettingsScreen /> },
+
+      // Unknown path → dashboard.
+      { path: '*', element: <Navigate to={routes.dashboard} replace /> },
+    ],
+  },
+])
 
 function App() {
   const { data: user, isPending } = useSession()
-  // Two-level in-state navigation: outer group (Assets / Liabilities / …),
-  // inner subtype where the group has one. A real router lands in M4.9 and
-  // the URL structure will mirror this hierarchy.
-  const [group, setGroup] = useState<Group>('dashboard')
-  const [assetSubtype, setAssetSubtype] = useState<AssetSubtype>('bank_account')
-  const [liabilitySubtype, setLiabilitySubtype] =
-    useState<LiabilitySubtype>('personal')
-  const [investmentSubtype, setInvestmentSubtype] =
-    useState<InvestmentSubtypeNav>('stock')
-  const [selection, setSelection] = useState<Selection | null>(null)
 
   if (isPending) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
+      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
         Loading…
       </div>
     )
@@ -79,224 +357,7 @@ function App() {
     return <SignInScreen />
   }
 
-  if (selection) {
-    return (
-      <AppShell user={user}>
-        {selection.kind === 'bank_account' && (
-          <BankAccountDetail
-            assetId={selection.assetId}
-            onBack={() => setSelection(null)}
-          />
-        )}
-        {selection.kind === 'property' && (
-          <PropertyDetail
-            assetId={selection.assetId}
-            onBack={() => setSelection(null)}
-          />
-        )}
-        {selection.kind === 'vehicle' && (
-          <VehicleDetail
-            assetId={selection.assetId}
-            onBack={() => setSelection(null)}
-          />
-        )}
-        {selection.kind === 'liability' && (
-          <LiabilityDetail
-            liabilityId={selection.liabilityId}
-            onBack={() => setSelection(null)}
-          />
-        )}
-        {selection.kind === 'receivable' && (
-          <ReceivableDetail
-            receivableId={selection.receivableId}
-            onBack={() => setSelection(null)}
-          />
-        )}
-        {selection.kind === 'stock' && (
-          <StockDetail
-            investmentId={selection.investmentId}
-            onBack={() => setSelection(null)}
-          />
-        )}
-        {selection.kind === 'mutual_fund' && (
-          <MutualFundDetail
-            investmentId={selection.investmentId}
-            onBack={() => setSelection(null)}
-          />
-        )}
-        {selection.kind === 'bond' && (
-          <BondDetail
-            investmentId={selection.investmentId}
-            onBack={() => setSelection(null)}
-          />
-        )}
-        {selection.kind === 'time_deposit' && (
-          <TimeDepositDetail
-            investmentId={selection.investmentId}
-            onBack={() => setSelection(null)}
-          />
-        )}
-        {selection.kind === 'gold' && (
-          <GoldDetail
-            investmentId={selection.investmentId}
-            onBack={() => setSelection(null)}
-          />
-        )}
-      </AppShell>
-    )
-  }
-
-  return (
-    <AppShell user={user}>
-      <div className="space-y-8">
-        <Tabs value={group} onValueChange={(v) => setGroup(v as Group)}>
-          <TabsList>
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="assets">Assets</TabsTrigger>
-            <TabsTrigger value="liabilities">Liabilities</TabsTrigger>
-            <TabsTrigger value="receivables">Receivables</TabsTrigger>
-            <TabsTrigger value="investments">Investments</TabsTrigger>
-            <TabsTrigger value="income">Income</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="dashboard" className="mt-6">
-            <DashboardScreen />
-          </TabsContent>
-
-          <TabsContent value="assets" className="mt-6">
-            <Tabs
-              value={assetSubtype}
-              onValueChange={(v) => setAssetSubtype(v as AssetSubtype)}
-            >
-              <TabsList>
-                <TabsTrigger value="bank_account">Bank Accounts</TabsTrigger>
-                <TabsTrigger value="property">Properties</TabsTrigger>
-                <TabsTrigger value="vehicle">Vehicles</TabsTrigger>
-              </TabsList>
-              <TabsContent value="bank_account" className="mt-6">
-                <BankAccountsScreen
-                  onSelect={(assetId) =>
-                    setSelection({ kind: 'bank_account', assetId })
-                  }
-                />
-              </TabsContent>
-              <TabsContent value="property" className="mt-6">
-                <PropertiesScreen
-                  onSelect={(assetId) =>
-                    setSelection({ kind: 'property', assetId })
-                  }
-                />
-              </TabsContent>
-              <TabsContent value="vehicle" className="mt-6">
-                <VehiclesScreen
-                  onSelect={(assetId) =>
-                    setSelection({ kind: 'vehicle', assetId })
-                  }
-                />
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
-
-          <TabsContent value="liabilities" className="mt-6">
-            <Tabs
-              value={liabilitySubtype}
-              onValueChange={(v) =>
-                setLiabilitySubtype(v as LiabilitySubtype)
-              }
-            >
-              <TabsList>
-                <TabsTrigger value="personal">Personal</TabsTrigger>
-                <TabsTrigger value="institutional">Institutional</TabsTrigger>
-              </TabsList>
-              <TabsContent value="personal" className="mt-6">
-                <LiabilitiesScreen
-                  subtype="personal"
-                  onSelect={(liabilityId) =>
-                    setSelection({ kind: 'liability', liabilityId })
-                  }
-                />
-              </TabsContent>
-              <TabsContent value="institutional" className="mt-6">
-                <LiabilitiesScreen
-                  subtype="institutional"
-                  onSelect={(liabilityId) =>
-                    setSelection({ kind: 'liability', liabilityId })
-                  }
-                />
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
-
-          <TabsContent value="receivables" className="mt-6">
-            <ReceivablesScreen
-              onSelect={(receivableId) =>
-                setSelection({ kind: 'receivable', receivableId })
-              }
-            />
-          </TabsContent>
-
-          <TabsContent value="investments" className="mt-6">
-            <Tabs
-              value={investmentSubtype}
-              onValueChange={(v) =>
-                setInvestmentSubtype(v as InvestmentSubtypeNav)
-              }
-            >
-              <TabsList>
-                <TabsTrigger value="stock">Stocks</TabsTrigger>
-                <TabsTrigger value="mutual_fund">Mutual Funds</TabsTrigger>
-                <TabsTrigger value="bond">Bonds</TabsTrigger>
-                <TabsTrigger value="time_deposit">Time Deposits</TabsTrigger>
-                <TabsTrigger value="gold">Gold</TabsTrigger>
-              </TabsList>
-              <TabsContent value="stock" className="mt-6">
-                <StocksScreen
-                  onSelect={(investmentId) =>
-                    setSelection({ kind: 'stock', investmentId })
-                  }
-                />
-              </TabsContent>
-              <TabsContent value="mutual_fund" className="mt-6">
-                <MutualFundsScreen
-                  onSelect={(investmentId) =>
-                    setSelection({ kind: 'mutual_fund', investmentId })
-                  }
-                />
-              </TabsContent>
-              <TabsContent value="bond" className="mt-6">
-                <BondsScreen
-                  onSelect={(investmentId) =>
-                    setSelection({ kind: 'bond', investmentId })
-                  }
-                />
-              </TabsContent>
-              <TabsContent value="time_deposit" className="mt-6">
-                <TimeDepositsScreen
-                  onSelect={(investmentId) =>
-                    setSelection({ kind: 'time_deposit', investmentId })
-                  }
-                />
-              </TabsContent>
-              <TabsContent value="gold" className="mt-6">
-                <GoldsScreen
-                  onSelect={(investmentId) =>
-                    setSelection({ kind: 'gold', investmentId })
-                  }
-                />
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
-          <TabsContent value="income" className="mt-6">
-            <IncomeScreen />
-          </TabsContent>
-          <TabsContent value="settings" className="mt-6">
-            <SettingsScreen />
-          </TabsContent>
-        </Tabs>
-      </div>
-    </AppShell>
-  )
+  return <RouterProvider router={router} />
 }
 
 export default App
