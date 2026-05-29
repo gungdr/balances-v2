@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
+import { UserAvatar } from '@/components/UserAvatar'
 import { api } from '@/api/client'
 import type { Me } from '@/hooks/useSession'
 
@@ -27,9 +28,12 @@ export function AppShell({ user, children }: Props) {
         <div className="max-w-4xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
           <div className="font-semibold">balances</div>
           <div className="flex items-center gap-3">
-            <div className="text-sm text-right">
-              <div className="text-foreground">{user.display_name}</div>
-              <div className="text-muted-foreground text-xs">{user.email}</div>
+            <div className="flex items-center gap-2">
+              <UserAvatar name={user.display_name} pictureUrl={user.picture_url} />
+              <div className="text-sm">
+                <div className="text-foreground">{user.display_name}</div>
+                <div className="text-muted-foreground text-xs">{user.email}</div>
+              </div>
             </div>
             <Button variant="outline" size="sm" onClick={handleSignOut}>
               Sign out

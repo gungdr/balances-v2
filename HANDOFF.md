@@ -32,8 +32,8 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
   comprehensive-income lines, and side-by-side currency display (Q15c).
 - **M6 (in progress)** — shipped so far: snapshot importer (xlsx, all 10 groups + 5 investment
   subtypes), self-set `users.nickname` for compact owner labels, list-screen polish swept across all
-  10 groups, and a backend-coverage backfill after the importer/lifecycle handlers landed untested
-  (codecov backend back to 83.7%).
+  10 groups, the header Google-profile-picture avatar (`users.picture_url`), and a backend-coverage
+  backfill after the importer/lifecycle handlers landed untested (codecov backend back to 83.7%).
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
@@ -280,9 +280,10 @@ invite-form relocation, the `users.nickname` build, vitest setup) — is preserv
   "22K", etc.) but typing `0.999` for 24K is awkward. Carat picker deferred — constraint is "must
   distinguish 24K (.999) from Antam bar (.9999) without sub-percent precision loss". Possible shape:
   a `<select>` of 24K/22K/20K/18K/14K/10K + **Custom**, with 24K → `0.9999`.
-- **Nickname feature not e2e-smoke-tested.** `users.nickname` shipped without a Playwright spec
-  (Google-OAuth-only). Eyeball the Settings "Your name" card + an owner picker on the dev server, or
-  add a spec once E2E auth injection covers it.
+- **Nickname + profile-picture features not e2e-smoke-tested.** Both Google-OAuth-only, no Playwright
+  spec; the picture backfills on next sign-in (an existing session shows the initials fallback).
+  Eyeball on the dev server or add a spec once E2E auth injection covers it. CHANGELOG has the
+  build detail.
 - **Component tests (RTL + MSW + jsdom).** Deferred until component tests begin (ADR-0021). Vitest
   covers `lib/*` today. Do **not** add Playwright/E2E to the coverage metric — it's a behavioural
   net, not a coverage instrument.

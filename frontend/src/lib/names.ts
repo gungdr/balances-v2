@@ -9,3 +9,13 @@ export function preferredName(person: {
   const nick = person.nickname?.trim()
   return nick ? nick : person.display_name
 }
+
+// initials derives a 1–2 character avatar fallback from a name: first + last
+// word initial for multi-word names, the single initial for one word, and "?"
+// for an empty/blank name. Always uppercased.
+export function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0]!.charAt(0).toUpperCase()
+  return (parts[0]!.charAt(0) + parts[parts.length - 1]!.charAt(0)).toUpperCase()
+}

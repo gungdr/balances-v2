@@ -7,6 +7,7 @@ export type Me = {
   display_name: string
   nickname: string | null
   email: string
+  picture_url: string | null
   locale: string
   time_zone: string
   reporting_currency: string

@@ -631,6 +631,20 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     (`sort.test.ts` +5), main ~355 kB, `make e2e` **14 green** (all list-screen-touching specs still
     pass; row-name matching survives the new Status column + headline). No new sort/filter
     Playwright spec (`data-testid`s in place). UI not agent-eyeballed.
+- **Google profile picture in the header (M6, full stack).** A `UserAvatar` shows the user's Google
+  account photo next to their name in `AppShell`.
+  - **Backend:** `googleClaims` reads the OIDC `picture` claim; migration `00016_user_picture_url`
+    adds `users.picture_url` (nullable). Stored on user create and refreshed on login when changed
+    (`SetUserPicture`), so rows created before the column backfill on next sign-in and later photo
+    changes track. `updated_by` left untouched (system sync, not a user edit). `/me` gains
+    `picture_url`; `/household/members` is unchanged (the header needs only the current user).
+  - **Frontend:** `UserAvatar` — rounded square, `bg-muted` initials fallback via new
+    `lib/names.ts#initials`, `referrerPolicy="no-referrer"` so Google's `lh3` URLs don't 403, and a
+    failed-src state (not a bool) so a changed URL re-attempts without an effect. `Me` type gains
+    `picture_url`.
+  - **Tests:** callback create + existing-user backfill + `/me` nil/set mapping (backend race-clean,
+    golangci-lint 0); `names.test.ts` +5 `initials` cases → vitest **68**; lint + build clean. UI not
+    agent-eyeballed and no Playwright spec — Google-OAuth-only, picture backfills on next sign-in.
 
 ## What M4.2 shipped
 
