@@ -180,14 +180,16 @@ These are not ADRs because they're tactical, but they're load-bearing:
 - **Defer cleanup that returns an error must swallow it explicitly**: `defer func() { _ =
   tx.Rollback(ctx) }()`. Applies to `pgxpool.Tx.Rollback` and `sql.DB.Close()`. errcheck catches the
   bare form.
-- **E2E selectors use `data-testid`.** Playwright specs target interacted/asserted elements via
-  `page.getByTestId('...')` with a matching `data-testid` on the DOM node, not brittle structural
-  locators (`locator('label:has-text(…) select')`, `locator('p').filter({hasText:'≈'})`). Test IDs
-  are an explicit component↔spec contract that survives copy edits, restyling, and shadcn quirks
-  (e.g. `CardTitle` is a `<div>`, not a heading). Stable role/label selectors (`getByRole('tab')`,
-  `getByLabel` on properly-associated inputs) are fine to keep. Established in
-  `currency-display.spec.ts` (Q15c); the 12 earlier specs predate the convention and still use
-  role/text — retrofit only if/when touched, not as a speculative sweep.
+- **E2E selectors use `data-testid` over structural DOM traversal.** Playwright specs target
+  interacted/asserted elements via `page.getByTestId('...')` with a matching `data-testid` on the DOM
+  node, never tag/CSS locators or `.filter({hasText})` chains. Test IDs are an explicit
+  component↔spec contract that survives copy edits, restyling, and shadcn quirks (e.g. `CardTitle` is
+  a `<div>`, not a heading). **No spec uses `page.locator()` structural selectors** — the last two
+  (the StatusBadge `locator('span').filter(...)` in `lifecycle`/`maturity`) were replaced by
+  `data-testid="status-badge"` + `toHaveText`. Stable role/label selectors (`getByRole('button'|
+  'link')`, `getByLabel` on properly-associated inputs) and `getByText` for stable copy are fine to
+  keep; the point is to ban brittle structural traversal, not to testid every button. When you add a
+  new structural-locator need, add a test id instead.
 - **Tenancy test pattern**: every position group's `*_tenancy_test.go` covers both the cross-tenant
   rejection path (bob attempts X, expects `ErrNotFound`) and the alice-side happy-path CRUD success
   (update + delete on entity and snapshot, then verify Get/List). Cross-tenant alone leaves

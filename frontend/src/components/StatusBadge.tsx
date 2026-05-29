@@ -16,6 +16,7 @@ export function StatusBadge({ group, status }: Props) {
     : 'bg-muted text-muted-foreground'
   return (
     <span
+      data-testid="status-badge"
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}
     >
       {statusLabel(group, status)}

@@ -10,11 +10,10 @@ import { test, expect } from '@playwright/test'
 // ADR-0024.
 test('bank account lifecycle: close → reopen → delete', async ({ page }) => {
   const name = `E2E account ${Date.now()}`
-  // The StatusBadge is a <span>; scope status assertions to it so they don't
-  // also match the <option> of the same label inside the Terminate dialog's
-  // <select> (which lingers in the DOM during the close animation).
-  const badge = (label: string) =>
-    page.locator('span').filter({ hasText: new RegExp(`^${label}$`) })
+  // The position's lifecycle pill, by test id. The Terminate dialog's <select>
+  // carries <option>s with the same labels, so a text or tag locator would be
+  // ambiguous; the test id pins us to the StatusBadge.
+  const statusBadge = page.getByTestId('status-badge')
 
   await page.goto('/assets/bank-accounts')
 
@@ -36,7 +35,7 @@ test('bank account lifecycle: close → reopen → delete', async ({ page }) => 
     page.getByRole('heading', { level: 1, name }),
   ).toBeVisible()
   // Active position: badge muted-active, snapshot entry available.
-  await expect(badge('Active')).toBeVisible()
+  await expect(statusBadge).toHaveText('Active')
   await expect(
     page.getByRole('button', { name: '+ New snapshot' }),
   ).toBeVisible()
@@ -50,7 +49,7 @@ test('bank account lifecycle: close → reopen → delete', async ({ page }) => 
   await closeDialog.getByRole('button', { name: 'Save' }).click()
 
   // Badge flips to Closed; snapshot entry is gated off on a terminated position.
-  await expect(badge('Closed')).toBeVisible()
+  await expect(statusBadge).toHaveText('Closed')
   await expect(
     page.getByRole('button', { name: '+ New snapshot' }),
   ).toHaveCount(0)
@@ -62,7 +61,7 @@ test('bank account lifecycle: close → reopen → delete', async ({ page }) => 
   await reopenDialog.getByLabel('Status').selectOption('active')
   await reopenDialog.getByRole('button', { name: 'Save' }).click()
 
-  await expect(badge('Active')).toBeVisible()
+  await expect(statusBadge).toHaveText('Active')
   await expect(
     page.getByRole('button', { name: '+ New snapshot' }),
   ).toBeVisible()

@@ -13,8 +13,7 @@ test('time deposit maturity flips status to matured and gates the row', async ({
   page,
 }) => {
   const name = `E2E TD ${Date.now()}`
-  const badge = (label: string) =>
-    page.locator('span').filter({ hasText: new RegExp(`^${label}$`) })
+  const statusBadge = page.getByTestId('status-badge')
 
   await page.goto('/investments/time-deposits')
 
@@ -38,7 +37,7 @@ test('time deposit maturity flips status to matured and gates the row', async ({
 
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible()
   // Active position: badge muted-active, Maturity entry available.
-  await expect(badge('Active')).toBeVisible()
+  await expect(statusBadge).toHaveText('Active')
   await expect(page.getByRole('button', { name: '+ Maturity' })).toBeVisible()
 
   // --- Record Maturity (no_rollover default → both dispositions cash out) ---
@@ -52,7 +51,7 @@ test('time deposit maturity flips status to matured and gates the row', async ({
   await matDialog.getByRole('button', { name: 'Record maturity' }).click()
 
   // Status flips to Matured; the Maturity row lands; the create button is gated.
-  await expect(badge('Matured')).toBeVisible()
+  await expect(statusBadge).toHaveText('Matured')
   await expect(page.getByRole('row', { name: /Maturity/ })).toBeVisible()
   await expect(page.getByRole('button', { name: '+ Maturity' })).toHaveCount(0)
 
