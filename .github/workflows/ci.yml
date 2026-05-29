@@ -13,29 +13,62 @@ jobs:
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
     steps:
       - uses: actions/checkout@v6
-      - uses: dorny/paths-filter@v3
-        id: filter
         with:
-          filters: |
-            shared: &shared
-              - '.github/workflows/ci.yml'
-              - 'Makefile'
-              - 'codecov.yml'
-              - '.golangci.yml'
-            backend:
-              - *shared
-              - 'backend/**'
-            frontend:
-              - *shared
-              - 'frontend/**'
+          fetch-depth: 0
+      - id: filter
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          # Resolve the changed-file list ourselves with git — no third-party
+          # action, so no Node-runtime deprecation treadmill or marketplace
+          # supply-chain surface. Fail-safe: whenever the diff range can't be
+          # trusted (first push, force-push, base not in history), run every
+          # job. The only failure mode is running too much, never skipping a
+          # job whose paths actually changed.
+          run_all=false
+          if [ -z "${BASE_SHA}" ] || [ "${BASE_SHA}" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            echo "No usable base ref (${BASE_SHA:-<empty>}); running all jobs."
+            run_all=true
+            changed=""
+          elif [ "${EVENT_NAME}" = "pull_request" ]; then
+            # Three-dot: changes on the PR branch since it diverged from base.
+            changed="$(git diff --name-only "${BASE_SHA}...${HEAD_SHA}")"
+          else
+            # Push: exactly what this push introduced (before..after).
+            changed="$(git diff --name-only "${BASE_SHA}" "${HEAD_SHA}")"
+          fi
+
+          echo "Changed files:"
+          echo "${changed:-  (none / run-all)}"
+
+          backend=false
+          frontend=false
+          if [ "${run_all}" = "true" ]; then
+            backend=true
+            frontend=true
+          else
+            # Cross-cutting files trigger both groups.
+            if echo "${changed}" | grep -qE '^(\.github/workflows/ci\.yml|Makefile|codecov\.yml|\.golangci\.yml)$'; then
+              backend=true
+              frontend=true
+            fi
+            echo "${changed}" | grep -qE '^backend/'  && backend=true || true
+            echo "${changed}" | grep -qE '^frontend/' && frontend=true || true
+          fi
+
+          echo "backend=${backend}"   >> "$GITHUB_OUTPUT"
+          echo "frontend=${frontend}" >> "$GITHUB_OUTPUT"
+          echo "Resolved: backend=${backend} frontend=${frontend}"
 
   backend-lint:
     name: Backend lint

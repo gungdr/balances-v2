@@ -37,11 +37,14 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
-thresholds are informational-only until alpha. The jobs are now path-gated (a `changes` job via
-`dorny/paths-filter` runs backend jobs on `backend/**`, frontend on `frontend/**`, and the
-cross-cutting set — `ci.yml`, `Makefile`, `codecov.yml`, `.golangci.yml` — on both); a `ci-gate`
-aggregator always reports one stable status so branch protection has a safe required check before
-any branch protection exists. For the detailed writeup of any milestone above, see `CHANGELOG.md`.
+thresholds are informational-only until alpha. The jobs are now path-gated: a `changes` job resolves
+the changed-file list with plain `git diff --name-only` (no third-party action, so no Node-runtime
+deprecation or marketplace supply-chain surface) and emits `backend`/`frontend` flags. Backend jobs
+run on `backend/**`, frontend on `frontend/**`, and the cross-cutting set — `ci.yml`, `Makefile`,
+`codecov.yml`, `.golangci.yml` — on both. The classifier is fail-safe: any unresolvable diff range
+(first push, force-push, base missing from history) runs every job, so the only failure mode is
+running too much, never skipping a job whose paths changed. A `ci-gate` aggregator (`if: always()`)
+always reports one stable status so a future branch protection has a safe required check. For the detailed writeup of any milestone above, see `CHANGELOG.md`.
 
 ## What's next
 
