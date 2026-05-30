@@ -33,7 +33,7 @@ func TestPropertyHandlers_Create(t *testing.T) {
 			"address":                  "Jl. Mawar No. 42",
 			"acquisition_date":         "2018-06-15",
 			"acquisition_cost":         "2500000000",
-			"annual_amortization_rate": "2.5",
+			"annual_appreciation_rate": "2.5",
 		})
 		requireStatus(t, rec, http.StatusCreated)
 		body := decodeBody[*repo.Property](t, rec)

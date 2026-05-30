@@ -30,28 +30,25 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
 - **M4.6** — position lifecycle UI (status / terminated_at) across all groups.
 - **M5** — materialized monthly net-worth report + dashboard, in three slices: net-worth headline,
   comprehensive-income lines, and side-by-side currency display (Q15c).
-- **M6 (in progress)** — shipped so far: snapshot importer (xlsx, all 10 groups + 5 investment
-  subtypes), self-set `users.nickname` for compact owner labels, list-screen polish swept across all
-  10 groups, the header Google-profile-picture avatar (`users.picture_url`), a backend-coverage
-  backfill after the importer/lifecycle handlers landed untested (codecov backend back to 83.7%),
-  the React Router migration + sidebar nav shell (ADR-0025 — delivers the M4.9 backlog item and fixes
-  the mobile tab overflow), snapshot/transaction future-date validation (5 create + 5 update
-  snapshot handlers + 1 create + 1 update transaction handler reject `year_month > current month`
-  and `as_of_date/transaction_date > today UTC`; frontend inputs gain a matching `max` attribute via
-  `lib/dateLimits.ts`; handlers gained an injectable `now` clock via a `WithNow` option so tests can
-  pin a fixed future date), the income `regularity` flag (migration 00017; required enum
-  `routine|incidental`; create-dialog default routine, edit pre-fills from row; list shows a
-  Lucide icon next to the category chip — `Repeat` routine / `Sparkles` incidental — and a chip-bar
-  filter at the top of the screen), and the `investments.risk_profile` flag (migration 00018;
-  required enum `low|medium|high` on the shared investments row; Create dialog forces a manual
-  choice with no default — the friction is the point — Edit pre-fills from the row; list rows show
-  a shared `RiskProfileBadge` shield icon next to the display name — `Shield` low + emerald,
-  `ShieldHalf` medium + amber, `ShieldAlert` high + rose — and each of the 5 subtype list screens
-  gets a shared `RiskProfileFilter` chip bar at the top), and the e2e smoke coverage for the
-  nickname + Google-picture features (mock-oidc now mints a `picture` claim and serves the avatar
-  at `/avatar.png`; `picture.spec.ts` drives the real OAuth flow and asserts `user-avatar-img`
-  replaces the initials fallback; `nickname.spec.ts` round-trips set/persist/clear through the
-  Settings screen).
+- **M6 (in progress)** — shipped so far (newest last; see `CHANGELOG.md` for blow-by-blow):
+  - Snapshot importer (xlsx, all 10 groups + 5 investment subtypes).
+  - Self-set `users.nickname` for compact owner labels.
+  - List-screen polish swept across all 10 groups.
+  - Header Google-profile-picture avatar (`users.picture_url`).
+  - Backend-coverage backfill after the importer/lifecycle handlers (codecov backend back to 83.7%).
+  - React Router migration + sidebar nav shell (ADR-0025 — delivers the M4.9 backlog item and fixes
+    mobile tab overflow).
+  - Snapshot/transaction future-date validation (5+5 snapshot + 1+1 transaction handlers; matching
+    `max` attribute on frontend month/date inputs; injectable `now` clock for tests).
+  - Income `regularity` flag (migration 00017; `routine|incidental`; `Repeat`/`Sparkles` row icons
+    + chip-bar filter).
+  - `investments.risk_profile` flag (migration 00018; `low|medium|high`; shared `RiskProfileBadge`
+    + `RiskProfileFilter` across all 5 subtype list screens).
+  - E2E smoke for the nickname + Google-picture features (mock-oidc emits a `picture` claim;
+    `picture.spec.ts` + `nickname.spec.ts`).
+  - Property/vehicle revaluation-rate UI helper (Q8a) — and a taxonomy fix renaming
+    `annual_amortization_rate` → `annual_appreciation_rate` (migration 00019, signed % /yr);
+    shared `lib/revaluation.ts` + sign-aware hint in `CreateSnapshotDialog`.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
@@ -69,7 +66,6 @@ always reports one stable status so a future branch protection has a safe requir
 M6 is the v1-polish milestone (see `docs/ROADMAP.md`). Still open in M6:
 
 - **PDF export** of monthly reports (user requirement, Q22).
-- **Property/vehicle amortization-rate UI helper** (Q8a).
 - **Fee cash→quantity helper** (Q12).
 - **TimeDeposit "duplicate matured TD" helper** (Q14c-iv): when a Maturity transaction has
   `principal_disposition = 'rolled_to_new'`, a fresh TD must receive the rolled amount. Today the

@@ -39,8 +39,8 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
       ? property.details.acquisition_date.slice(0, 10)
       : '',
     acquisition_cost: property.details.acquisition_cost ?? '',
-    annual_amortization_rate:
-      property.details.annual_amortization_rate ?? '',
+    annual_appreciation_rate:
+      property.details.annual_appreciation_rate ?? '',
   })
 
   const effectiveSoleOwnerID = form.sole_owner_user_id ?? user?.id ?? null
@@ -58,7 +58,7 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
         address: form.address || null,
         acquisition_date: form.acquisition_date || null,
         acquisition_cost: form.acquisition_cost || null,
-        annual_amortization_rate: form.annual_amortization_rate || null,
+        annual_appreciation_rate: form.annual_appreciation_rate || null,
       },
       { onSuccess: () => onOpenChange(false) },
     )
@@ -142,17 +142,20 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="edit_p_amort">Annual amortization rate (%)</Label>
+            <Label htmlFor="edit_p_apprec">
+              Annual appreciation rate (% /yr)
+            </Label>
             <Input
-              id="edit_p_amort"
+              id="edit_p_apprec"
               inputMode="decimal"
-              value={form.annual_amortization_rate}
+              value={form.annual_appreciation_rate}
               onChange={(e) =>
                 setForm({
                   ...form,
-                  annual_amortization_rate: e.target.value,
+                  annual_appreciation_rate: e.target.value,
                 })
               }
+              placeholder="e.g. 3.5 — negative if losing value"
             />
           </div>
 

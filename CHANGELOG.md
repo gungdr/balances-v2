@@ -671,6 +671,81 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     `link` clicks for no-reload mid-test nav (preserving `rebuild.spec`'s client-side `['reports']`
     invalidation intent); stale "no router / in-state nav" comments fixed. lint + build + vitest
     (**68**) + e2e (**14**) all green. Sidebar visual/mobile-drawer not yet agent-eyeballed.
+- **Snapshot/transaction future-date validation (M6, full stack).** Closes the deferred-backlog
+  item: snapshots are past observations; `year_month > current month` or `as_of_date > today UTC`
+  is nonsense. Same goes for `transaction_date` on the M4.4 transactions endpoints.
+  - **Backend:** 5 create + 5 update snapshot handlers (asset, liability, receivable, investment
+    quantity-price, investment accrued-interest) + 1 create + 1 update transaction handler reject
+    future dates with 400. Handlers gained an injectable `now` clock via a `WithNow` option so
+    tests can pin a fixed future date without monkey-patching `time.Now`. Application-layer
+    validation only — existing rows (including the May-2026 BankAccount test snapshots) are
+    grandfathered.
+  - **Frontend:** `lib/dateLimits.ts` (`thisYearMonth()` + `todayDate()`) drives a matching `max`
+    attribute on every snapshot/transaction month + date input; the helpers are unit-tested so
+    the wired values can't drift from the backend's clock semantics.
+- **Income `regularity` flag (M6, full stack).** Per-row classification: `routine` (monthly
+  salary, regular allowance) or `incidental` (bonus, gift, capital gain). Drives no math today
+  but readies the income-statement view to split predictable from one-off income.
+  - **Backend:** migration `00017_income_regularity` adds `regularity TEXT NOT NULL` (CHECK
+    `routine|incidental`); validator `oneof=routine incidental` on both `createReq` + `updateReq`;
+    existing rows backfilled to `routine` (matches the salary-dominant case).
+  - **Frontend:** `IncomeRegularity` union + label map; CreateIncomeDialog defaults to `routine`,
+    EditIncomeDialog pre-fills from the row. List rows render a Lucide icon next to the category
+    chip — `Repeat` for routine, `Sparkles` for incidental — and a chip-bar filter at the top of
+    the screen toggles between All / Routine / Incidental. `income.spec.ts` untouched.
+- **`investments.risk_profile` flag (M6, full stack).** One classification covering all 5
+  investment subtypes — lives on the shared `investments` table (per the ADR-0022 principle:
+  uniform-across-subtypes data sits on the parent row). Drives a list-row shield badge + a
+  per-subtype chip-bar filter; powers no math yet.
+  - **Backend:** migration `00018_investments_risk_profile` adds `risk_profile TEXT NOT NULL`
+    (CHECK `low|medium|high`); existing rows backfilled to `medium` as a neutral starting point.
+    `oneof` validator on both `createReq` + `updateReq`.
+  - **Frontend:** Create dialog forces a manual choice with **no default** — the friction is the
+    point, so users actually think about it; Edit pre-fills from the row. Shared
+    `RiskProfileBadge` (shield icon + colour: `Shield` low + emerald, `ShieldHalf` medium +
+    amber, `ShieldAlert` high + rose) renders next to the display name on every investment list
+    row. Shared `RiskProfileFilter` chip bar at the top of each of the 5 subtype list screens.
+- **E2E smoke coverage for the nickname + Google-picture features (M6, e2e).** Closes the
+  deferred "Not e2e-smoke-tested" note that landed with the nickname + picture shipments. Both
+  paths are Google-OAuth-only, so they need the mock-OIDC harness (ADR-0024).
+  - **mock-oidc** now mints a `picture` claim in the id_token (pointing at
+    `http://localhost:8090/avatar.png`, served as a 1×1 PNG by mock-oidc itself), so the real
+    OAuth callback runs `SetUserPicture` and backfills `users.picture_url` for the seeded Alice.
+  - **`picture.spec.ts`** uses `test.use({ storageState: empty })` to start unauthenticated,
+    clicks Sign in with Google, drives the redirect chain through mock-oidc, asserts
+    `user-avatar-img` is visible with the right `src` and the `user-avatar-fallback` is gone —
+    the one path session-injection (`auth.spec.ts`) cannot cover.
+  - **`nickname.spec.ts`** uses the injected session, `goto('/settings')`, sets nickname `Ally`,
+    saves, reloads, asserts persistence; clears, saves, reloads, asserts blank — self-cleaning so
+    downstream ownership-label assertions see the seed's NULL state.
+  - Full e2e count: **16 green**.
+- **Property/vehicle revaluation-rate UI helper (Q8a) — and a taxonomy fix (M6, full stack).**
+  Property's `annual_amortization_rate` was wrong twice over: amortization is for *intangibles*
+  (patents, goodwill), and tangible property typically *appreciates* rather than declines.
+  Migration `00019_property_appreciation_rate` renames the column to `annual_appreciation_rate`,
+  NULLs existing dev data (pre-alpha; forces clean re-entry with the correct sign), and leaves
+  the column unsigned-constraint-free so HGB-leasehold apartments can enter negative rates for
+  the decliner case. Vehicle keeps `annual_depreciation_rate` — that term is semantically
+  correct.
+  - **Helper:** `lib/revaluation.ts#suggestRevalued` projects `prev × (1 + rate/100)^(months/12)`
+    with a *signed* rate. Positive grows, negative declines, zero/null returns no suggestion.
+    Picks the latest snapshot strictly before the picked month as the anchor. Pure JS — the
+    backend computes nothing from this; it's a display suggestion the user can override. 12
+    vitest cases cover partial year, full year, multi-year compound, anchor selection, ISO
+    datetime input, and every null path.
+  - **Wiring:** `CreateSnapshotDialog` takes an optional `suggest` callback so the bank /
+    liability / receivable consumers stay untouched. `PropertyDetail` passes its
+    `annual_appreciation_rate` as-stored; `VehicleDetail` negates its positive-only
+    `annual_depreciation_rate` at the callsite so the same helper serves both directions.
+  - **Hint UX:** under the amount field, an inline `💡 Suggested <currency-formatted> — based on
+    +X% /yr × N mo from <Month YYYY>` with an explicit Apply button. **Never auto-prefills** — a
+    typed value is always preserved. Apply pastes the suggestion at the currency's display
+    precision (0 dp for IDR/JPY/KRW/VND, 2 dp elsewhere) via `lib/format.ts#roundToCurrency`,
+    not the raw 4dp arithmetic result. Sign-aware label uses "+" for appreciation and the real
+    minus glyph "−" for decline.
+  - **Display:** `lib/format.ts#formatSignedPercent` renders the rate on `PropertyDetail` with
+    a leading "+/−" so the direction is visible at a glance.
+  - **ADR-0009 updated** to reflect the rename + signed semantics.
 
 ## What M4.2 shipped
 

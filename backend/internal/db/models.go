@@ -267,7 +267,7 @@ type PropertyDetail struct {
 	Address                *string          `json:"address"`
 	AcquisitionDate        *time.Time       `json:"acquisition_date"`
 	AcquisitionCost        *decimal.Decimal `json:"acquisition_cost"`
-	AnnualAmortizationRate *decimal.Decimal `json:"annual_amortization_rate"`
+	AnnualAppreciationRate *decimal.Decimal `json:"annual_appreciation_rate"`
 }
 
 type Receivable struct {

@@ -64,7 +64,7 @@ export type PropertyDetails = {
   address: string | null
   acquisition_date: string | null
   acquisition_cost: string | null
-  annual_amortization_rate: string | null
+  annual_appreciation_rate: string | null
 }
 
 export type Property = {

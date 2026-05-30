@@ -24,7 +24,7 @@ type createPropertyReq struct {
 	Address                *string          `json:"address"`
 	AcquisitionDate        *string          `json:"acquisition_date"`
 	AcquisitionCost        *decimal.Decimal `json:"acquisition_cost"`
-	AnnualAmortizationRate *decimal.Decimal `json:"annual_amortization_rate"`
+	AnnualAppreciationRate *decimal.Decimal `json:"annual_appreciation_rate"`
 }
 
 type updatePropertyReq struct {
@@ -36,7 +36,7 @@ type updatePropertyReq struct {
 	Address                *string          `json:"address"`
 	AcquisitionDate        *string          `json:"acquisition_date"`
 	AcquisitionCost        *decimal.Decimal `json:"acquisition_cost"`
-	AnnualAmortizationRate *decimal.Decimal `json:"annual_amortization_rate"`
+	AnnualAppreciationRate *decimal.Decimal `json:"annual_appreciation_rate"`
 }
 
 // ----- handlers -----------------------------------------------------------
@@ -68,7 +68,7 @@ func (h *Handlers) handleCreateProperty(w http.ResponseWriter, r *http.Request) 
 		Address:                req.Address,
 		AcquisitionDate:        acquisitionDate,
 		AcquisitionCost:        req.AcquisitionCost,
-		AnnualAmortizationRate: req.AnnualAmortizationRate,
+		AnnualAppreciationRate: req.AnnualAppreciationRate,
 	})
 	if err != nil {
 		writeRepoError(w, "create property", err)
@@ -130,7 +130,7 @@ func (h *Handlers) handleUpdateProperty(w http.ResponseWriter, r *http.Request) 
 		Address:                req.Address,
 		AcquisitionDate:        acquisitionDate,
 		AcquisitionCost:        req.AcquisitionCost,
-		AnnualAmortizationRate: req.AnnualAmortizationRate,
+		AnnualAppreciationRate: req.AnnualAppreciationRate,
 	})
 	if err != nil {
 		writeRepoError(w, "update property", err)

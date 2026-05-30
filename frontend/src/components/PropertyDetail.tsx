@@ -35,8 +35,9 @@ import { SnapshotRow } from '@/components/SnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useSession } from '@/hooks/useSession'
-import { formatCurrency, formatDate } from '@/lib/format'
+import { formatCurrency, formatDate, formatSignedPercent } from '@/lib/format'
 import { ownershipLabel } from '@/lib/ownership'
+import { suggestRevalued } from '@/lib/revaluation'
 
 type Props = {
   assetId: string
@@ -125,6 +126,13 @@ export function PropertyDetail({ assetId, onBack }: Props) {
               <CreateSnapshotDialog
                 currency={asset.native_currency}
                 mutation={createSnapshotMutation}
+                suggest={(yearMonth) =>
+                  suggestRevalued({
+                    newYearMonth: yearMonth,
+                    annualRatePct: details.annual_appreciation_rate,
+                    snapshots,
+                  })
+                }
               />
               <ImportSnapshotsDialog
                 templateUrl={importTemplateUrl(asset.id)}
@@ -175,12 +183,12 @@ export function PropertyDetail({ assetId, onBack }: Props) {
               )}
             </p>
           )}
-          {details.annual_amortization_rate && (
+          {details.annual_appreciation_rate && (
             <p>
               <span className="text-muted-foreground">
-                Amortization rate:
+                Appreciation rate:
               </span>{' '}
-              {Number(details.annual_amortization_rate).toFixed(2)}% /yr
+              {formatSignedPercent(details.annual_appreciation_rate)} /yr
             </p>
           )}
           {asset.description && (

@@ -16,11 +16,11 @@ import (
 const createPropertyDetails = `-- name: CreatePropertyDetails :one
 INSERT INTO property_details (
     asset_id, property_type, address,
-    acquisition_date, acquisition_cost, annual_amortization_rate
+    acquisition_date, acquisition_cost, annual_appreciation_rate
 ) VALUES (
     $1, $2, $3, $4, $5, $6
 )
-RETURNING asset_id, property_type, address, acquisition_date, acquisition_cost, annual_amortization_rate
+RETURNING asset_id, property_type, address, acquisition_date, acquisition_cost, annual_appreciation_rate
 `
 
 type CreatePropertyDetailsParams struct {
@@ -29,7 +29,7 @@ type CreatePropertyDetailsParams struct {
 	Address                *string          `json:"address"`
 	AcquisitionDate        *time.Time       `json:"acquisition_date"`
 	AcquisitionCost        *decimal.Decimal `json:"acquisition_cost"`
-	AnnualAmortizationRate *decimal.Decimal `json:"annual_amortization_rate"`
+	AnnualAppreciationRate *decimal.Decimal `json:"annual_appreciation_rate"`
 }
 
 func (q *Queries) CreatePropertyDetails(ctx context.Context, arg CreatePropertyDetailsParams) (PropertyDetail, error) {
@@ -39,7 +39,7 @@ func (q *Queries) CreatePropertyDetails(ctx context.Context, arg CreatePropertyD
 		arg.Address,
 		arg.AcquisitionDate,
 		arg.AcquisitionCost,
-		arg.AnnualAmortizationRate,
+		arg.AnnualAppreciationRate,
 	)
 	var i PropertyDetail
 	err := row.Scan(
@@ -48,13 +48,13 @@ func (q *Queries) CreatePropertyDetails(ctx context.Context, arg CreatePropertyD
 		&i.Address,
 		&i.AcquisitionDate,
 		&i.AcquisitionCost,
-		&i.AnnualAmortizationRate,
+		&i.AnnualAppreciationRate,
 	)
 	return i, err
 }
 
 const getPropertyDetailsByAssetID = `-- name: GetPropertyDetailsByAssetID :one
-SELECT asset_id, property_type, address, acquisition_date, acquisition_cost, annual_amortization_rate
+SELECT asset_id, property_type, address, acquisition_date, acquisition_cost, annual_appreciation_rate
 FROM property_details
 WHERE asset_id = $1
 `
@@ -68,13 +68,13 @@ func (q *Queries) GetPropertyDetailsByAssetID(ctx context.Context, assetID uuid.
 		&i.Address,
 		&i.AcquisitionDate,
 		&i.AcquisitionCost,
-		&i.AnnualAmortizationRate,
+		&i.AnnualAppreciationRate,
 	)
 	return i, err
 }
 
 const listPropertyDetailsByAssetIDs = `-- name: ListPropertyDetailsByAssetIDs :many
-SELECT asset_id, property_type, address, acquisition_date, acquisition_cost, annual_amortization_rate
+SELECT asset_id, property_type, address, acquisition_date, acquisition_cost, annual_appreciation_rate
 FROM property_details
 WHERE asset_id = ANY($1::uuid[])
 `
@@ -96,7 +96,7 @@ func (q *Queries) ListPropertyDetailsByAssetIDs(ctx context.Context, dollar_1 []
 			&i.Address,
 			&i.AcquisitionDate,
 			&i.AcquisitionCost,
-			&i.AnnualAmortizationRate,
+			&i.AnnualAppreciationRate,
 		); err != nil {
 			return nil, err
 		}
@@ -114,9 +114,9 @@ SET property_type            = $2,
     address                  = $3,
     acquisition_date         = $4,
     acquisition_cost         = $5,
-    annual_amortization_rate = $6
+    annual_appreciation_rate = $6
 WHERE asset_id = $1
-RETURNING asset_id, property_type, address, acquisition_date, acquisition_cost, annual_amortization_rate
+RETURNING asset_id, property_type, address, acquisition_date, acquisition_cost, annual_appreciation_rate
 `
 
 type UpdatePropertyDetailsParams struct {
@@ -125,7 +125,7 @@ type UpdatePropertyDetailsParams struct {
 	Address                *string          `json:"address"`
 	AcquisitionDate        *time.Time       `json:"acquisition_date"`
 	AcquisitionCost        *decimal.Decimal `json:"acquisition_cost"`
-	AnnualAmortizationRate *decimal.Decimal `json:"annual_amortization_rate"`
+	AnnualAppreciationRate *decimal.Decimal `json:"annual_appreciation_rate"`
 }
 
 func (q *Queries) UpdatePropertyDetails(ctx context.Context, arg UpdatePropertyDetailsParams) (PropertyDetail, error) {
@@ -135,7 +135,7 @@ func (q *Queries) UpdatePropertyDetails(ctx context.Context, arg UpdatePropertyD
 		arg.Address,
 		arg.AcquisitionDate,
 		arg.AcquisitionCost,
-		arg.AnnualAmortizationRate,
+		arg.AnnualAppreciationRate,
 	)
 	var i PropertyDetail
 	err := row.Scan(
@@ -144,7 +144,7 @@ func (q *Queries) UpdatePropertyDetails(ctx context.Context, arg UpdatePropertyD
 		&i.Address,
 		&i.AcquisitionDate,
 		&i.AcquisitionCost,
-		&i.AnnualAmortizationRate,
+		&i.AnnualAppreciationRate,
 	)
 	return i, err
 }

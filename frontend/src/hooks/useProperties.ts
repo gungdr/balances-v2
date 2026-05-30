@@ -12,7 +12,7 @@ export type CreatePropertyPayload = {
   address: string | null
   acquisition_date: string | null
   acquisition_cost: string | null
-  annual_amortization_rate: string | null
+  annual_appreciation_rate: string | null
 }
 
 export type UpdatePropertyPayload = {
@@ -24,7 +24,7 @@ export type UpdatePropertyPayload = {
   address: string | null
   acquisition_date: string | null
   acquisition_cost: string | null
-  annual_amortization_rate: string | null
+  annual_appreciation_rate: string | null
 }
 
 export function useProperties() {

@@ -34,7 +34,7 @@ type CreatePropertyParams struct {
 	Address                *string
 	AcquisitionDate        *time.Time
 	AcquisitionCost        *decimal.Decimal
-	AnnualAmortizationRate *decimal.Decimal
+	AnnualAppreciationRate *decimal.Decimal
 }
 
 type UpdatePropertyParams struct {
@@ -46,7 +46,7 @@ type UpdatePropertyParams struct {
 	Address                *string
 	AcquisitionDate        *time.Time
 	AcquisitionCost        *decimal.Decimal
-	AnnualAmortizationRate *decimal.Decimal
+	AnnualAppreciationRate *decimal.Decimal
 }
 
 func (r *AssetRepo) CreateProperty(ctx context.Context, p CreatePropertyParams) (*Property, error) {
@@ -82,7 +82,7 @@ func (r *AssetRepo) CreateProperty(ctx context.Context, p CreatePropertyParams) 
 		Address:                p.Address,
 		AcquisitionDate:        p.AcquisitionDate,
 		AcquisitionCost:        p.AcquisitionCost,
-		AnnualAmortizationRate: p.AnnualAmortizationRate,
+		AnnualAppreciationRate: p.AnnualAppreciationRate,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create property_details: %w", err)
@@ -211,7 +211,7 @@ func (r *AssetRepo) UpdateProperty(ctx context.Context, id uuid.UUID, p UpdatePr
 		Address:                p.Address,
 		AcquisitionDate:        p.AcquisitionDate,
 		AcquisitionCost:        p.AcquisitionCost,
-		AnnualAmortizationRate: p.AnnualAmortizationRate,
+		AnnualAppreciationRate: p.AnnualAppreciationRate,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("update property_details: %w", err)

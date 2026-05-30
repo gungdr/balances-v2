@@ -27,7 +27,7 @@ const empty = {
   address: '',
   acquisition_date: '',
   acquisition_cost: '',
-  annual_amortization_rate: '',
+  annual_appreciation_rate: '',
 }
 
 export function CreatePropertyDialog() {
@@ -60,7 +60,7 @@ export function CreatePropertyDialog() {
         address: form.address || null,
         acquisition_date: form.acquisition_date || null,
         acquisition_cost: form.acquisition_cost || null,
-        annual_amortization_rate: form.annual_amortization_rate || null,
+        annual_appreciation_rate: form.annual_appreciation_rate || null,
       },
       { onSuccess: close },
     )
@@ -168,20 +168,20 @@ export function CreatePropertyDialog() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="annual_amortization_rate">
-              Annual amortization rate (%, optional)
+            <Label htmlFor="annual_appreciation_rate">
+              Annual appreciation rate (% /yr, optional)
             </Label>
             <Input
-              id="annual_amortization_rate"
+              id="annual_appreciation_rate"
               inputMode="decimal"
-              value={form.annual_amortization_rate}
+              value={form.annual_appreciation_rate}
               onChange={(e) =>
                 setForm({
                   ...form,
-                  annual_amortization_rate: e.target.value,
+                  annual_appreciation_rate: e.target.value,
                 })
               }
-              placeholder="0.02 = 2% per year"
+              placeholder="e.g. 3.5 — negative if losing value"
             />
           </div>
 

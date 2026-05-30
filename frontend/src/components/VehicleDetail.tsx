@@ -36,6 +36,7 @@ import { SnapshotChart } from '@/components/SnapshotChart'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useSession } from '@/hooks/useSession'
 import { ownershipLabel } from '@/lib/ownership'
+import { suggestRevalued } from '@/lib/revaluation'
 
 type Props = {
   assetId: string
@@ -130,6 +131,17 @@ export function VehicleDetail({ assetId, onBack }: Props) {
               <CreateSnapshotDialog
                 currency={asset.native_currency}
                 mutation={createSnapshotMutation}
+                suggest={(yearMonth) =>
+                  suggestRevalued({
+                    newYearMonth: yearMonth,
+                    // Vehicle stores positive depreciation %; the helper wants
+                    // signed (negative = decline), so negate at the callsite.
+                    annualRatePct: details.annual_depreciation_rate
+                      ? `-${details.annual_depreciation_rate}`
+                      : null,
+                    snapshots,
+                  })
+                }
               />
               <ImportSnapshotsDialog
                 templateUrl={importTemplateUrl(asset.id)}

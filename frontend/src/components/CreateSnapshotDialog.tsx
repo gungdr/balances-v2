@@ -14,6 +14,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ApiError } from '@/api/client'
 import { thisYearMonth, todayDate } from '@/lib/dateLimits'
+import type { RevaluationSuggestion } from '@/lib/revaluation'
+import {
+  formatCurrency,
+  formatYearMonth,
+  roundToCurrency,
+} from '@/lib/format'
 
 export type CreateSnapshotPayload = {
   year_month: string
@@ -28,11 +34,18 @@ type Props<TResult> = {
   // Mutation is owned by the parent so the same dialog can drive snapshot
   // creation for any position group (asset/liability/receivable).
   mutation: UseMutationResult<TResult, unknown, CreateSnapshotPayload>
+  // Optional revaluation helper (property + vehicle, Q8a / ADR-0008). The
+  // parent encapsulates the signed annual rate + snapshot history and hands
+  // the dialog a function it calls each render with the picked month; returns
+  // null when no suggestion applies. The Apply button is the only writer —
+  // typing the amount manually is never overridden.
+  suggest?: (yearMonth: string) => RevaluationSuggestion | null
 }
 
 export function CreateSnapshotDialog<TResult>({
   currency,
   mutation,
+  suggest,
 }: Props<TResult>) {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
@@ -119,6 +132,44 @@ export function CreateSnapshotDialog<TResult>({
               onChange={(e) => setForm({ ...form, amount: e.target.value })}
               placeholder="e.g. 12500000"
             />
+            {(() => {
+              const s = suggest?.(form.year_month)
+              if (!s) return null
+              // Real minus sign (−, U+2212) for negative rates so the glyph
+              // lines up with the surrounding typography; "+" for positive.
+              const sign = s.annualRatePct > 0 ? '+' : '−'
+              const magnitude = Math.abs(s.annualRatePct)
+              return (
+                <div
+                  className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
+                  data-testid="revaluation-hint"
+                >
+                  <span>
+                    💡 Suggested {formatCurrency(s.amount, currency)} — based on
+                    {' '}{sign}{magnitude}% /yr × {s.monthsElapsed} mo from{' '}
+                    {formatYearMonth(s.anchorYearMonth + '-01T00:00:00Z')}.
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2"
+                    onClick={() =>
+                      setForm({
+                        ...form,
+                        // Round to the currency's display precision (0 dp for
+                        // IDR/JPY/KRW/VND, 2 dp elsewhere) so the input shows
+                        // a clean figure rather than the helper's raw 4dp.
+                        amount: roundToCurrency(s.amount, currency),
+                      })
+                    }
+                    data-testid="revaluation-apply"
+                  >
+                    Apply
+                  </Button>
+                </div>
+              )
+            })()}
           </div>
 
           <div className="grid gap-2">
