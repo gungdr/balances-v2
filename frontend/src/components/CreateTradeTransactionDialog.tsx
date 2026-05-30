@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ApiError } from '@/api/client'
 import { formatCurrency } from '@/lib/format'
+import { todayDate } from '@/lib/dateLimits'
 import type { CreateInvestmentTransactionPayload } from '@/hooks/useInvestmentTransactions'
 
 // Trade shape covers Buy + Sell. The type is fixed by the caller —
@@ -28,11 +29,6 @@ type Props<TResult> = {
     unknown,
     CreateInvestmentTransactionPayload
   >
-}
-
-function todayDate(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function emptyForm() {
@@ -115,6 +111,7 @@ export function CreateTradeTransactionDialog<TResult>({
               id="trade_date"
               type="date"
               required
+              max={todayDate()}
               value={form.transaction_date}
               onChange={(e) =>
                 setForm({ ...form, transaction_date: e.target.value })

@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ApiError } from '@/api/client'
 import { formatCurrency } from '@/lib/format'
+import { todayDate } from '@/lib/dateLimits'
 import type { UpdateInvestmentTransactionPayload } from '@/hooks/useInvestmentTransactions'
 import type { InvestmentTransaction } from '@/api/types'
 
@@ -98,6 +99,7 @@ export function EditTradeTransactionDialog<TResult>({
               id="edit_trade_date"
               type="date"
               required
+              max={todayDate()}
               value={form.transaction_date}
               onChange={(e) =>
                 setForm({ ...form, transaction_date: e.target.value })

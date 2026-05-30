@@ -25,13 +25,29 @@ import (
 type Handlers struct {
 	repo     *repo.ReceivableRepo
 	validate *validator.Validate
+	now      func() time.Time
 }
 
-func New(r *repo.ReceivableRepo) *Handlers {
-	return &Handlers{
+// Option mutates a Handlers during construction. Used by tests to inject a
+// fake clock for the future-date validation; production wiring takes the
+// zero-option path and gets the real time.Now.
+type Option func(*Handlers)
+
+// WithNow overrides the clock used for future-date validation on snapshots.
+func WithNow(fn func() time.Time) Option {
+	return func(h *Handlers) { h.now = fn }
+}
+
+func New(r *repo.ReceivableRepo, opts ...Option) *Handlers {
+	h := &Handlers{
 		repo:     r,
 		validate: validator.New(validator.WithRequiredStructEnabled()),
+		now:      time.Now,
 	}
+	for _, opt := range opts {
+		opt(h)
+	}
+	return h
 }
 
 func (h *Handlers) Mount(r chi.Router) {
@@ -223,9 +239,17 @@ func (h *Handlers) handleCreateSnapshot(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "invalid year_month: expected YYYY-MM or YYYY-MM-DD", http.StatusBadRequest)
 		return
 	}
+	if isFutureYearMonth(ym, h.now()) {
+		http.Error(w, "year_month cannot be in the future", http.StatusBadRequest)
+		return
+	}
 	asOf, err := parseOptionalDate(req.AsOfDate, "as_of_date")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if asOf != nil && isFutureDate(*asOf, h.now()) {
+		http.Error(w, "as_of_date cannot be in the future", http.StatusBadRequest)
 		return
 	}
 
@@ -276,6 +300,10 @@ func (h *Handlers) handleUpdateSnapshot(w http.ResponseWriter, r *http.Request) 
 	asOf, err := parseOptionalDate(req.AsOfDate, "as_of_date")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if asOf != nil && isFutureDate(*asOf, h.now()) {
+		http.Error(w, "as_of_date cannot be in the future", http.StatusBadRequest)
 		return
 	}
 
@@ -361,4 +389,20 @@ func parseYearMonth(s string) (time.Time, error) {
 		return time.Time{}, err
 	}
 	return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.UTC), nil
+}
+
+// isFutureYearMonth reports whether ym (first-of-month UTC) is strictly later
+// than the current month derived from now.
+func isFutureYearMonth(ym, now time.Time) bool {
+	n := now.UTC()
+	currentMonth := time.Date(n.Year(), n.Month(), 1, 0, 0, 0, 0, time.UTC)
+	return ym.After(currentMonth)
+}
+
+// isFutureDate reports whether t (a calendar date parsed as UTC midnight) is
+// strictly after today UTC.
+func isFutureDate(t, now time.Time) bool {
+	n := now.UTC()
+	today := time.Date(n.Year(), n.Month(), n.Day(), 0, 0, 0, 0, time.UTC)
+	return t.After(today)
 }

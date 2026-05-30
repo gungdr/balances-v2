@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -19,6 +20,11 @@ import (
 	"github.com/kerti/balances-v2/backend/internal/repo"
 	"github.com/kerti/balances-v2/backend/internal/testutil"
 )
+
+// fakeNow pins the clock for snapshot future-date validation. Hardcoded
+// dates across these tests live in 2026, so any "now" beyond 2026-12 keeps
+// them in the past.
+var fakeNow = func() time.Time { return time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC) }
 
 type handlerHarness struct {
 	router *chi.Mux
@@ -32,7 +38,7 @@ func newHarness(t *testing.T) *handlerHarness {
 	user := testutil.CreateHouseholdWithUser(t, q, "Alice")
 
 	r := chi.NewRouter()
-	liabilities.New(repo.NewLiabilityRepo(tdb.Pool)).Mount(r)
+	liabilities.New(repo.NewLiabilityRepo(tdb.Pool), liabilities.WithNow(fakeNow)).Mount(r)
 
 	return &handlerHarness{router: r, user: user}
 }
@@ -359,6 +365,26 @@ func TestLiabilityHandlers_CreateSnapshot(t *testing.T) {
 		})
 		requireStatus(t, rec, http.StatusNotFound)
 	})
+
+	// fakeNow = 2030-01-01 UTC; anything past current month / today rejects.
+	t.Run("400 future year_month", func(t *testing.T) {
+		rec := h.do(t, "POST", "/liabilities/"+parent.ID.String()+"/snapshots", map[string]any{
+			"year_month": "2030-02",
+			"amount":     "1000",
+			"currency":   "IDR",
+		})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("400 future as_of_date", func(t *testing.T) {
+		rec := h.do(t, "POST", "/liabilities/"+parent.ID.String()+"/snapshots", map[string]any{
+			"year_month": "2030-01",
+			"amount":     "1000",
+			"currency":   "IDR",
+			"as_of_date": "2030-01-02",
+		})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
 }
 
 func TestLiabilityHandlers_ListSnapshots(t *testing.T) {
@@ -404,6 +430,17 @@ func TestLiabilityHandlers_UpdateSnapshot(t *testing.T) {
 				"currency": "IDR",
 			})
 		requireStatus(t, rec, http.StatusNotFound)
+	})
+
+	t.Run("400 future as_of_date", func(t *testing.T) {
+		rec := h.do(t, "PATCH",
+			"/liabilities/"+parent.ID.String()+"/snapshots/"+snap.ID.String(),
+			map[string]any{
+				"amount":     "1",
+				"currency":   "IDR",
+				"as_of_date": "2030-01-02",
+			})
+		requireStatus(t, rec, http.StatusBadRequest)
 	})
 }
 

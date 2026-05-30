@@ -87,6 +87,26 @@ func TestAssetSnapshotHandlers_Create(t *testing.T) {
 		})
 		requireStatus(t, rec, http.StatusNotFound)
 	})
+
+	// fakeNow = 2030-01-01 UTC; anything past current month / today rejects.
+	t.Run("400 future year_month", func(t *testing.T) {
+		rec := h.do(t, "POST", "/assets/"+parent.Asset.ID.String()+"/snapshots", map[string]any{
+			"year_month": "2030-02",
+			"amount":     "1000",
+			"currency":   "IDR",
+		})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("400 future as_of_date", func(t *testing.T) {
+		rec := h.do(t, "POST", "/assets/"+parent.Asset.ID.String()+"/snapshots", map[string]any{
+			"year_month": "2030-01",
+			"amount":     "1000",
+			"currency":   "IDR",
+			"as_of_date": "2030-01-02",
+		})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
 }
 
 func TestAssetSnapshotHandlers_List(t *testing.T) {
@@ -141,6 +161,17 @@ func TestAssetSnapshotHandlers_Update(t *testing.T) {
 				"amount":     "1",
 				"currency":   "IDR",
 				"as_of_date": "tomorrow",
+			})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("400 future as_of_date", func(t *testing.T) {
+		rec := h.do(t, "PATCH",
+			"/assets/"+parent.Asset.ID.String()+"/snapshots/"+snap.ID.String(),
+			map[string]any{
+				"amount":     "1",
+				"currency":   "IDR",
+				"as_of_date": "2030-01-02",
 			})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})

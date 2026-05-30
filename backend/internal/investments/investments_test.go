@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -17,6 +18,11 @@ import (
 	"github.com/kerti/balances-v2/backend/internal/repo"
 	"github.com/kerti/balances-v2/backend/internal/testutil"
 )
+
+// fakeNow pins the clock for snapshot + transaction future-date validation.
+// Hardcoded dates across these tests live in 2026, so any "now" beyond
+// 2026-12 keeps them in the past.
+var fakeNow = func() time.Time { return time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC) }
 
 type handlerHarness struct {
 	router *chi.Mux
@@ -30,7 +36,7 @@ func newHarness(t *testing.T) *handlerHarness {
 	user := testutil.CreateHouseholdWithUser(t, q, "Alice")
 
 	r := chi.NewRouter()
-	investments.New(repo.NewInvestmentRepo(tdb.Pool)).Mount(r)
+	investments.New(repo.NewInvestmentRepo(tdb.Pool), investments.WithNow(fakeNow)).Mount(r)
 
 	return &handlerHarness{router: r, user: user}
 }

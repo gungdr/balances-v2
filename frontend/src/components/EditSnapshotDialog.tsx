@@ -12,6 +12,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ApiError } from '@/api/client'
+import { todayDate } from '@/lib/dateLimits'
 
 // Generic snapshot shape — only the fields the edit form needs.
 type SnapshotLike = {
@@ -100,6 +101,7 @@ export function EditSnapshotDialog<TResult>({
             <Input
               id="edit_as_of_date"
               type="date"
+              max={todayDate()}
               value={form.as_of_date}
               onChange={(e) =>
                 setForm({ ...form, as_of_date: e.target.value })

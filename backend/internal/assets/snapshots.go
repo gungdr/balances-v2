@@ -42,11 +42,19 @@ func (h *Handlers) handleCreateSnapshot(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "invalid year_month: expected YYYY-MM or YYYY-MM-DD", http.StatusBadRequest)
 		return
 	}
+	if isFutureYearMonth(ym, h.now()) {
+		http.Error(w, "year_month cannot be in the future", http.StatusBadRequest)
+		return
+	}
 	var asOf *time.Time
 	if req.AsOfDate != nil && *req.AsOfDate != "" {
 		t, err := time.Parse("2006-01-02", *req.AsOfDate)
 		if err != nil {
 			http.Error(w, "invalid as_of_date: expected YYYY-MM-DD", http.StatusBadRequest)
+			return
+		}
+		if isFutureDate(t, h.now()) {
+			http.Error(w, "as_of_date cannot be in the future", http.StatusBadRequest)
 			return
 		}
 		asOf = &t
@@ -112,6 +120,10 @@ func (h *Handlers) handleUpdateSnapshot(w http.ResponseWriter, r *http.Request) 
 			http.Error(w, "invalid as_of_date: expected YYYY-MM-DD", http.StatusBadRequest)
 			return
 		}
+		if isFutureDate(t, h.now()) {
+			http.Error(w, "as_of_date cannot be in the future", http.StatusBadRequest)
+			return
+		}
 		asOf = &t
 	}
 
@@ -152,4 +164,21 @@ func parseYearMonth(s string) (time.Time, error) {
 	}
 	// Force first-of-month per Q12a even if the caller sent a different day.
 	return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.UTC), nil
+}
+
+// isFutureYearMonth reports whether ym (first-of-month UTC) is strictly later
+// than the current month derived from now. A snapshot is by definition a past
+// observation, so future months are nonsense — backlog item lifted to M6.
+func isFutureYearMonth(ym, now time.Time) bool {
+	n := now.UTC()
+	currentMonth := time.Date(n.Year(), n.Month(), 1, 0, 0, 0, 0, time.UTC)
+	return ym.After(currentMonth)
+}
+
+// isFutureDate reports whether t (a calendar date parsed as UTC midnight) is
+// strictly after today UTC. Same backlog item as isFutureYearMonth.
+func isFutureDate(t, now time.Time) bool {
+	n := now.UTC()
+	today := time.Date(n.Year(), n.Month(), n.Day(), 0, 0, 0, 0, time.UTC)
+	return t.After(today)
 }

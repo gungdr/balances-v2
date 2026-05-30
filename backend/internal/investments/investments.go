@@ -12,6 +12,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
@@ -24,13 +25,30 @@ import (
 type Handlers struct {
 	repo     *repo.InvestmentRepo
 	validate *validator.Validate
+	now      func() time.Time
 }
 
-func New(r *repo.InvestmentRepo) *Handlers {
-	return &Handlers{
+// Option mutates a Handlers during construction. Used by tests to inject a
+// fake clock for the future-date validation; production wiring takes the
+// zero-option path and gets the real time.Now.
+type Option func(*Handlers)
+
+// WithNow overrides the clock used for future-date validation on snapshots
+// and transactions.
+func WithNow(fn func() time.Time) Option {
+	return func(h *Handlers) { h.now = fn }
+}
+
+func New(r *repo.InvestmentRepo, opts ...Option) *Handlers {
+	h := &Handlers{
 		repo:     r,
 		validate: validator.New(validator.WithRequiredStructEnabled()),
+		now:      time.Now,
 	}
+	for _, opt := range opts {
+		opt(h)
+	}
+	return h
 }
 
 // Mount registers all investment routes under /investments. Caller mounts

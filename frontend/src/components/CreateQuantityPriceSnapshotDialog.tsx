@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ApiError } from '@/api/client'
 import { formatCurrency } from '@/lib/format'
+import { thisYearMonth, todayDate } from '@/lib/dateLimits'
 import type { CreateInvestmentSnapshotPayload } from '@/hooks/useInvestmentSnapshots'
 
 type Props<TResult> = {
@@ -26,11 +27,6 @@ type Props<TResult> = {
     unknown,
     CreateInvestmentSnapshotPayload
   >
-}
-
-function thisYearMonth(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
 function emptyForm() {
@@ -110,6 +106,7 @@ export function CreateQuantityPriceSnapshotDialog<TResult>({
                 id="inv_year_month"
                 type="month"
                 required
+                max={thisYearMonth()}
                 value={form.year_month}
                 onChange={(e) =>
                   setForm({ ...form, year_month: e.target.value })
@@ -121,6 +118,7 @@ export function CreateQuantityPriceSnapshotDialog<TResult>({
               <Input
                 id="inv_as_of_date"
                 type="date"
+                max={todayDate()}
                 value={form.as_of_date}
                 onChange={(e) =>
                   setForm({ ...form, as_of_date: e.target.value })

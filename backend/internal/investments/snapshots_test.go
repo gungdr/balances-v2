@@ -150,6 +150,53 @@ func TestInvestmentSnapshotHandlers_CommonErrors(t *testing.T) {
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
+
+	// fakeNow = 2030-01-01 UTC; anything past current month / today rejects.
+	t.Run("400 future year_month (quantity-price shape)", func(t *testing.T) {
+		rec := h.do(t, "POST", "/investments/"+stock.Investment.ID.String()+"/snapshots", map[string]any{
+			"year_month":     "2030-02",
+			"amount":         "1",
+			"currency":       "IDR",
+			"quantity":       "1",
+			"price_per_unit": "1",
+		})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("400 future as_of_date (quantity-price shape)", func(t *testing.T) {
+		rec := h.do(t, "POST", "/investments/"+stock.Investment.ID.String()+"/snapshots", map[string]any{
+			"year_month":     "2030-01",
+			"amount":         "1",
+			"currency":       "IDR",
+			"quantity":       "1",
+			"price_per_unit": "1",
+			"as_of_date":     "2030-01-02",
+		})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("400 future year_month (accrued-interest shape)", func(t *testing.T) {
+		bond := h.createBond(t, "Future-date bond parent")
+		rec := h.do(t, "POST", "/investments/"+bond.Investment.ID.String()+"/snapshots", map[string]any{
+			"year_month":       "2030-02",
+			"amount":           "1",
+			"currency":         "IDR",
+			"accrued_interest": "1",
+		})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("400 future as_of_date (accrued-interest shape)", func(t *testing.T) {
+		bond := h.createBond(t, "Future-date bond parent 2")
+		rec := h.do(t, "POST", "/investments/"+bond.Investment.ID.String()+"/snapshots", map[string]any{
+			"year_month":       "2030-01",
+			"amount":           "1",
+			"currency":         "IDR",
+			"accrued_interest": "1",
+			"as_of_date":       "2030-01-02",
+		})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
 }
 
 func TestInvestmentSnapshotHandlers_ListUpdateDelete(t *testing.T) {
@@ -198,6 +245,19 @@ func TestInvestmentSnapshotHandlers_ListUpdateDelete(t *testing.T) {
 				"price_per_unit": "1",
 			})
 		requireStatus(t, rec, http.StatusNotFound)
+	})
+
+	t.Run("Update 400 future as_of_date", func(t *testing.T) {
+		rec := h.do(t, "PATCH",
+			"/investments/"+stock.Investment.ID.String()+"/snapshots/"+snap.ID.String(),
+			map[string]any{
+				"amount":         "1",
+				"currency":       "IDR",
+				"quantity":       "1",
+				"price_per_unit": "1",
+				"as_of_date":     "2030-01-02",
+			})
+		requireStatus(t, rec, http.StatusBadRequest)
 	})
 
 	t.Run("Delete 204 happy", func(t *testing.T) {

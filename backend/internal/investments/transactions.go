@@ -66,6 +66,10 @@ func (h *Handlers) handleCreateTransaction(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "invalid transaction_date: expected YYYY-MM-DD", http.StatusBadRequest)
 		return
 	}
+	if isFutureDate(txnDate, h.now()) {
+		http.Error(w, "transaction_date cannot be in the future", http.StatusBadRequest)
+		return
+	}
 
 	txn, err := h.repo.CreateInvestmentTransaction(r.Context(), repo.CreateInvestmentTransactionParams{
 		InvestmentID:         investmentID,
@@ -122,6 +126,10 @@ func (h *Handlers) handleUpdateTransaction(w http.ResponseWriter, r *http.Reques
 	txnDate, err := time.Parse("2006-01-02", req.TransactionDate)
 	if err != nil {
 		http.Error(w, "invalid transaction_date: expected YYYY-MM-DD", http.StatusBadRequest)
+		return
+	}
+	if isFutureDate(txnDate, h.now()) {
+		http.Error(w, "transaction_date cannot be in the future", http.StatusBadRequest)
 		return
 	}
 

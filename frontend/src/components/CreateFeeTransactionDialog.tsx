@@ -13,6 +13,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ApiError } from '@/api/client'
+import { todayDate } from '@/lib/dateLimits'
 import type { CreateInvestmentTransactionPayload } from '@/hooks/useInvestmentTransactions'
 
 // Fee shape: cash amount required; quantity + price_per_unit optional but
@@ -28,11 +29,6 @@ type Props<TResult> = {
     unknown,
     CreateInvestmentTransactionPayload
   >
-}
-
-function todayDate(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function emptyForm() {
@@ -110,6 +106,7 @@ export function CreateFeeTransactionDialog<TResult>({
                 id="fee_date"
                 type="date"
                 required
+                max={todayDate()}
                 value={form.transaction_date}
                 onChange={(e) =>
                   setForm({ ...form, transaction_date: e.target.value })

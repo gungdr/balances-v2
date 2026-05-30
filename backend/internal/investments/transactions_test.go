@@ -237,6 +237,17 @@ func TestInvestmentTransactionHandlers_CommonErrors(t *testing.T) {
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
+
+	// fakeNow = 2030-01-01 UTC; anything after today rejects.
+	t.Run("400 future transaction_date on create", func(t *testing.T) {
+		rec := h.do(t, "POST", "/investments/"+stock.Investment.ID.String()+"/transactions", map[string]any{
+			"transaction_type": "dividend",
+			"transaction_date": "2030-01-02",
+			"currency":         "IDR",
+			"amount":           "1",
+		})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
 }
 
 func TestInvestmentTransactionHandlers_ListUpdateDelete(t *testing.T) {
@@ -294,6 +305,19 @@ func TestInvestmentTransactionHandlers_ListUpdateDelete(t *testing.T) {
 			"/investments/"+stock.Investment.ID.String()+"/transactions/"+txn.ID.String(),
 			map[string]any{
 				"transaction_date": "2026/05/01",
+				"currency":         "IDR",
+				"amount":           "1",
+				"quantity":         "1",
+				"price_per_unit":   "1",
+			})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("Update 400 future transaction_date", func(t *testing.T) {
+		rec := h.do(t, "PATCH",
+			"/investments/"+stock.Investment.ID.String()+"/transactions/"+txn.ID.String(),
+			map[string]any{
+				"transaction_date": "2030-01-02",
 				"currency":         "IDR",
 				"amount":           "1",
 				"quantity":         "1",

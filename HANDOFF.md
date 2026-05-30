@@ -33,9 +33,13 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
 - **M6 (in progress)** — shipped so far: snapshot importer (xlsx, all 10 groups + 5 investment
   subtypes), self-set `users.nickname` for compact owner labels, list-screen polish swept across all
   10 groups, the header Google-profile-picture avatar (`users.picture_url`), a backend-coverage
-  backfill after the importer/lifecycle handlers landed untested (codecov backend back to 83.7%), and
+  backfill after the importer/lifecycle handlers landed untested (codecov backend back to 83.7%),
   the React Router migration + sidebar nav shell (ADR-0025 — delivers the M4.9 backlog item and fixes
-  the mobile tab overflow).
+  the mobile tab overflow), and snapshot/transaction future-date validation (5 create + 5 update
+  snapshot handlers + 1 create + 1 update transaction handler reject `year_month > current month`
+  and `as_of_date/transaction_date > today UTC`; frontend inputs gain a matching `max` attribute via
+  `lib/dateLimits.ts`; handlers gained an injectable `now` clock via a `WithNow` option so tests can
+  pin a fixed future date).
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
@@ -275,14 +279,6 @@ original wording of everything here — including items already resolved (side-b
 invite-form relocation, the `users.nickname` build, vitest setup) — is preserved verbatim in
 `CHANGELOG.md`.
 
-- **Snapshot future-date validation.** `year_month` and `as_of_date` on the create/update snapshot
-  endpoints currently accept any date, including future ones. A snapshot is by definition a past
-  observation, so `year_month > current month` or `as_of_date > today` is nonsense. Scope: 5 create
-  + 5 update handlers (asset, liability, receivable, investment quantity-price, investment
-  accrued-interest), matching `max` attributes on the frontend date/month inputs, and 400-path
-  tests. Application-layer validation only — existing rows are grandfathered. Apply the same to
-  `transaction_date` on the M4.4 transaction endpoints (5 shapes share one endpoint, so one create +
-  one update path to guard).
 - **Per-bond `coupon_disposition` field** (escalation path). The bond accrued-interest snapshot
   dialog ships a global `accrued=0` default plus copy explaining the override path. If users
   repeatedly override (e.g. mostly secondary-market holders) or repeatedly forget to, escalate to a

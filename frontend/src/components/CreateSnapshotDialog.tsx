@@ -13,6 +13,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ApiError } from '@/api/client'
+import { thisYearMonth, todayDate } from '@/lib/dateLimits'
 
 export type CreateSnapshotPayload = {
   year_month: string
@@ -27,11 +28,6 @@ type Props<TResult> = {
   // Mutation is owned by the parent so the same dialog can drive snapshot
   // creation for any position group (asset/liability/receivable).
   mutation: UseMutationResult<TResult, unknown, CreateSnapshotPayload>
-}
-
-function thisYearMonth(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
 export function CreateSnapshotDialog<TResult>({
@@ -92,6 +88,7 @@ export function CreateSnapshotDialog<TResult>({
                 id="year_month"
                 type="month"
                 required
+                max={thisYearMonth()}
                 value={form.year_month}
                 onChange={(e) =>
                   setForm({ ...form, year_month: e.target.value })
@@ -103,6 +100,7 @@ export function CreateSnapshotDialog<TResult>({
               <Input
                 id="as_of_date"
                 type="date"
+                max={todayDate()}
                 value={form.as_of_date}
                 onChange={(e) =>
                   setForm({ ...form, as_of_date: e.target.value })
