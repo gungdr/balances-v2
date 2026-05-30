@@ -32,6 +32,7 @@ function toForm(i: Income) {
     description: i.description ?? '',
     ownership_type: i.ownership_type,
     sole_owner_user_id: i.sole_owner_user_id,
+    regularity: i.regularity,
   }
 }
 
@@ -59,6 +60,7 @@ export function EditIncomeDialog({ open, onOpenChange, income }: Props) {
         ownership_type: form.ownership_type,
         sole_owner_user_id:
           form.ownership_type === 'sole' ? effectiveSoleOwnerID : null,
+        regularity: form.regularity,
       },
       { onSuccess: () => onOpenChange(false) },
     )
@@ -150,6 +152,34 @@ export function EditIncomeDialog({ open, onOpenChange, income }: Props) {
                 setForm({ ...form, description: e.target.value })
               }
             />
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Regularity</Label>
+            <div className="flex gap-4 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="edit_regularity"
+                  value="routine"
+                  checked={form.regularity === 'routine'}
+                  onChange={() => setForm({ ...form, regularity: 'routine' })}
+                />
+                Routine
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="edit_regularity"
+                  value="incidental"
+                  checked={form.regularity === 'incidental'}
+                  onChange={() =>
+                    setForm({ ...form, regularity: 'incidental' })
+                  }
+                />
+                Incidental
+              </label>
+            </div>
           </div>
 
           <div className="grid gap-2">

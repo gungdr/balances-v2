@@ -59,6 +59,7 @@ type createReq struct {
 	Description     *string          `json:"description"`
 	OwnershipType   string           `json:"ownership_type"     validate:"required,oneof=sole joint"`
 	SoleOwnerUserID *uuid.UUID       `json:"sole_owner_user_id" validate:"required_if=OwnershipType sole"`
+	Regularity      string           `json:"regularity"         validate:"required,oneof=routine incidental"`
 }
 
 type updateReq struct {
@@ -69,6 +70,7 @@ type updateReq struct {
 	Description     *string          `json:"description"`
 	OwnershipType   string           `json:"ownership_type"     validate:"required,oneof=sole joint"`
 	SoleOwnerUserID *uuid.UUID       `json:"sole_owner_user_id" validate:"required_if=OwnershipType sole"`
+	Regularity      string           `json:"regularity"         validate:"required,oneof=routine incidental"`
 }
 
 // ----- handlers -----------------------------------------------------------
@@ -101,6 +103,7 @@ func (h *Handlers) handleCreate(w http.ResponseWriter, r *http.Request) {
 		Description:     req.Description,
 		OwnershipType:   req.OwnershipType,
 		SoleOwnerUserID: req.SoleOwnerUserID,
+		Regularity:      req.Regularity,
 	})
 	if err != nil {
 		writeRepoError(w, "create income", err)
@@ -165,6 +168,7 @@ func (h *Handlers) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		Description:     req.Description,
 		OwnershipType:   req.OwnershipType,
 		SoleOwnerUserID: req.SoleOwnerUserID,
+		Regularity:      req.Regularity,
 	})
 	if err != nil {
 		writeRepoError(w, "update income", err)

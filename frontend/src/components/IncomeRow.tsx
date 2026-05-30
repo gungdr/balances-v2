@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MoreHorizontal } from 'lucide-react'
+import { MoreHorizontal, Repeat, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -63,7 +63,12 @@ export function IncomeRow({ income }: Props) {
     description: income.description,
     ownership_type: income.ownership_type,
     sole_owner_user_id: income.sole_owner_user_id,
+    regularity: income.regularity,
   }
+
+  const isRoutine = income.regularity === 'routine'
+  const RegularityIcon = isRoutine ? Repeat : Sparkles
+  const regularityLabel = isRoutine ? 'Routine income' : 'Incidental income'
 
   return (
     <>
@@ -72,9 +77,18 @@ export function IncomeRow({ income }: Props) {
           {formatDate(income.date)}
         </TableCell>
         <TableCell>
-          <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs">
-            {CATEGORY_LABEL[income.category]}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs">
+              {CATEGORY_LABEL[income.category]}
+            </span>
+            <RegularityIcon
+              className="size-3.5 text-muted-foreground"
+              aria-label={regularityLabel}
+              data-testid={`regularity-${income.regularity}`}
+            >
+              <title>{regularityLabel}</title>
+            </RegularityIcon>
+          </div>
         </TableCell>
         <TableCell className="whitespace-nowrap font-medium">
           {formatCurrency(income.amount, income.currency)}

@@ -121,6 +121,7 @@ type Income struct {
 	UpdatedBy       *uuid.UUID         `json:"updated_by"`
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
+	Regularity      string             `json:"regularity"`
 }
 
 type Investment struct {

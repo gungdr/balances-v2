@@ -16,12 +16,12 @@ import (
 const createIncome = `-- name: CreateIncome :one
 INSERT INTO income (
     household_id, date, amount, currency, category, description,
-    ownership_type, sole_owner_user_id,
+    ownership_type, sole_owner_user_id, regularity,
     created_by, updated_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $9
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10
 )
-RETURNING id, household_id, date, amount, currency, category, description, ownership_type, sole_owner_user_id, created_by, created_at, updated_by, updated_at, deleted_at
+RETURNING id, household_id, date, amount, currency, category, description, ownership_type, sole_owner_user_id, created_by, created_at, updated_by, updated_at, deleted_at, regularity
 `
 
 type CreateIncomeParams struct {
@@ -33,6 +33,7 @@ type CreateIncomeParams struct {
 	Description     *string         `json:"description"`
 	OwnershipType   string          `json:"ownership_type"`
 	SoleOwnerUserID *uuid.UUID      `json:"sole_owner_user_id"`
+	Regularity      string          `json:"regularity"`
 	CreatedBy       *uuid.UUID      `json:"created_by"`
 }
 
@@ -46,6 +47,7 @@ func (q *Queries) CreateIncome(ctx context.Context, arg CreateIncomeParams) (Inc
 		arg.Description,
 		arg.OwnershipType,
 		arg.SoleOwnerUserID,
+		arg.Regularity,
 		arg.CreatedBy,
 	)
 	var i Income
@@ -64,12 +66,13 @@ func (q *Queries) CreateIncome(ctx context.Context, arg CreateIncomeParams) (Inc
 		&i.UpdatedBy,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Regularity,
 	)
 	return i, err
 }
 
 const getIncomeByID = `-- name: GetIncomeByID :one
-SELECT id, household_id, date, amount, currency, category, description, ownership_type, sole_owner_user_id, created_by, created_at, updated_by, updated_at, deleted_at
+SELECT id, household_id, date, amount, currency, category, description, ownership_type, sole_owner_user_id, created_by, created_at, updated_by, updated_at, deleted_at, regularity
 FROM income
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
 `
@@ -97,12 +100,13 @@ func (q *Queries) GetIncomeByID(ctx context.Context, arg GetIncomeByIDParams) (I
 		&i.UpdatedBy,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Regularity,
 	)
 	return i, err
 }
 
 const listIncomeByHousehold = `-- name: ListIncomeByHousehold :many
-SELECT id, household_id, date, amount, currency, category, description, ownership_type, sole_owner_user_id, created_by, created_at, updated_by, updated_at, deleted_at
+SELECT id, household_id, date, amount, currency, category, description, ownership_type, sole_owner_user_id, created_by, created_at, updated_by, updated_at, deleted_at, regularity
 FROM income
 WHERE household_id = $1
   AND deleted_at IS NULL
@@ -133,6 +137,7 @@ func (q *Queries) ListIncomeByHousehold(ctx context.Context, householdID uuid.UU
 			&i.UpdatedBy,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.Regularity,
 		); err != nil {
 			return nil, err
 		}
@@ -175,10 +180,11 @@ SET date               = $3,
     description        = $7,
     ownership_type     = $8,
     sole_owner_user_id = $9,
-    updated_by         = $10,
+    regularity         = $10,
+    updated_by         = $11,
     updated_at         = now()
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
-RETURNING id, household_id, date, amount, currency, category, description, ownership_type, sole_owner_user_id, created_by, created_at, updated_by, updated_at, deleted_at
+RETURNING id, household_id, date, amount, currency, category, description, ownership_type, sole_owner_user_id, created_by, created_at, updated_by, updated_at, deleted_at, regularity
 `
 
 type UpdateIncomeParams struct {
@@ -191,6 +197,7 @@ type UpdateIncomeParams struct {
 	Description     *string         `json:"description"`
 	OwnershipType   string          `json:"ownership_type"`
 	SoleOwnerUserID *uuid.UUID      `json:"sole_owner_user_id"`
+	Regularity      string          `json:"regularity"`
 	UpdatedBy       *uuid.UUID      `json:"updated_by"`
 }
 
@@ -205,6 +212,7 @@ func (q *Queries) UpdateIncome(ctx context.Context, arg UpdateIncomeParams) (Inc
 		arg.Description,
 		arg.OwnershipType,
 		arg.SoleOwnerUserID,
+		arg.Regularity,
 		arg.UpdatedBy,
 	)
 	var i Income
@@ -223,6 +231,7 @@ func (q *Queries) UpdateIncome(ctx context.Context, arg UpdateIncomeParams) (Inc
 		&i.UpdatedBy,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.Regularity,
 	)
 	return i, err
 }

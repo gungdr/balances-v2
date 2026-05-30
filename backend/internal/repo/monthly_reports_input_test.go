@@ -91,6 +91,7 @@ func TestMonthlyReportRepo_MixedPortfolio(t *testing.T) {
 	if _, err := incr.CreateIncome(aliceCtx, repo.CreateIncomeParams{
 		Date: time.Date(2026, time.January, 15, 0, 0, 0, 0, time.UTC), Amount: decimal.NewFromInt(30),
 		Currency: "IDR", Category: "salary", OwnershipType: "sole", SoleOwnerUserID: &alice.ID,
+		Regularity: "routine",
 	}); err != nil {
 		t.Fatalf("CreateIncome: %v", err)
 	}

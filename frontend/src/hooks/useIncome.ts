@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
-import type { Income, IncomeCategory } from '@/api/types'
+import type { Income, IncomeCategory, Regularity } from '@/api/types'
 
 export type IncomePayload = {
   date: string
@@ -10,6 +10,7 @@ export type IncomePayload = {
   description: string | null
   ownership_type: 'sole' | 'joint'
   sole_owner_user_id: string | null
+  regularity: Regularity
 }
 
 export function useIncome() {

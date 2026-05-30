@@ -34,6 +34,7 @@ type CreateIncomeParams struct {
 	Description     *string
 	OwnershipType   string // "sole" | "joint"
 	SoleOwnerUserID *uuid.UUID
+	Regularity      string // "routine" | "incidental" — migration 00017 CHECK
 }
 
 type UpdateIncomeParams struct {
@@ -44,6 +45,7 @@ type UpdateIncomeParams struct {
 	Description     *string
 	OwnershipType   string
 	SoleOwnerUserID *uuid.UUID
+	Regularity      string
 }
 
 func (r *IncomeRepo) CreateIncome(ctx context.Context, p CreateIncomeParams) (*db.Income, error) {
@@ -60,6 +62,7 @@ func (r *IncomeRepo) CreateIncome(ctx context.Context, p CreateIncomeParams) (*d
 		Description:     p.Description,
 		OwnershipType:   p.OwnershipType,
 		SoleOwnerUserID: p.SoleOwnerUserID,
+		Regularity:      p.Regularity,
 		CreatedBy:       &user,
 	})
 	if err != nil {
@@ -113,6 +116,7 @@ func (r *IncomeRepo) UpdateIncome(ctx context.Context, id uuid.UUID, p UpdateInc
 		Description:     p.Description,
 		OwnershipType:   p.OwnershipType,
 		SoleOwnerUserID: p.SoleOwnerUserID,
+		Regularity:      p.Regularity,
 		UpdatedBy:       &user,
 	})
 	if err != nil {

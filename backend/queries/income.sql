@@ -1,10 +1,10 @@
 -- name: CreateIncome :one
 INSERT INTO income (
     household_id, date, amount, currency, category, description,
-    ownership_type, sole_owner_user_id,
+    ownership_type, sole_owner_user_id, regularity,
     created_by, updated_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $9
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10
 )
 RETURNING *;
 
@@ -29,7 +29,8 @@ SET date               = $3,
     description        = $7,
     ownership_type     = $8,
     sole_owner_user_id = $9,
-    updated_by         = $10,
+    regularity         = $10,
+    updated_by         = $11,
     updated_at         = now()
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
 RETURNING *;

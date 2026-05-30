@@ -402,6 +402,11 @@ export type IncomeCategory =
   | 'insurance_payout'
   | 'other'
 
+// Regularity (migration 00017) — routine = expected and recurring (salary,
+// business, rent); incidental = one-off / unexpected (gifts, refunds,
+// payouts). Filter chip on the list, icon on the row. Required from the API.
+export type Regularity = 'routine' | 'incidental'
+
 export type Income = {
   id: string
   household_id: string
@@ -412,6 +417,7 @@ export type Income = {
   description: string | null
   ownership_type: 'sole' | 'joint'
   sole_owner_user_id: string | null
+  regularity: Regularity
   created_by: string | null
   created_at: string
   updated_by: string | null

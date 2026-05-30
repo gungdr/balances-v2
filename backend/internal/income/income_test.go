@@ -91,6 +91,8 @@ func requireStatus(t *testing.T, rec *httptest.ResponseRecorder, want int) {
 }
 
 // createIncome posts a minimal income row and returns the persisted entity.
+// Regularity defaults to routine to match the dialog's create-side default
+// (M6 grilling) so existing subtests stay focused on the field under test.
 func (h *handlerHarness) createIncome(t *testing.T, category string) db.Income {
 	t.Helper()
 	body := map[string]any{
@@ -99,6 +101,7 @@ func (h *handlerHarness) createIncome(t *testing.T, category string) db.Income {
 		"currency":       "IDR",
 		"category":       category,
 		"ownership_type": "joint",
+		"regularity":     "routine",
 	}
 	rec := h.do(t, "POST", "/income", body)
 	requireStatus(t, rec, http.StatusCreated)
@@ -118,11 +121,15 @@ func TestIncomeHandlers_Create(t *testing.T) {
 			"category":       "salary",
 			"description":    "Base salary",
 			"ownership_type": "joint",
+			"regularity":     "routine",
 		})
 		requireStatus(t, rec, http.StatusCreated)
 		body := decodeBody[db.Income](t, rec)
 		if body.Category != "salary" {
 			t.Errorf("category: got %q", body.Category)
+		}
+		if body.Regularity != "routine" {
+			t.Errorf("regularity: want routine, got %q", body.Regularity)
 		}
 		if !decimal.NewFromInt(15000000).Equal(body.Amount) {
 			t.Errorf("amount: got %s", body.Amount.String())
@@ -137,8 +144,13 @@ func TestIncomeHandlers_Create(t *testing.T) {
 			"category":           "gift",
 			"ownership_type":     "sole",
 			"sole_owner_user_id": h.user.ID.String(),
+			"regularity":         "incidental",
 		})
 		requireStatus(t, rec, http.StatusCreated)
+		body := decodeBody[db.Income](t, rec)
+		if body.Regularity != "incidental" {
+			t.Errorf("regularity: want incidental, got %q", body.Regularity)
+		}
 	})
 
 	t.Run("400 invalid json", func(t *testing.T) {
@@ -152,6 +164,7 @@ func TestIncomeHandlers_Create(t *testing.T) {
 			"currency":       "IDR",
 			"category":       "salary",
 			"ownership_type": "joint",
+			"regularity":     "routine",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
@@ -162,6 +175,7 @@ func TestIncomeHandlers_Create(t *testing.T) {
 			"amount":         "1000",
 			"currency":       "IDR",
 			"ownership_type": "joint",
+			"regularity":     "routine",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
@@ -173,6 +187,7 @@ func TestIncomeHandlers_Create(t *testing.T) {
 			"currency":       "IDR",
 			"category":       "bribe",
 			"ownership_type": "joint",
+			"regularity":     "routine",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
@@ -184,6 +199,7 @@ func TestIncomeHandlers_Create(t *testing.T) {
 			"currency":       "IDR",
 			"category":       "salary",
 			"ownership_type": "communal",
+			"regularity":     "routine",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
@@ -195,6 +211,7 @@ func TestIncomeHandlers_Create(t *testing.T) {
 			"currency":       "IDR",
 			"category":       "salary",
 			"ownership_type": "sole",
+			"regularity":     "routine",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
@@ -206,6 +223,7 @@ func TestIncomeHandlers_Create(t *testing.T) {
 			"currency":       "IDR",
 			"category":       "salary",
 			"ownership_type": "joint",
+			"regularity":     "routine",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
@@ -217,6 +235,7 @@ func TestIncomeHandlers_Create(t *testing.T) {
 			"currency":       "IDR",
 			"category":       "salary",
 			"ownership_type": "joint",
+			"regularity":     "routine",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
@@ -228,6 +247,30 @@ func TestIncomeHandlers_Create(t *testing.T) {
 			"currency":       "IDR",
 			"category":       "salary",
 			"ownership_type": "joint",
+			"regularity":     "routine",
+		})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("400 missing required regularity", func(t *testing.T) {
+		rec := h.do(t, "POST", "/income", map[string]any{
+			"date":           "2026-05-15",
+			"amount":         "1000",
+			"currency":       "IDR",
+			"category":       "salary",
+			"ownership_type": "joint",
+		})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("400 invalid regularity enum", func(t *testing.T) {
+		rec := h.do(t, "POST", "/income", map[string]any{
+			"date":           "2026-05-15",
+			"amount":         "1000",
+			"currency":       "IDR",
+			"category":       "salary",
+			"ownership_type": "joint",
+			"regularity":     "sporadic",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
@@ -276,13 +319,14 @@ func TestIncomeHandlers_Update(t *testing.T) {
 	h := newHarness(t)
 	created := h.createIncome(t, "salary")
 
-	t.Run("200 happy path; category mutated", func(t *testing.T) {
+	t.Run("200 happy path; category + regularity mutated", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/income/"+created.ID.String(), map[string]any{
 			"date":           "2026-05-15",
 			"amount":         "16000000",
 			"currency":       "IDR",
 			"category":       "business_income",
 			"ownership_type": "joint",
+			"regularity":     "incidental",
 		})
 		requireStatus(t, rec, http.StatusOK)
 		body := decodeBody[db.Income](t, rec)
@@ -291,6 +335,9 @@ func TestIncomeHandlers_Update(t *testing.T) {
 		}
 		if body.Category != "business_income" {
 			t.Errorf("category: want business_income, got %q", body.Category)
+		}
+		if body.Regularity != "incidental" {
+			t.Errorf("regularity: want incidental, got %q", body.Regularity)
 		}
 	})
 
@@ -301,6 +348,7 @@ func TestIncomeHandlers_Update(t *testing.T) {
 			"currency":       "IDR",
 			"category":       "salary",
 			"ownership_type": "joint",
+			"regularity":     "routine",
 		})
 		requireStatus(t, rec, http.StatusNotFound)
 	})
@@ -308,6 +356,18 @@ func TestIncomeHandlers_Update(t *testing.T) {
 	t.Run("400 missing required amount", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/income/"+created.ID.String(), map[string]any{
 			"date":           "2026-05-15",
+			"currency":       "IDR",
+			"category":       "salary",
+			"ownership_type": "joint",
+			"regularity":     "routine",
+		})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("400 missing required regularity", func(t *testing.T) {
+		rec := h.do(t, "PATCH", "/income/"+created.ID.String(), map[string]any{
+			"date":           "2026-05-15",
+			"amount":         "1",
 			"currency":       "IDR",
 			"category":       "salary",
 			"ownership_type": "joint",

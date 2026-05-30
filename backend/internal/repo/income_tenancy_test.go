@@ -43,6 +43,7 @@ func TestIncomeRepo_TenancyIsolation(t *testing.T) {
 		Category:        "salary",
 		OwnershipType:   "sole",
 		SoleOwnerUserID: &aliceUser.ID,
+		Regularity:      "routine",
 	})
 	if err != nil {
 		t.Fatalf("alice CreateIncome: %v", err)
@@ -76,6 +77,7 @@ func TestIncomeRepo_TenancyIsolation(t *testing.T) {
 			Currency:      "IDR",
 			Category:      "gift",
 			OwnershipType: "joint",
+			Regularity:    "routine",
 		})
 		if !errors.Is(err, repo.ErrNotFound) {
 			t.Errorf("UpdateIncome: want ErrNotFound, got %v", err)
@@ -109,7 +111,7 @@ func TestIncomeRepo_TenancyIsolation(t *testing.T) {
 
 	// ----- Alice happy-path CRUD --------------------------------------
 
-	t.Run("alice update persists new amount and category", func(t *testing.T) {
+	t.Run("alice update persists new amount, category, and regularity", func(t *testing.T) {
 		updated, err := r.UpdateIncome(aliceCtx, aliceIncome.ID, repo.UpdateIncomeParams{
 			Date:            aliceIncome.Date,
 			Amount:          decimal.NewFromInt(16_000_000),
@@ -117,6 +119,7 @@ func TestIncomeRepo_TenancyIsolation(t *testing.T) {
 			Category:        "business_income",
 			OwnershipType:   "sole",
 			SoleOwnerUserID: &aliceUser.ID,
+			Regularity:      "incidental",
 		})
 		if err != nil {
 			t.Fatalf("UpdateIncome: %v", err)
@@ -126,6 +129,9 @@ func TestIncomeRepo_TenancyIsolation(t *testing.T) {
 		}
 		if updated.Category != "business_income" {
 			t.Errorf("category: got %q, want business_income", updated.Category)
+		}
+		if updated.Regularity != "incidental" {
+			t.Errorf("regularity: got %q, want incidental", updated.Regularity)
 		}
 	})
 

@@ -35,11 +35,14 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
   10 groups, the header Google-profile-picture avatar (`users.picture_url`), a backend-coverage
   backfill after the importer/lifecycle handlers landed untested (codecov backend back to 83.7%),
   the React Router migration + sidebar nav shell (ADR-0025 — delivers the M4.9 backlog item and fixes
-  the mobile tab overflow), and snapshot/transaction future-date validation (5 create + 5 update
+  the mobile tab overflow), snapshot/transaction future-date validation (5 create + 5 update
   snapshot handlers + 1 create + 1 update transaction handler reject `year_month > current month`
   and `as_of_date/transaction_date > today UTC`; frontend inputs gain a matching `max` attribute via
   `lib/dateLimits.ts`; handlers gained an injectable `now` clock via a `WithNow` option so tests can
-  pin a fixed future date).
+  pin a fixed future date), and the income `regularity` flag (migration 00017; required enum
+  `routine|incidental`; create-dialog default routine, edit pre-fills from row; list shows a
+  Lucide icon next to the category chip — `Repeat` routine / `Sparkles` incidental — and a chip-bar
+  filter at the top of the screen).
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

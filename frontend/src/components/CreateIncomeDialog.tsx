@@ -16,7 +16,7 @@ import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { preferredName } from '@/lib/names'
 import { useSession } from '@/hooks/useSession'
 import { ApiError } from '@/api/client'
-import type { IncomeCategory } from '@/api/types'
+import type { IncomeCategory, Regularity } from '@/api/types'
 
 // todayISO returns YYYY-MM-DD in the local timezone. toISOString() would shift
 // users east of UTC into yesterday for the first hours of their day.
@@ -36,6 +36,7 @@ type FormState = {
   description: string
   ownership_type: 'sole' | 'joint'
   sole_owner_user_id: string | null
+  regularity: Regularity
 }
 
 export type DuplicateSeed = {
@@ -45,6 +46,7 @@ export type DuplicateSeed = {
   description: string | null
   ownership_type: 'sole' | 'joint'
   sole_owner_user_id: string | null
+  regularity: Regularity
 }
 
 type Props = {
@@ -69,6 +71,8 @@ function initialForm(seed?: DuplicateSeed): FormState {
       description: '',
       ownership_type: 'sole',
       sole_owner_user_id: null,
+      // Default routine: salary-dominant case (M4.5 grilling lineage).
+      regularity: 'routine',
     }
   }
   return {
@@ -79,6 +83,7 @@ function initialForm(seed?: DuplicateSeed): FormState {
     description: seed.description ?? '',
     ownership_type: seed.ownership_type,
     sole_owner_user_id: seed.sole_owner_user_id,
+    regularity: seed.regularity,
   }
 }
 
@@ -134,6 +139,7 @@ export function CreateIncomeDialog({
         ownership_type: form.ownership_type,
         sole_owner_user_id:
           form.ownership_type === 'sole' ? effectiveSoleOwnerID : null,
+        regularity: form.regularity,
       },
       { onSuccess: close },
     )
@@ -234,6 +240,34 @@ export function CreateIncomeDialog({
               }
               placeholder="Base salary"
             />
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Regularity</Label>
+            <div className="flex gap-4 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="regularity"
+                  value="routine"
+                  checked={form.regularity === 'routine'}
+                  onChange={() => setForm({ ...form, regularity: 'routine' })}
+                />
+                Routine
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="regularity"
+                  value="incidental"
+                  checked={form.regularity === 'incidental'}
+                  onChange={() =>
+                    setForm({ ...form, regularity: 'incidental' })
+                  }
+                />
+                Incidental
+              </label>
+            </div>
           </div>
 
           <div className="grid gap-2">
