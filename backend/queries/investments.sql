@@ -1,10 +1,10 @@
 -- name: CreateInvestment :one
 INSERT INTO investments (
     household_id, display_name, description, subtype,
-    ownership_type, sole_owner_user_id, native_currency,
+    ownership_type, sole_owner_user_id, native_currency, risk_profile,
     created_by, updated_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $8
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $9
 )
 RETURNING *;
 
@@ -27,7 +27,8 @@ SET display_name       = $3,
     description        = $4,
     ownership_type     = $5,
     sole_owner_user_id = $6,
-    updated_by         = $7,
+    risk_profile       = $7,
+    updated_by         = $8,
     updated_at         = now()
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
 RETURNING *;

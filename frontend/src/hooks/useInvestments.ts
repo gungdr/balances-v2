@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
 import type {
   Bond,
+  RiskProfile,
   BondListItem,
   BondType,
   CouponFrequency,
@@ -23,6 +24,7 @@ export type CreateStockPayload = {
   description: string | null
   ownership_type: 'sole' | 'joint'
   sole_owner_user_id: string | null
+  risk_profile: RiskProfile
   native_currency: string
   ticker: string
   exchange: string
@@ -33,6 +35,7 @@ export type UpdateStockPayload = {
   description: string | null
   ownership_type: 'sole' | 'joint'
   sole_owner_user_id: string | null
+  risk_profile: RiskProfile
   ticker: string
   exchange: string
 }
@@ -100,6 +103,7 @@ export type CreateMutualFundPayload = {
   description: string | null
   ownership_type: 'sole' | 'joint'
   sole_owner_user_id: string | null
+  risk_profile: RiskProfile
   native_currency: string
   fund_code: string
   fund_manager: string | null
@@ -110,6 +114,7 @@ export type UpdateMutualFundPayload = {
   description: string | null
   ownership_type: 'sole' | 'joint'
   sole_owner_user_id: string | null
+  risk_profile: RiskProfile
   fund_code: string
   fund_manager: string | null
 }
@@ -179,6 +184,7 @@ export type CreateGoldPayload = {
   description: string | null
   ownership_type: 'sole' | 'joint'
   sole_owner_user_id: string | null
+  risk_profile: RiskProfile
   native_currency: string
   form: GoldForm
   purity: string
@@ -189,6 +195,7 @@ export type UpdateGoldPayload = {
   description: string | null
   ownership_type: 'sole' | 'joint'
   sole_owner_user_id: string | null
+  risk_profile: RiskProfile
   form: GoldForm
   purity: string
 }
@@ -256,6 +263,7 @@ export type CreateBondPayload = {
   description: string | null
   ownership_type: 'sole' | 'joint'
   sole_owner_user_id: string | null
+  risk_profile: RiskProfile
   native_currency: string
   bond_type: BondType
   series_code: string | null
@@ -271,6 +279,7 @@ export type UpdateBondPayload = {
   description: string | null
   ownership_type: 'sole' | 'joint'
   sole_owner_user_id: string | null
+  risk_profile: RiskProfile
   bond_type: BondType
   series_code: string | null
   issuer: string
@@ -343,6 +352,7 @@ export type CreateTimeDepositPayload = {
   description: string | null
   ownership_type: 'sole' | 'joint'
   sole_owner_user_id: string | null
+  risk_profile: RiskProfile
   native_currency: string
   bank_name: string
   principal: string
@@ -358,6 +368,7 @@ export type UpdateTimeDepositPayload = {
   description: string | null
   ownership_type: 'sole' | 'joint'
   sole_owner_user_id: string | null
+  risk_profile: RiskProfile
   bank_name: string
   principal: string
   interest_rate: string

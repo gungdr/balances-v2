@@ -326,6 +326,7 @@ func TestInvestmentRepo_ImportInvestmentSnapshots(t *testing.T) {
 			DisplayName:    "BBCA",
 			OwnershipType:  "joint",
 			NativeCurrency: "IDR",
+			RiskProfile:    "medium",
 			Ticker:         "BBCA",
 			Exchange:       "IDX",
 		})
@@ -391,6 +392,7 @@ func TestInvestmentRepo_ImportInvestmentSnapshots(t *testing.T) {
 			DisplayName:     "ORI024",
 			OwnershipType:   "joint",
 			NativeCurrency:  "IDR",
+			RiskProfile:     "medium",
 			BondType:        "govt_primary",
 			Issuer:          "Republik Indonesia",
 			FaceValue:       decimal.NewFromInt(10_000_000),
@@ -424,6 +426,7 @@ func TestInvestmentRepo_ImportInvestmentSnapshots(t *testing.T) {
 	t.Run("wrong shape rejected (accrued row on a stock)", func(t *testing.T) {
 		stock, err := r.CreateStock(aliceCtx, repo.CreateStockParams{
 			DisplayName: "TLKM", OwnershipType: "joint", NativeCurrency: "IDR", Ticker: "TLKM", Exchange: "IDX",
+			RiskProfile: "medium",
 		})
 		if err != nil {
 			t.Fatalf("CreateStock: %v", err)

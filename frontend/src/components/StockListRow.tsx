@@ -15,6 +15,7 @@ import { formatCurrency, formatYearMonth } from '@/lib/format'
 import { StatusBadge } from '@/components/StatusBadge'
 import { isActiveStatus } from '@/lib/lifecycle'
 import { cn } from '@/lib/utils'
+import { RiskProfileBadge } from '@/components/RiskProfileBadge'
 import type { StockListItem } from '@/api/types'
 
 type Props = {
@@ -42,8 +43,11 @@ export function StockListRow({ item, onSelect }: Props) {
         onClick={() => onSelect(item.investment.id)}
       >
         <TableCell>
-          <div className={cn('font-medium', terminated && 'font-normal')}>
-            {item.investment.display_name}
+          <div className="flex items-center gap-2">
+            <div className={cn('font-medium', terminated && 'font-normal')}>
+              {item.investment.display_name}
+            </div>
+            <RiskProfileBadge profile={item.investment.risk_profile} compact />
           </div>
           {item.investment.description && (
             <div className="text-xs text-muted-foreground">

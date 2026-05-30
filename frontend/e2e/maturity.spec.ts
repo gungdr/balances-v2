@@ -28,6 +28,7 @@ test('time deposit maturity flips status to matured and gates the row', async ({
   await createDialog.getByLabel('Term (months)').fill('12')
   await createDialog.getByLabel('Placement date').fill('2025-01-01')
   await createDialog.getByLabel('Maturity date').fill('2026-01-01')
+  await createDialog.getByLabel('Risk profile').selectOption('medium')
   await createDialog.getByRole('button', { name: 'Create' }).click()
 
   // --- Navigate to the detail page ---

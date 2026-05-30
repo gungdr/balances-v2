@@ -15,6 +15,7 @@ import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { preferredName } from '@/lib/names'
 import { useSession } from '@/hooks/useSession'
 import { ApiError } from '@/api/client'
+import { RiskProfileSelect } from '@/components/RiskProfileSelect'
 import type { MutualFund, MutualFundListItem } from '@/api/types'
 
 type Props = {
@@ -29,6 +30,7 @@ function toForm(m: MutualFund | MutualFundListItem) {
     description: m.investment.description ?? '',
     ownership_type: m.investment.ownership_type,
     sole_owner_user_id: m.investment.sole_owner_user_id,
+    risk_profile: m.investment.risk_profile,
     fund_code: m.details.fund_code,
     fund_manager: m.details.fund_manager ?? '',
   }
@@ -55,6 +57,7 @@ export function EditMutualFundDialog({
         ownership_type: form.ownership_type,
         sole_owner_user_id:
           form.ownership_type === 'sole' ? effectiveSoleOwnerID : null,
+        risk_profile: form.risk_profile,
         fund_code: form.fund_code,
         fund_manager: form.fund_manager || null,
       },
@@ -164,6 +167,12 @@ export function EditMutualFundDialog({
               }
             />
           </div>
+
+          <RiskProfileSelect
+            idPrefix="mf_edit"
+            value={form.risk_profile}
+            onChange={(v) => setForm({ ...form, risk_profile: v })}
+          />
 
           {mutation.error && (
             <p className="text-sm text-destructive">

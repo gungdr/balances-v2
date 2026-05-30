@@ -21,6 +21,7 @@ func (h *handlerHarness) createBond(t *testing.T, displayName string) *repo.Bond
 		"coupon_rate":      "6.25",
 		"coupon_frequency": "monthly",
 		"maturity_date":    "2030-01-01",
+		"risk_profile":     "medium",
 	})
 	requireStatus(t, rec, http.StatusCreated)
 	return decodeBody[*repo.Bond](t, rec)
@@ -41,6 +42,7 @@ func TestBondHandlers_Create(t *testing.T) {
 			"coupon_rate":      "5.95",
 			"coupon_frequency": "monthly",
 			"maturity_date":    "2027-07-10",
+			"risk_profile":     "medium",
 		})
 		requireStatus(t, rec, http.StatusCreated)
 		body := decodeBody[*repo.Bond](t, rec)
@@ -60,6 +62,7 @@ func TestBondHandlers_Create(t *testing.T) {
 			"coupon_rate":      "5",
 			"coupon_frequency": "fortnightly",
 			"maturity_date":    "2027-01-01",
+			"risk_profile":     "medium",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
@@ -75,6 +78,7 @@ func TestBondHandlers_Create(t *testing.T) {
 			"coupon_rate":      "5",
 			"coupon_frequency": "annual",
 			"maturity_date":    "01-07-2027",
+			"risk_profile":     "medium",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
@@ -89,6 +93,7 @@ func TestBondHandlers_Create(t *testing.T) {
 			"coupon_rate":      "5",
 			"coupon_frequency": "annual",
 			"maturity_date":    "2027-01-01",
+			"risk_profile":     "medium",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
@@ -140,6 +145,7 @@ func TestBondHandlers_Update(t *testing.T) {
 			"coupon_rate":      "6.50",
 			"coupon_frequency": "semi_annual",
 			"maturity_date":    "2030-01-01",
+			"risk_profile":     "medium",
 		})
 		requireStatus(t, rec, http.StatusOK)
 		body := decodeBody[*repo.Bond](t, rec)
@@ -158,6 +164,7 @@ func TestBondHandlers_Update(t *testing.T) {
 			"coupon_rate":      "1",
 			"coupon_frequency": "annual",
 			"maturity_date":    "2027-01-01",
+			"risk_profile":     "medium",
 		})
 		requireStatus(t, rec, http.StatusNotFound)
 	})
@@ -171,6 +178,7 @@ func TestBondHandlers_Update(t *testing.T) {
 			"coupon_rate":      "1",
 			"coupon_frequency": "annual",
 			"maturity_date":    "2030/01/01",
+			"risk_profile":     "medium",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})

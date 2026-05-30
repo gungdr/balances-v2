@@ -22,6 +22,7 @@ test('bond accrued-interest snapshot create → delete', async ({ page }) => {
   await createDialog.getByLabel('Face value').fill('1000000')
   await createDialog.getByLabel('Coupon rate (% per year)').fill('6.5')
   await createDialog.getByLabel('Maturity date').fill('2030-01-01')
+  await createDialog.getByLabel('Risk profile').selectOption('medium')
   await createDialog.getByRole('button', { name: 'Create' }).click()
 
   // --- Navigate to the detail page ---

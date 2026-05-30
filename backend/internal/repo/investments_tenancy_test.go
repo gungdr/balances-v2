@@ -42,6 +42,7 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 		DisplayName:    "Alice BBCA",
 		OwnershipType:  "joint",
 		NativeCurrency: "IDR",
+		RiskProfile:    "medium",
 		Ticker:         "BBCA",
 		Exchange:       "IDX",
 	})
@@ -52,6 +53,7 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 		DisplayName:    "Alice Sucorinvest",
 		OwnershipType:  "joint",
 		NativeCurrency: "IDR",
+		RiskProfile:    "medium",
 		FundCode:       "SCMUS",
 	})
 	if err != nil {
@@ -61,6 +63,7 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 		DisplayName:    "Alice Antam Bar",
 		OwnershipType:  "joint",
 		NativeCurrency: "IDR",
+		RiskProfile:    "medium",
 		Form:           "bar",
 		Purity:         purity,
 	})
@@ -72,6 +75,7 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 		DisplayName:     "Alice ORI024",
 		OwnershipType:   "joint",
 		NativeCurrency:  "IDR",
+		RiskProfile:     "medium",
 		BondType:        "govt_primary",
 		Issuer:          "Republik Indonesia",
 		FaceValue:       decimal.NewFromInt(10_000_000),
@@ -87,6 +91,7 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 		DisplayName:    "Alice BCA TD",
 		OwnershipType:  "joint",
 		NativeCurrency: "IDR",
+		RiskProfile:    "medium",
 		BankName:       "BCA",
 		Principal:      decimal.NewFromInt(50_000_000),
 		InterestRate:   interestRate,
@@ -190,12 +195,14 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 			DisplayName: "stolen!",
 			Ticker:      "BBCA",
 			Exchange:    "IDX",
+			RiskProfile: "medium",
 		}); !errors.Is(err, repo.ErrNotFound) {
 			t.Errorf("UpdateStock: want ErrNotFound, got %v", err)
 		}
 		if _, err := r.UpdateMutualFund(bobCtx, aliceMF.Investment.ID, repo.UpdateMutualFundParams{
 			DisplayName: "stolen!",
 			FundCode:    "SCMUS",
+			RiskProfile: "medium",
 		}); !errors.Is(err, repo.ErrNotFound) {
 			t.Errorf("UpdateMutualFund: want ErrNotFound, got %v", err)
 		}
@@ -203,6 +210,7 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 			DisplayName: "stolen!",
 			Form:        "bar",
 			Purity:      purity,
+			RiskProfile: "medium",
 		}); !errors.Is(err, repo.ErrNotFound) {
 			t.Errorf("UpdateGold: want ErrNotFound, got %v", err)
 		}
@@ -214,6 +222,7 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 			CouponRate:      couponRate,
 			CouponFrequency: "monthly",
 			MaturityDate:    aliceBond.Details.MaturityDate,
+			RiskProfile:     "medium",
 		}); !errors.Is(err, repo.ErrNotFound) {
 			t.Errorf("UpdateBond: want ErrNotFound, got %v", err)
 		}
@@ -226,6 +235,7 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 			PlacementDate:  aliceTD.Details.PlacementDate,
 			MaturityDate:   aliceTD.Details.MaturityDate,
 			RolloverPolicy: "auto_renew_principal",
+			RiskProfile:    "medium",
 		}); !errors.Is(err, repo.ErrNotFound) {
 			t.Errorf("UpdateTimeDeposit: want ErrNotFound, got %v", err)
 		}
@@ -369,6 +379,7 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 			OwnershipType: "joint",
 			Ticker:        "BBCA",
 			Exchange:      "IDX",
+			RiskProfile:   "medium",
 		})
 		if err != nil {
 			t.Fatalf("UpdateStock: %v", err)
@@ -385,6 +396,7 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 			SoleOwnerUserID: &aliceUser.ID,
 			Ticker:          "BBCA",
 			Exchange:        "IDX",
+			RiskProfile:     "medium",
 		})
 		if err != nil {
 			t.Fatalf("UpdateStock sole: %v", err)
@@ -402,6 +414,7 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 			DisplayName:   "Alice Sucorinvest renamed",
 			OwnershipType: "joint",
 			FundCode:      "SCMUS",
+			RiskProfile:   "medium",
 		})
 		if err != nil {
 			t.Fatalf("UpdateMutualFund: %v", err)
@@ -417,6 +430,7 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 			OwnershipType: "joint",
 			Form:          "bar",
 			Purity:        purity,
+			RiskProfile:   "medium",
 		})
 		if err != nil {
 			t.Fatalf("UpdateGold: %v", err)
@@ -436,6 +450,7 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 			CouponRate:      couponRate,
 			CouponFrequency: "monthly",
 			MaturityDate:    aliceBond.Details.MaturityDate,
+			RiskProfile:     "medium",
 		})
 		if err != nil {
 			t.Fatalf("UpdateBond: %v", err)
@@ -456,6 +471,7 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 			PlacementDate:  aliceTD.Details.PlacementDate,
 			MaturityDate:   aliceTD.Details.MaturityDate,
 			RolloverPolicy: "auto_renew_principal",
+			RiskProfile:    "medium",
 		})
 		if err != nil {
 			t.Fatalf("UpdateTimeDeposit: %v", err)
@@ -570,6 +586,7 @@ func TestInvestmentRepo_SnapshotShapeValidation(t *testing.T) {
 		DisplayName:    "BBCA",
 		OwnershipType:  "joint",
 		NativeCurrency: "IDR",
+		RiskProfile:    "medium",
 		Ticker:         "BBCA",
 		Exchange:       "IDX",
 	})
@@ -582,6 +599,7 @@ func TestInvestmentRepo_SnapshotShapeValidation(t *testing.T) {
 		DisplayName:     "ORI024",
 		OwnershipType:   "joint",
 		NativeCurrency:  "IDR",
+		RiskProfile:     "medium",
 		BondType:        "govt_primary",
 		Issuer:          "Republik Indonesia",
 		FaceValue:       decimal.NewFromInt(10_000_000),

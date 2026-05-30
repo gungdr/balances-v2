@@ -61,6 +61,7 @@ func TestPositionLifecycle_UpdateAndValidation(t *testing.T) {
 	stock, err := invRepo.CreateStock(aliceCtx, repo.CreateStockParams{
 		DisplayName: "BBCA", OwnershipType: "joint", NativeCurrency: "IDR",
 		Ticker: "BBCA", Exchange: "IDX",
+		RiskProfile: "medium",
 	})
 	if err != nil {
 		t.Fatalf("CreateStock: %v", err)
@@ -249,6 +250,7 @@ func TestInvestmentTransaction_MaturityFlipsStatus(t *testing.T) {
 		FaceValue: decimal.NewFromInt(10_000_000), CouponRate: couponRate,
 		CouponFrequency: "monthly",
 		MaturityDate:    time.Date(2029, time.October, 15, 0, 0, 0, 0, time.UTC),
+		RiskProfile:     "medium",
 	})
 	if err != nil {
 		t.Fatalf("CreateBond: %v", err)

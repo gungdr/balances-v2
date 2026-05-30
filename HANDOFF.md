@@ -39,10 +39,15 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
   snapshot handlers + 1 create + 1 update transaction handler reject `year_month > current month`
   and `as_of_date/transaction_date > today UTC`; frontend inputs gain a matching `max` attribute via
   `lib/dateLimits.ts`; handlers gained an injectable `now` clock via a `WithNow` option so tests can
-  pin a fixed future date), and the income `regularity` flag (migration 00017; required enum
+  pin a fixed future date), the income `regularity` flag (migration 00017; required enum
   `routine|incidental`; create-dialog default routine, edit pre-fills from row; list shows a
   Lucide icon next to the category chip — `Repeat` routine / `Sparkles` incidental — and a chip-bar
-  filter at the top of the screen).
+  filter at the top of the screen), and the `investments.risk_profile` flag (migration 00018;
+  required enum `low|medium|high` on the shared investments row; Create dialog forces a manual
+  choice with no default — the friction is the point — Edit pre-fills from the row; list rows show
+  a shared `RiskProfileBadge` shield icon next to the display name — `Shield` low + emerald,
+  `ShieldHalf` medium + amber, `ShieldAlert` high + rose — and each of the 5 subtype list screens
+  gets a shared `RiskProfileFilter` chip bar at the top).
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

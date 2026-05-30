@@ -195,6 +195,11 @@ export type InvestmentSubtype =
   | 'bond'
   | 'time_deposit'
 
+// Risk profile (migration 00018) — user's classification of the position's
+// risk. Forced manual choice on create (no default) so the user thinks; mutable
+// post-create. Drives a list-row shield-icon badge and chip-bar filter.
+export type RiskProfile = 'low' | 'medium' | 'high'
+
 export type Investment = {
   id: string
   household_id: string
@@ -204,6 +209,7 @@ export type Investment = {
   ownership_type: 'sole' | 'joint'
   sole_owner_user_id: string | null
   native_currency: string
+  risk_profile: RiskProfile
   status: 'active' | 'sold' | 'matured'
   terminated_at: string | null
   termination_note: string | null

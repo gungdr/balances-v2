@@ -15,6 +15,7 @@ type createStockReq struct {
 	OwnershipType   string     `json:"ownership_type"     validate:"required,oneof=sole joint"`
 	SoleOwnerUserID *uuid.UUID `json:"sole_owner_user_id" validate:"required_if=OwnershipType sole"`
 	NativeCurrency  string     `json:"native_currency"    validate:"required,iso4217"`
+	RiskProfile     string     `json:"risk_profile"       validate:"required,oneof=low medium high"`
 	Ticker          string     `json:"ticker"             validate:"required"`
 	Exchange        string     `json:"exchange"           validate:"required"`
 }
@@ -24,6 +25,7 @@ type updateStockReq struct {
 	Description     *string    `json:"description"`
 	OwnershipType   string     `json:"ownership_type"     validate:"required,oneof=sole joint"`
 	SoleOwnerUserID *uuid.UUID `json:"sole_owner_user_id" validate:"required_if=OwnershipType sole"`
+	RiskProfile     string     `json:"risk_profile"       validate:"required,oneof=low medium high"`
 	Ticker          string     `json:"ticker"             validate:"required"`
 	Exchange        string     `json:"exchange"           validate:"required"`
 }
@@ -45,6 +47,7 @@ func (h *Handlers) handleCreateStock(w http.ResponseWriter, r *http.Request) {
 		OwnershipType:   req.OwnershipType,
 		SoleOwnerUserID: req.SoleOwnerUserID,
 		NativeCurrency:  req.NativeCurrency,
+		RiskProfile:     req.RiskProfile,
 		Ticker:          req.Ticker,
 		Exchange:        req.Exchange,
 	})
@@ -99,6 +102,7 @@ func (h *Handlers) handleUpdateStock(w http.ResponseWriter, r *http.Request) {
 		Description:     req.Description,
 		OwnershipType:   req.OwnershipType,
 		SoleOwnerUserID: req.SoleOwnerUserID,
+		RiskProfile:     req.RiskProfile,
 		Ticker:          req.Ticker,
 		Exchange:        req.Exchange,
 	})

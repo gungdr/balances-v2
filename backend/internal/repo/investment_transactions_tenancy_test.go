@@ -39,6 +39,7 @@ func TestInvestmentTransaction_TenancyAndCRUD(t *testing.T) {
 		DisplayName:    "BBCA",
 		OwnershipType:  "joint",
 		NativeCurrency: "IDR",
+		RiskProfile:    "medium",
 		Ticker:         "BBCA",
 		Exchange:       "IDX",
 	})
@@ -50,6 +51,7 @@ func TestInvestmentTransaction_TenancyAndCRUD(t *testing.T) {
 		DisplayName:     "ORI024",
 		OwnershipType:   "joint",
 		NativeCurrency:  "IDR",
+		RiskProfile:     "medium",
 		BondType:        "govt_primary",
 		Issuer:          "Republik Indonesia",
 		FaceValue:       decimal.NewFromInt(10_000_000),
@@ -65,6 +67,7 @@ func TestInvestmentTransaction_TenancyAndCRUD(t *testing.T) {
 		DisplayName:    "BCA TD",
 		OwnershipType:  "joint",
 		NativeCurrency: "IDR",
+		RiskProfile:    "medium",
 		BankName:       "BCA",
 		Principal:      decimal.NewFromInt(50_000_000),
 		InterestRate:   interestRate,

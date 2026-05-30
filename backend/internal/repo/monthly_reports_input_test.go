@@ -66,6 +66,7 @@ func TestMonthlyReportRepo_MixedPortfolio(t *testing.T) {
 	ir := repo.NewInvestmentRepo(tdb.Pool)
 	stock, err := ir.CreateStock(aliceCtx, repo.CreateStockParams{
 		DisplayName: "BBCA", OwnershipType: "joint", NativeCurrency: "IDR", Ticker: "BBCA", Exchange: "IDX",
+		RiskProfile: "medium",
 	})
 	if err != nil {
 		t.Fatalf("CreateStock: %v", err)

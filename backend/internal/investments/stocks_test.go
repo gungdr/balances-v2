@@ -17,6 +17,7 @@ func (h *handlerHarness) createStock(t *testing.T, displayName string) *repo.Sto
 		"native_currency": "IDR",
 		"ticker":          "BBCA",
 		"exchange":        "IDX",
+		"risk_profile":    "medium",
 	})
 	requireStatus(t, rec, http.StatusCreated)
 	return decodeBody[*repo.Stock](t, rec)
@@ -32,6 +33,7 @@ func TestStockHandlers_Create(t *testing.T) {
 			"native_currency": "IDR",
 			"ticker":          "BBCA",
 			"exchange":        "IDX",
+			"risk_profile":    "medium",
 		})
 		requireStatus(t, rec, http.StatusCreated)
 		body := decodeBody[*repo.Stock](t, rec)
@@ -51,6 +53,30 @@ func TestStockHandlers_Create(t *testing.T) {
 			"ownership_type":  "joint",
 			"native_currency": "IDR",
 			"exchange":        "IDX",
+			"risk_profile":    "medium",
+		})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("400 missing required risk_profile", func(t *testing.T) {
+		rec := h.do(t, "POST", "/investments/stocks", map[string]any{
+			"display_name":    "X",
+			"ownership_type":  "joint",
+			"native_currency": "IDR",
+			"ticker":          "X",
+			"exchange":        "IDX",
+		})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("400 invalid risk_profile enum", func(t *testing.T) {
+		rec := h.do(t, "POST", "/investments/stocks", map[string]any{
+			"display_name":    "X",
+			"ownership_type":  "joint",
+			"native_currency": "IDR",
+			"ticker":          "X",
+			"exchange":        "IDX",
+			"risk_profile":    "extreme",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
@@ -105,6 +131,7 @@ func TestStockHandlers_Update(t *testing.T) {
 			"ownership_type": "joint",
 			"ticker":         "BBRI",
 			"exchange":       "IDX",
+			"risk_profile":   "medium",
 		})
 		requireStatus(t, rec, http.StatusOK)
 		body := decodeBody[*repo.Stock](t, rec)
@@ -119,6 +146,7 @@ func TestStockHandlers_Update(t *testing.T) {
 			"ownership_type": "joint",
 			"ticker":         "x",
 			"exchange":       "x",
+			"risk_profile":   "medium",
 		})
 		requireStatus(t, rec, http.StatusNotFound)
 	})
@@ -127,6 +155,7 @@ func TestStockHandlers_Update(t *testing.T) {
 		rec := h.do(t, "PATCH", "/investments/stocks/"+created.Investment.ID.String(), map[string]any{
 			"display_name": "x",
 			"exchange":     "IDX",
+			"risk_profile": "medium",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})

@@ -50,23 +50,28 @@ func TestInvestmentHandlers_ErrorBranches(t *testing.T) {
 	patches := []subtypePatch{
 		{"stock", "/investments/stocks/" + stock.Investment.ID.String(), map[string]any{
 			"display_name": "x", "ticker": "x", "exchange": "x",
+			"risk_profile": "medium",
 		}},
 		{"bond", "/investments/bonds/" + bond.Investment.ID.String(), map[string]any{
 			"display_name": "x", "bond_type": "secondary_market", "issuer": "x",
 			"face_value": "1", "coupon_rate": "1", "coupon_frequency": "annual",
 			"maturity_date": "2030-01-01",
+			"risk_profile":  "medium",
 		}},
 		{"gold", "/investments/golds/" + gold.Investment.ID.String(), map[string]any{
 			"display_name": "x", "form": "bar", "purity": "0.999",
+			"risk_profile": "medium",
 		}},
 		{"mutual_fund", "/investments/mutual-funds/" + mf.Investment.ID.String(), map[string]any{
 			"display_name": "x", "fund_code": "x",
+			"risk_profile": "medium",
 		}},
 		{"time_deposit", "/investments/time-deposits/" + td.Investment.ID.String(), map[string]any{
 			"display_name": "x", "bank_name": "x", "principal": "1",
 			"interest_rate": "1", "term_months": 6,
 			"placement_date": "2026-01-01", "maturity_date": "2026-07-01",
 			"rollover_policy": "no_rollover",
+			"risk_profile":    "medium",
 		}},
 	}
 
@@ -97,6 +102,7 @@ func TestInvestmentHandlers_ErrorBranches(t *testing.T) {
 			"display_name": "x", "bond_type": "secondary_market", "issuer": "x",
 			"face_value": "1", "coupon_rate": "1", "coupon_frequency": "annual",
 			"maturity_date": "01/01/2030",
+			"risk_profile":  "medium",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
@@ -107,6 +113,7 @@ func TestInvestmentHandlers_ErrorBranches(t *testing.T) {
 			"interest_rate": "1", "term_months": 6,
 			"placement_date": "01/01/2026", "maturity_date": "2026-07-01",
 			"rollover_policy": "no_rollover",
+			"risk_profile":    "medium",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
@@ -117,6 +124,7 @@ func TestInvestmentHandlers_ErrorBranches(t *testing.T) {
 			"interest_rate": "1", "term_months": 6,
 			"placement_date": "2026-01-01", "maturity_date": "07/01/2026",
 			"rollover_policy": "no_rollover",
+			"risk_profile":    "medium",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})

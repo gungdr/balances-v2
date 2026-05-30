@@ -16,6 +16,8 @@ import { useSession } from '@/hooks/useSession'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { preferredName } from '@/lib/names'
 import { ApiError } from '@/api/client'
+import { RiskProfileSelect } from '@/components/RiskProfileSelect'
+import type { RiskProfile } from '@/api/types'
 
 function emptyForm() {
   return {
@@ -24,6 +26,7 @@ function emptyForm() {
     ownership_type: 'joint' as 'sole' | 'joint',
     sole_owner_user_id: null as string | null,
     native_currency: 'IDR',
+    risk_profile: '' as RiskProfile | '',
     ticker: '',
     exchange: '',
   }
@@ -47,6 +50,7 @@ export function CreateStockDialog() {
   function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!user) return
+    if (!form.risk_profile) return // required, no default — see RiskProfileSelect
     mutation.mutate(
       {
         display_name: form.display_name,
@@ -55,6 +59,7 @@ export function CreateStockDialog() {
         sole_owner_user_id:
           form.ownership_type === 'sole' ? effectiveSoleOwnerID : null,
         native_currency: form.native_currency,
+        risk_profile: form.risk_profile,
         ticker: form.ticker.toUpperCase(),
         exchange: form.exchange.toUpperCase(),
       },
@@ -175,6 +180,12 @@ export function CreateStockDialog() {
               </select>
             )}
           </div>
+
+          <RiskProfileSelect
+            idPrefix="stock_create"
+            value={form.risk_profile}
+            onChange={(v) => setForm({ ...form, risk_profile: v })}
+          />
 
           <div className="grid gap-2">
             <Label htmlFor="stock_description">Description (optional)</Label>

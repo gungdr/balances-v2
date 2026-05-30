@@ -141,6 +141,7 @@ type Investment struct {
 	UpdatedBy       *uuid.UUID         `json:"updated_by"`
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
+	RiskProfile     string             `json:"risk_profile"`
 }
 
 type InvestmentSnapshot struct {

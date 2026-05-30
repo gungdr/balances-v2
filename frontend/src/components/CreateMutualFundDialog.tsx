@@ -16,6 +16,8 @@ import { useSession } from '@/hooks/useSession'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { preferredName } from '@/lib/names'
 import { ApiError } from '@/api/client'
+import { RiskProfileSelect } from '@/components/RiskProfileSelect'
+import type { RiskProfile } from '@/api/types'
 
 function emptyForm() {
   return {
@@ -23,6 +25,7 @@ function emptyForm() {
     description: '',
     ownership_type: 'joint' as 'sole' | 'joint',
     sole_owner_user_id: null as string | null,
+    risk_profile: '' as RiskProfile | '',
     native_currency: 'IDR',
     fund_code: '',
     fund_manager: '',
@@ -47,6 +50,7 @@ export function CreateMutualFundDialog() {
   function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!user) return
+    if (!form.risk_profile) return
     mutation.mutate(
       {
         display_name: form.display_name,
@@ -54,6 +58,7 @@ export function CreateMutualFundDialog() {
         ownership_type: form.ownership_type,
         sole_owner_user_id:
           form.ownership_type === 'sole' ? effectiveSoleOwnerID : null,
+        risk_profile: form.risk_profile,
         native_currency: form.native_currency,
         fund_code: form.fund_code,
         fund_manager: form.fund_manager || null,
@@ -185,6 +190,12 @@ export function CreateMutualFundDialog() {
               }
             />
           </div>
+
+          <RiskProfileSelect
+            idPrefix="mf_create"
+            value={form.risk_profile}
+            onChange={(v) => setForm({ ...form, risk_profile: v })}
+          />
 
           {mutation.error && (
             <p className="text-sm text-destructive">

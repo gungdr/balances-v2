@@ -15,6 +15,7 @@ import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { preferredName } from '@/lib/names'
 import { useSession } from '@/hooks/useSession'
 import { ApiError } from '@/api/client'
+import { RiskProfileSelect } from '@/components/RiskProfileSelect'
 import type {
   RolloverPolicy,
   TimeDeposit,
@@ -35,6 +36,7 @@ function toForm(td: TimeDeposit | TimeDepositListItem) {
     description: i.description ?? '',
     ownership_type: i.ownership_type,
     sole_owner_user_id: i.sole_owner_user_id,
+    risk_profile: td.investment.risk_profile,
     bank_name: d.bank_name,
     principal: d.principal,
     interest_rate: d.interest_rate,
@@ -66,6 +68,7 @@ export function EditTimeDepositDialog({
         ownership_type: form.ownership_type,
         sole_owner_user_id:
           form.ownership_type === 'sole' ? effectiveSoleOwnerID : null,
+        risk_profile: form.risk_profile,
         bank_name: form.bank_name,
         principal: form.principal,
         interest_rate: form.interest_rate,
@@ -270,6 +273,12 @@ export function EditTimeDepositDialog({
               )}
             </div>
           </div>
+
+          <RiskProfileSelect
+            idPrefix="td_edit"
+            value={form.risk_profile}
+            onChange={(v) => setForm({ ...form, risk_profile: v })}
+          />
 
           {mutation.error && (
             <p className="text-sm text-destructive">

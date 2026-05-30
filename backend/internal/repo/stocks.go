@@ -32,6 +32,7 @@ type CreateStockParams struct {
 	OwnershipType   string // "sole" or "joint"
 	SoleOwnerUserID *uuid.UUID
 	NativeCurrency  string
+	RiskProfile     string // "low" | "medium" | "high" — migration 00018 CHECK
 	Ticker          string
 	Exchange        string
 }
@@ -41,6 +42,7 @@ type UpdateStockParams struct {
 	Description     *string
 	OwnershipType   string
 	SoleOwnerUserID *uuid.UUID
+	RiskProfile     string
 	Ticker          string
 	Exchange        string
 }
@@ -66,6 +68,7 @@ func (r *InvestmentRepo) CreateStock(ctx context.Context, p CreateStockParams) (
 		OwnershipType:   p.OwnershipType,
 		SoleOwnerUserID: p.SoleOwnerUserID,
 		NativeCurrency:  p.NativeCurrency,
+		RiskProfile:     p.RiskProfile,
 		CreatedBy:       &user,
 	})
 	if err != nil {
@@ -186,6 +189,7 @@ func (r *InvestmentRepo) UpdateStock(ctx context.Context, id uuid.UUID, p Update
 		Description:     p.Description,
 		OwnershipType:   p.OwnershipType,
 		SoleOwnerUserID: p.SoleOwnerUserID,
+		RiskProfile:     p.RiskProfile,
 		UpdatedBy:       &user,
 	})
 	if err != nil {

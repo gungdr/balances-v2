@@ -104,6 +104,7 @@ func TestImportMeta(t *testing.T) {
 		s, err := r.CreateStock(aliceCtx, repo.CreateStockParams{
 			DisplayName: "Alice BBCA", OwnershipType: "joint", NativeCurrency: "IDR",
 			Ticker: "BBCA", Exchange: "IDX",
+			RiskProfile: "medium",
 		})
 		if err != nil {
 			t.Fatalf("CreateStock: %v", err)

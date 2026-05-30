@@ -16,6 +16,8 @@ import { useSession } from '@/hooks/useSession'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { preferredName } from '@/lib/names'
 import { ApiError } from '@/api/client'
+import { RiskProfileSelect } from '@/components/RiskProfileSelect'
+import type { RiskProfile } from '@/api/types'
 import type { BondType, CouponFrequency } from '@/api/types'
 
 function emptyForm() {
@@ -24,6 +26,7 @@ function emptyForm() {
     description: '',
     ownership_type: 'joint' as 'sole' | 'joint',
     sole_owner_user_id: null as string | null,
+    risk_profile: '' as RiskProfile | '',
     native_currency: 'IDR',
     bond_type: 'govt_primary' as BondType,
     series_code: '',
@@ -53,6 +56,7 @@ export function CreateBondDialog() {
   function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!user) return
+    if (!form.risk_profile) return
     mutation.mutate(
       {
         display_name: form.display_name,
@@ -60,6 +64,7 @@ export function CreateBondDialog() {
         ownership_type: form.ownership_type,
         sole_owner_user_id:
           form.ownership_type === 'sole' ? effectiveSoleOwnerID : null,
+        risk_profile: form.risk_profile,
         native_currency: form.native_currency,
         bond_type: form.bond_type,
         series_code: form.series_code.trim() || null,
@@ -287,6 +292,12 @@ export function CreateBondDialog() {
               )}
             </div>
           </div>
+
+          <RiskProfileSelect
+            idPrefix="bond_create"
+            value={form.risk_profile}
+            onChange={(v) => setForm({ ...form, risk_profile: v })}
+          />
 
           {mutation.error && (
             <p className="text-sm text-destructive">

@@ -15,6 +15,7 @@ import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { preferredName } from '@/lib/names'
 import { useSession } from '@/hooks/useSession'
 import { ApiError } from '@/api/client'
+import { RiskProfileSelect } from '@/components/RiskProfileSelect'
 import type {
   Bond,
   BondListItem,
@@ -36,6 +37,7 @@ function toForm(bond: Bond | BondListItem) {
     description: i.description ?? '',
     ownership_type: i.ownership_type,
     sole_owner_user_id: i.sole_owner_user_id,
+    risk_profile: bond.investment.risk_profile,
     bond_type: d.bond_type,
     series_code: d.series_code ?? '',
     issuer: d.issuer,
@@ -63,6 +65,7 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
         ownership_type: form.ownership_type,
         sole_owner_user_id:
           form.ownership_type === 'sole' ? effectiveSoleOwnerID : null,
+        risk_profile: form.risk_profile,
         bond_type: form.bond_type,
         series_code: form.series_code.trim() || null,
         issuer: form.issuer,
@@ -267,6 +270,12 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
               )}
             </div>
           </div>
+
+          <RiskProfileSelect
+            idPrefix="bond_edit"
+            value={form.risk_profile}
+            onChange={(v) => setForm({ ...form, risk_profile: v })}
+          />
 
           {mutation.error && (
             <p className="text-sm text-destructive">

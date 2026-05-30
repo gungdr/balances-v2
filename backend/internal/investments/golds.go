@@ -16,6 +16,7 @@ type createGoldReq struct {
 	OwnershipType   string           `json:"ownership_type"     validate:"required,oneof=sole joint"`
 	SoleOwnerUserID *uuid.UUID       `json:"sole_owner_user_id" validate:"required_if=OwnershipType sole"`
 	NativeCurrency  string           `json:"native_currency"    validate:"required,iso4217"`
+	RiskProfile     string           `json:"risk_profile"       validate:"required,oneof=low medium high"`
 	Form            string           `json:"form"               validate:"required,oneof=bar coin digital jewelry"`
 	Purity          *decimal.Decimal `json:"purity"             validate:"required"`
 }
@@ -25,6 +26,7 @@ type updateGoldReq struct {
 	Description     *string          `json:"description"`
 	OwnershipType   string           `json:"ownership_type"     validate:"required,oneof=sole joint"`
 	SoleOwnerUserID *uuid.UUID       `json:"sole_owner_user_id" validate:"required_if=OwnershipType sole"`
+	RiskProfile     string           `json:"risk_profile"       validate:"required,oneof=low medium high"`
 	Form            string           `json:"form"               validate:"required,oneof=bar coin digital jewelry"`
 	Purity          *decimal.Decimal `json:"purity"             validate:"required"`
 }
@@ -46,6 +48,7 @@ func (h *Handlers) handleCreateGold(w http.ResponseWriter, r *http.Request) {
 		OwnershipType:   req.OwnershipType,
 		SoleOwnerUserID: req.SoleOwnerUserID,
 		NativeCurrency:  req.NativeCurrency,
+		RiskProfile:     req.RiskProfile,
 		Form:            req.Form,
 		Purity:          *req.Purity,
 	})
@@ -100,6 +103,7 @@ func (h *Handlers) handleUpdateGold(w http.ResponseWriter, r *http.Request) {
 		Description:     req.Description,
 		OwnershipType:   req.OwnershipType,
 		SoleOwnerUserID: req.SoleOwnerUserID,
+		RiskProfile:     req.RiskProfile,
 		Form:            req.Form,
 		Purity:          *req.Purity,
 	})

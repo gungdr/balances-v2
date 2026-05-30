@@ -15,6 +15,7 @@ import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { preferredName } from '@/lib/names'
 import { useSession } from '@/hooks/useSession'
 import { ApiError } from '@/api/client'
+import { RiskProfileSelect } from '@/components/RiskProfileSelect'
 import type { Stock, StockListItem } from '@/api/types'
 
 type Props = {
@@ -31,6 +32,7 @@ function toForm(s: Stock | StockListItem) {
     description: s.investment.description ?? '',
     ownership_type: s.investment.ownership_type,
     sole_owner_user_id: s.investment.sole_owner_user_id,
+    risk_profile: s.investment.risk_profile,
     ticker: s.details.ticker,
     exchange: s.details.exchange,
   }
@@ -53,6 +55,7 @@ export function EditStockDialog({ open, onOpenChange, stock }: Props) {
         ownership_type: form.ownership_type,
         sole_owner_user_id:
           form.ownership_type === 'sole' ? effectiveSoleOwnerID : null,
+        risk_profile: form.risk_profile,
         ticker: form.ticker.toUpperCase(),
         exchange: form.exchange.toUpperCase(),
       },
@@ -163,6 +166,12 @@ export function EditStockDialog({ open, onOpenChange, stock }: Props) {
               }
             />
           </div>
+
+          <RiskProfileSelect
+            idPrefix="stock_edit"
+            value={form.risk_profile}
+            onChange={(v) => setForm({ ...form, risk_profile: v })}
+          />
 
           {mutation.error && (
             <p className="text-sm text-destructive">

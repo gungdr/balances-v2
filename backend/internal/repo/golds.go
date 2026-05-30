@@ -31,6 +31,7 @@ type CreateGoldParams struct {
 	OwnershipType   string
 	SoleOwnerUserID *uuid.UUID
 	NativeCurrency  string
+	RiskProfile     string
 	Form            string // "bar" | "coin" | "digital" | "jewelry"
 	Purity          decimal.Decimal
 }
@@ -40,6 +41,7 @@ type UpdateGoldParams struct {
 	Description     *string
 	OwnershipType   string
 	SoleOwnerUserID *uuid.UUID
+	RiskProfile     string
 	Form            string
 	Purity          decimal.Decimal
 }
@@ -65,6 +67,7 @@ func (r *InvestmentRepo) CreateGold(ctx context.Context, p CreateGoldParams) (*G
 		OwnershipType:   p.OwnershipType,
 		SoleOwnerUserID: p.SoleOwnerUserID,
 		NativeCurrency:  p.NativeCurrency,
+		RiskProfile:     p.RiskProfile,
 		CreatedBy:       &user,
 	})
 	if err != nil {
@@ -185,6 +188,7 @@ func (r *InvestmentRepo) UpdateGold(ctx context.Context, id uuid.UUID, p UpdateG
 		Description:     p.Description,
 		OwnershipType:   p.OwnershipType,
 		SoleOwnerUserID: p.SoleOwnerUserID,
+		RiskProfile:     p.RiskProfile,
 		UpdatedBy:       &user,
 	})
 	if err != nil {

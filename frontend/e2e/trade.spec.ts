@@ -22,6 +22,7 @@ test('stock buy + mismatched snapshot raises the reconciliation warning', async 
   await createDialog.getByLabel('Display name').fill(name)
   await createDialog.getByLabel('Ticker').fill('E2EX')
   await createDialog.getByLabel('Exchange').fill('IDX')
+  await createDialog.getByLabel('Risk profile').selectOption('medium')
   await createDialog.getByRole('button', { name: 'Create' }).click()
 
   // --- Navigate to the detail page ---

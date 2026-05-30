@@ -22,6 +22,7 @@ func (h *handlerHarness) createTimeDeposit(t *testing.T, displayName string) *re
 		"placement_date":  "2026-01-01",
 		"maturity_date":   "2027-01-01",
 		"rollover_policy": "auto_renew_with_interest",
+		"risk_profile":    "medium",
 	})
 	requireStatus(t, rec, http.StatusCreated)
 	return decodeBody[*repo.TimeDeposit](t, rec)
@@ -42,6 +43,7 @@ func TestTimeDepositHandlers_Create(t *testing.T) {
 			"placement_date":  "2026-01-01",
 			"maturity_date":   "2027-01-01",
 			"rollover_policy": "no_rollover",
+			"risk_profile":    "medium",
 		})
 		requireStatus(t, rec, http.StatusCreated)
 		body := decodeBody[*repo.TimeDeposit](t, rec)
@@ -62,6 +64,7 @@ func TestTimeDepositHandlers_Create(t *testing.T) {
 			"placement_date":  "2026-01-01",
 			"maturity_date":   "2026-07-01",
 			"rollover_policy": "manual",
+			"risk_profile":    "medium",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
@@ -78,6 +81,7 @@ func TestTimeDepositHandlers_Create(t *testing.T) {
 			"placement_date":  "2026-01-01",
 			"maturity_date":   "2026-07-01",
 			"rollover_policy": "no_rollover",
+			"risk_profile":    "medium",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
@@ -94,6 +98,7 @@ func TestTimeDepositHandlers_Create(t *testing.T) {
 			"placement_date":  "2026/01/01",
 			"maturity_date":   "2026-07-01",
 			"rollover_policy": "no_rollover",
+			"risk_profile":    "medium",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
@@ -146,6 +151,7 @@ func TestTimeDepositHandlers_Update(t *testing.T) {
 			"placement_date":  "2026-01-01",
 			"maturity_date":   "2027-01-01",
 			"rollover_policy": "no_rollover",
+			"risk_profile":    "medium",
 		})
 		requireStatus(t, rec, http.StatusOK)
 		body := decodeBody[*repo.TimeDeposit](t, rec)
@@ -165,6 +171,7 @@ func TestTimeDepositHandlers_Update(t *testing.T) {
 			"placement_date":  "2026-01-01",
 			"maturity_date":   "2026-07-01",
 			"rollover_policy": "no_rollover",
+			"risk_profile":    "medium",
 		})
 		requireStatus(t, rec, http.StatusNotFound)
 	})
@@ -179,6 +186,7 @@ func TestTimeDepositHandlers_Update(t *testing.T) {
 			"placement_date":  "2026-01-01",
 			"maturity_date":   "07-2026-01",
 			"rollover_policy": "no_rollover",
+			"risk_profile":    "medium",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})

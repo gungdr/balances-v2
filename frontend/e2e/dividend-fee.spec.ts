@@ -19,6 +19,7 @@ test('stock dividend + fee transactions land on the ledger', async ({ page }) =>
   await createDialog.getByLabel('Display name').fill(name)
   await createDialog.getByLabel('Ticker').fill('E2EY')
   await createDialog.getByLabel('Exchange').fill('IDX')
+  await createDialog.getByLabel('Risk profile').selectOption('medium')
   await createDialog.getByRole('button', { name: 'Create' }).click()
 
   // --- Navigate to the detail page ---

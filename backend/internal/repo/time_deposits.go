@@ -32,6 +32,7 @@ type CreateTimeDepositParams struct {
 	OwnershipType   string
 	SoleOwnerUserID *uuid.UUID
 	NativeCurrency  string
+	RiskProfile     string
 	BankName        string
 	Principal       decimal.Decimal
 	InterestRate    decimal.Decimal
@@ -46,6 +47,7 @@ type UpdateTimeDepositParams struct {
 	Description     *string
 	OwnershipType   string
 	SoleOwnerUserID *uuid.UUID
+	RiskProfile     string
 	BankName        string
 	Principal       decimal.Decimal
 	InterestRate    decimal.Decimal
@@ -76,6 +78,7 @@ func (r *InvestmentRepo) CreateTimeDeposit(ctx context.Context, p CreateTimeDepo
 		OwnershipType:   p.OwnershipType,
 		SoleOwnerUserID: p.SoleOwnerUserID,
 		NativeCurrency:  p.NativeCurrency,
+		RiskProfile:     p.RiskProfile,
 		CreatedBy:       &user,
 	})
 	if err != nil {
@@ -201,6 +204,7 @@ func (r *InvestmentRepo) UpdateTimeDeposit(ctx context.Context, id uuid.UUID, p 
 		Description:     p.Description,
 		OwnershipType:   p.OwnershipType,
 		SoleOwnerUserID: p.SoleOwnerUserID,
+		RiskProfile:     p.RiskProfile,
 		UpdatedBy:       &user,
 	})
 	if err != nil {

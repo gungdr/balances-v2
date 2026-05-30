@@ -30,6 +30,7 @@ type CreateMutualFundParams struct {
 	OwnershipType   string
 	SoleOwnerUserID *uuid.UUID
 	NativeCurrency  string
+	RiskProfile     string
 	FundCode        string
 	FundManager     *string
 }
@@ -39,6 +40,7 @@ type UpdateMutualFundParams struct {
 	Description     *string
 	OwnershipType   string
 	SoleOwnerUserID *uuid.UUID
+	RiskProfile     string
 	FundCode        string
 	FundManager     *string
 }
@@ -64,6 +66,7 @@ func (r *InvestmentRepo) CreateMutualFund(ctx context.Context, p CreateMutualFun
 		OwnershipType:   p.OwnershipType,
 		SoleOwnerUserID: p.SoleOwnerUserID,
 		NativeCurrency:  p.NativeCurrency,
+		RiskProfile:     p.RiskProfile,
 		CreatedBy:       &user,
 	})
 	if err != nil {
@@ -184,6 +187,7 @@ func (r *InvestmentRepo) UpdateMutualFund(ctx context.Context, id uuid.UUID, p U
 		Description:     p.Description,
 		OwnershipType:   p.OwnershipType,
 		SoleOwnerUserID: p.SoleOwnerUserID,
+		RiskProfile:     p.RiskProfile,
 		UpdatedBy:       &user,
 	})
 	if err != nil {

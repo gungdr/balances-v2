@@ -15,6 +15,7 @@ import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { preferredName } from '@/lib/names'
 import { useSession } from '@/hooks/useSession'
 import { ApiError } from '@/api/client'
+import { RiskProfileSelect } from '@/components/RiskProfileSelect'
 import type { Gold, GoldListItem } from '@/api/types'
 
 type Props = {
@@ -29,6 +30,7 @@ function toForm(g: Gold | GoldListItem) {
     description: g.investment.description ?? '',
     ownership_type: g.investment.ownership_type,
     sole_owner_user_id: g.investment.sole_owner_user_id,
+    risk_profile: g.investment.risk_profile,
     form: g.details.form as GoldForm,
     purity: g.details.purity,
   }
@@ -51,6 +53,7 @@ export function EditGoldDialog({ open, onOpenChange, gold }: Props) {
         ownership_type: form.ownership_type,
         sole_owner_user_id:
           form.ownership_type === 'sole' ? effectiveSoleOwnerID : null,
+        risk_profile: form.risk_profile,
         form: form.form,
         purity: form.purity,
       },
@@ -165,6 +168,12 @@ export function EditGoldDialog({ open, onOpenChange, gold }: Props) {
               }
             />
           </div>
+
+          <RiskProfileSelect
+            idPrefix="gold_edit"
+            value={form.risk_profile}
+            onChange={(v) => setForm({ ...form, risk_profile: v })}
+          />
 
           {mutation.error && (
             <p className="text-sm text-destructive">

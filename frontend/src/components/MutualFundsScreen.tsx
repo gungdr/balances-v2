@@ -4,6 +4,10 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components
 import { SortableHeader } from '@/components/SortableHeader'
 import { ListHeadline } from '@/components/ListHeadline'
 import { ShowInactiveToggle } from '@/components/ShowInactiveToggle'
+import {
+  RiskProfileFilter,
+  type RiskProfileFilterValue,
+} from '@/components/RiskProfileFilter'
 import { useMutualFunds } from '@/hooks/useInvestments'
 import { useTableSort, type ColumnSort } from '@/hooks/useTableSort'
 import { CreateMutualFundDialog } from '@/components/CreateMutualFundDialog'
@@ -32,6 +36,7 @@ const tiebreakByName = (a: Row, b: Row) => a.name.localeCompare(b.name)
 export function MutualFundsScreen({ onSelect }: Props) {
   const { data, isPending, error } = useMutualFunds()
   const [showInactive, setShowInactive] = useState(false)
+  const [riskFilter, setRiskFilter] = useState<RiskProfileFilterValue>('all')
 
   const rows = useMemo<Row[]>(
     () =>
@@ -68,9 +73,12 @@ export function MutualFundsScreen({ onSelect }: Props) {
   )
 
   const terminatedCount = rows.filter((r) => !isActiveStatus(r.status)).length
-  const visibleRows = showInactive
+  const visibleRows = (showInactive
     ? sorted
     : sorted.filter((r) => isActiveStatus(r.status))
+  ).filter((r) =>
+    riskFilter === 'all' ? true : r.item.investment.risk_profile === riskFilter,
+  )
 
   return (
     <div className="space-y-6">
@@ -119,6 +127,7 @@ export function MutualFundsScreen({ onSelect }: Props) {
 
       {data && data.length > 0 && (
         <div className="space-y-3">
+          <RiskProfileFilter value={riskFilter} onChange={setRiskFilter} />
           {terminatedCount > 0 && (
             <ShowInactiveToggle
               count={terminatedCount}

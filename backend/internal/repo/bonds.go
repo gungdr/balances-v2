@@ -32,6 +32,7 @@ type CreateBondParams struct {
 	OwnershipType   string
 	SoleOwnerUserID *uuid.UUID
 	NativeCurrency  string
+	RiskProfile     string
 	BondType        string // "govt_primary" | "secondary_market"
 	SeriesCode      *string
 	Issuer          string
@@ -46,6 +47,7 @@ type UpdateBondParams struct {
 	Description     *string
 	OwnershipType   string
 	SoleOwnerUserID *uuid.UUID
+	RiskProfile     string
 	BondType        string
 	SeriesCode      *string
 	Issuer          string
@@ -76,6 +78,7 @@ func (r *InvestmentRepo) CreateBond(ctx context.Context, p CreateBondParams) (*B
 		OwnershipType:   p.OwnershipType,
 		SoleOwnerUserID: p.SoleOwnerUserID,
 		NativeCurrency:  p.NativeCurrency,
+		RiskProfile:     p.RiskProfile,
 		CreatedBy:       &user,
 	})
 	if err != nil {
@@ -201,6 +204,7 @@ func (r *InvestmentRepo) UpdateBond(ctx context.Context, id uuid.UUID, p UpdateB
 		Description:     p.Description,
 		OwnershipType:   p.OwnershipType,
 		SoleOwnerUserID: p.SoleOwnerUserID,
+		RiskProfile:     p.RiskProfile,
 		UpdatedBy:       &user,
 	})
 	if err != nil {

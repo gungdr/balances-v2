@@ -17,6 +17,7 @@ func (h *handlerHarness) createGold(t *testing.T, displayName string) *repo.Gold
 		"native_currency": "IDR",
 		"form":            "bar",
 		"purity":          "0.9999",
+		"risk_profile":    "medium",
 	})
 	requireStatus(t, rec, http.StatusCreated)
 	return decodeBody[*repo.Gold](t, rec)
@@ -32,6 +33,7 @@ func TestGoldHandlers_Create(t *testing.T) {
 			"native_currency": "IDR",
 			"form":            "bar",
 			"purity":          "0.9999",
+			"risk_profile":    "medium",
 		})
 		requireStatus(t, rec, http.StatusCreated)
 		body := decodeBody[*repo.Gold](t, rec)
@@ -47,6 +49,7 @@ func TestGoldHandlers_Create(t *testing.T) {
 			"native_currency": "IDR",
 			"form":            "ingot",
 			"purity":          "0.99",
+			"risk_profile":    "medium",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
@@ -57,6 +60,7 @@ func TestGoldHandlers_Create(t *testing.T) {
 			"ownership_type":  "joint",
 			"native_currency": "IDR",
 			"form":            "coin",
+			"risk_profile":    "medium",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
@@ -104,6 +108,7 @@ func TestGoldHandlers_Update(t *testing.T) {
 			"ownership_type": "joint",
 			"form":           "coin",
 			"purity":         "0.9999",
+			"risk_profile":   "medium",
 		})
 		requireStatus(t, rec, http.StatusOK)
 		body := decodeBody[*repo.Gold](t, rec)
@@ -118,6 +123,7 @@ func TestGoldHandlers_Update(t *testing.T) {
 			"ownership_type": "joint",
 			"form":           "bar",
 			"purity":         "0.99",
+			"risk_profile":   "medium",
 		})
 		requireStatus(t, rec, http.StatusNotFound)
 	})
@@ -126,6 +132,7 @@ func TestGoldHandlers_Update(t *testing.T) {
 		rec := h.do(t, "PATCH", "/investments/golds/"+created.Investment.ID.String(), map[string]any{
 			"display_name": "x",
 			"form":         "bar",
+			"risk_profile": "medium",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})

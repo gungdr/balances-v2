@@ -17,6 +17,7 @@ type createTimeDepositReq struct {
 	OwnershipType   string           `json:"ownership_type"     validate:"required,oneof=sole joint"`
 	SoleOwnerUserID *uuid.UUID       `json:"sole_owner_user_id" validate:"required_if=OwnershipType sole"`
 	NativeCurrency  string           `json:"native_currency"    validate:"required,iso4217"`
+	RiskProfile     string           `json:"risk_profile"       validate:"required,oneof=low medium high"`
 	BankName        string           `json:"bank_name"          validate:"required"`
 	Principal       *decimal.Decimal `json:"principal"          validate:"required"`
 	InterestRate    *decimal.Decimal `json:"interest_rate"      validate:"required"`
@@ -31,6 +32,7 @@ type updateTimeDepositReq struct {
 	Description     *string          `json:"description"`
 	OwnershipType   string           `json:"ownership_type"     validate:"required,oneof=sole joint"`
 	SoleOwnerUserID *uuid.UUID       `json:"sole_owner_user_id" validate:"required_if=OwnershipType sole"`
+	RiskProfile     string           `json:"risk_profile"       validate:"required,oneof=low medium high"`
 	BankName        string           `json:"bank_name"          validate:"required"`
 	Principal       *decimal.Decimal `json:"principal"          validate:"required"`
 	InterestRate    *decimal.Decimal `json:"interest_rate"      validate:"required"`
@@ -67,6 +69,7 @@ func (h *Handlers) handleCreateTimeDeposit(w http.ResponseWriter, r *http.Reques
 		OwnershipType:   req.OwnershipType,
 		SoleOwnerUserID: req.SoleOwnerUserID,
 		NativeCurrency:  req.NativeCurrency,
+		RiskProfile:     req.RiskProfile,
 		BankName:        req.BankName,
 		Principal:       *req.Principal,
 		InterestRate:    *req.InterestRate,
@@ -136,6 +139,7 @@ func (h *Handlers) handleUpdateTimeDeposit(w http.ResponseWriter, r *http.Reques
 		Description:     req.Description,
 		OwnershipType:   req.OwnershipType,
 		SoleOwnerUserID: req.SoleOwnerUserID,
+		RiskProfile:     req.RiskProfile,
 		BankName:        req.BankName,
 		Principal:       *req.Principal,
 		InterestRate:    *req.InterestRate,

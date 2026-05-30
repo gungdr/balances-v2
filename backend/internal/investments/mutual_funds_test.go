@@ -16,6 +16,7 @@ func (h *handlerHarness) createMutualFund(t *testing.T, displayName string) *rep
 		"ownership_type":  "joint",
 		"native_currency": "IDR",
 		"fund_code":       "BNI-AM",
+		"risk_profile":    "medium",
 	})
 	requireStatus(t, rec, http.StatusCreated)
 	return decodeBody[*repo.MutualFund](t, rec)
@@ -31,6 +32,7 @@ func TestMutualFundHandlers_Create(t *testing.T) {
 			"native_currency": "IDR",
 			"fund_code":       "SMMF",
 			"fund_manager":    "Sucorinvest AM",
+			"risk_profile":    "medium",
 		})
 		requireStatus(t, rec, http.StatusCreated)
 		body := decodeBody[*repo.MutualFund](t, rec)
@@ -44,6 +46,7 @@ func TestMutualFundHandlers_Create(t *testing.T) {
 			"display_name":    "X",
 			"ownership_type":  "joint",
 			"native_currency": "IDR",
+			"risk_profile":    "medium",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
@@ -98,6 +101,7 @@ func TestMutualFundHandlers_Update(t *testing.T) {
 			"display_name":   "Renamed",
 			"ownership_type": "joint",
 			"fund_code":      "NEWCODE",
+			"risk_profile":   "medium",
 		})
 		requireStatus(t, rec, http.StatusOK)
 		body := decodeBody[*repo.MutualFund](t, rec)
@@ -111,6 +115,7 @@ func TestMutualFundHandlers_Update(t *testing.T) {
 			"display_name":   "x",
 			"ownership_type": "joint",
 			"fund_code":      "x",
+			"risk_profile":   "medium",
 		})
 		requireStatus(t, rec, http.StatusNotFound)
 	})
