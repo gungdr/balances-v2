@@ -47,7 +47,11 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
   choice with no default — the friction is the point — Edit pre-fills from the row; list rows show
   a shared `RiskProfileBadge` shield icon next to the display name — `Shield` low + emerald,
   `ShieldHalf` medium + amber, `ShieldAlert` high + rose — and each of the 5 subtype list screens
-  gets a shared `RiskProfileFilter` chip bar at the top).
+  gets a shared `RiskProfileFilter` chip bar at the top), and the e2e smoke coverage for the
+  nickname + Google-picture features (mock-oidc now mints a `picture` claim and serves the avatar
+  at `/avatar.png`; `picture.spec.ts` drives the real OAuth flow and asserts `user-avatar-img`
+  replaces the initials fallback; `nickname.spec.ts` round-trips set/persist/clear through the
+  Settings screen).
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
@@ -302,10 +306,6 @@ invite-form relocation, the `users.nickname` build, vitest setup) — is preserv
   "22K", etc.) but typing `0.999` for 24K is awkward. Carat picker deferred — constraint is "must
   distinguish 24K (.999) from Antam bar (.9999) without sub-percent precision loss". Possible shape:
   a `<select>` of 24K/22K/20K/18K/14K/10K + **Custom**, with 24K → `0.9999`.
-- **Nickname + profile-picture features not e2e-smoke-tested.** Both Google-OAuth-only, no Playwright
-  spec; the picture backfills on next sign-in (an existing session shows the initials fallback).
-  Eyeball on the dev server or add a spec once E2E auth injection covers it. CHANGELOG has the
-  build detail.
 - **Component tests (RTL + MSW + jsdom).** Deferred until component tests begin (ADR-0021). Vitest
   covers `lib/*` today. Do **not** add Playwright/E2E to the coverage metric — it's a behavioural
   net, not a coverage instrument.

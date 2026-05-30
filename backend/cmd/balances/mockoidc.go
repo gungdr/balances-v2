@@ -89,7 +89,32 @@ func (m *mockOIDC) routes() http.Handler {
 	mux.HandleFunc("/jwks", m.handleJWKS)
 	mux.HandleFunc("/authorize", m.handleAuthorize)
 	mux.HandleFunc("/token", m.handleToken)
+	// Serves the avatar referenced by the `picture` claim in signIDToken, so
+	// the browser has a real image to load when the e2e suite drives the OAuth
+	// flow. Tiny transparent 1x1 PNG — content doesn't matter, just that the
+	// fetch succeeds and UserAvatar's onError doesn't fire.
+	mux.HandleFunc("/avatar.png", m.handleAvatar)
 	return mux
+}
+
+// onePixelPNG is a transparent 1x1 PNG, the smallest valid image the browser
+// will accept without an onError. Decoded once at package init.
+var onePixelPNG = mustDecodeBase64(
+	"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+)
+
+func mustDecodeBase64(s string) []byte {
+	b, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func (m *mockOIDC) handleAvatar(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "no-store")
+	_, _ = w.Write(onePixelPNG)
 }
 
 func (m *mockOIDC) handleDiscovery(w http.ResponseWriter, _ *http.Request) {
@@ -198,8 +223,13 @@ func (m *mockOIDC) signIDToken() (string, error) {
 		"email":          e2eAliceEmail,
 		"email_verified": true,
 		"name":           e2eAliceName,
-		"iat":            now.Unix(),
-		"exp":            now.Add(time.Hour).Unix(),
+		// `picture` is the optional Google claim the OAuth callback persists via
+		// SetUserPicture. Including it here lets picture.spec.ts assert the
+		// backfill end-to-end: seeded Alice (picture_url NULL) → sign in →
+		// avatar renders the image instead of initials.
+		"picture": e2eAlicePictureURL,
+		"iat":     now.Unix(),
+		"exp":     now.Add(time.Hour).Unix(),
 	}
 	payload, err := json.Marshal(claims)
 	if err != nil {

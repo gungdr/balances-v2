@@ -251,6 +251,12 @@ const (
 	e2eAliceGoogleSub = "e2e-alice"
 	e2eAliceEmail     = "alice@example.com"
 	e2eAliceName      = "Alice"
+	// e2eAlicePictureURL points at the 1x1 PNG mock-oidc serves at /avatar.png
+	// (see mockoidc.go). Mock-oidc includes this as the `picture` claim in the
+	// id_token, so the real OAuth callback runs SetUserPicture against Alice and
+	// the UserAvatar component can load a real image instead of falling back to
+	// initials. Local URL so the browser can actually fetch it offline.
+	e2eAlicePictureURL = "http://localhost:8090/avatar.png"
 )
 
 // seedE2ECmd resets the dedicated balances_e2e database to a known fixture:
