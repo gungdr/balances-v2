@@ -746,6 +746,29 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
   - **Display:** `lib/format.ts#formatSignedPercent` renders the rate on `PropertyDetail` with
     a leading "+/−" so the direction is visible at a glance.
   - **ADR-0009 updated** to reflect the rename + signed semantics.
+- **Dashboard month picker (M6, frontend-only).** The dashboard header's month selector was a flat
+  `<select>` listing every materialized report newest-first. At 10 years of history that's 120+
+  options, unscannable for the non-technical audience, and the dropdown overflowed the viewport on
+  phones. Replaced with a shadcn-style popover.
+  - **Wrapper:** `components/ui/popover.tsx` — first popover in the codebase, standard shadcn shape
+    around `radix-ui`'s `Popover` umbrella import (already a transitive dep via shadcn).
+  - **Component:** `components/MonthPickerPopover.tsx`. Trigger is an `outline` Button showing
+    `formatYearMonth(selected.year_month)` + a chevron. Popover content has a year header (`‹`
+    label `›`) clamped to `[minYear, maxYear]` derived from the reports list, plus a 4×3 month
+    grid. Cells without a corresponding report are disabled and dimmed; the selected cell uses
+    `variant="default"` so it reads as filled. Click on an enabled cell fires `onSelect` with the
+    **exact stored ISO** of the matched report (via an `isoByKey` map) — safer than
+    re-synthesising `YYYY-MM-01T00:00:00Z` if the backend ever changes the day/time component.
+    `viewYear` resets to `selectedYear` on each `onOpenChange(true)` so re-opening always lands
+    on the current selection, not whatever year was last browsed. Date math uses `getUTCFullYear`
+    / `getUTCMonth` so the `Z` timestamp never rolls a month in non-UTC locales.
+  - **Wiring:** `DashboardScreen.DashboardHeader` swapped the inline `<select>` for the new
+    component; the parent's `(yearMonth) => setSelectedMonth(yearMonth)` contract is unchanged.
+  - **Test ids:** `month-picker-trigger`, `month-picker-content`,
+    `month-picker-year-prev|next|label`, `month-picker-cell-YYYY-MM`. No spec drove the old
+    select, so no spec edits were required; the ids are in place for a future
+    `month-picker.spec.ts`.
+  - Lint + build + vitest (91/91) + Playwright (16/16) all green.
 
 ## What M4.2 shipped
 

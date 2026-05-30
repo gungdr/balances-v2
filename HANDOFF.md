@@ -49,6 +49,8 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
   - Property/vehicle revaluation-rate UI helper (Q8a) — and a taxonomy fix renaming
     `annual_amortization_rate` → `annual_appreciation_rate` (migration 00019, signed % /yr);
     shared `lib/revaluation.ts` + sign-aware hint in `CreateSnapshotDialog`.
+  - Dashboard month picker: 120-option `<select>` → `MonthPickerPopover` (shadcn Popover +
+    year-nav + 4×3 month grid, disabled cells for months without a report).
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

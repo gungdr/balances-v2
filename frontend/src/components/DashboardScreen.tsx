@@ -6,6 +6,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { SnapshotChart } from '@/components/SnapshotChart'
+import { MonthPickerPopover } from '@/components/MonthPickerPopover'
 import { useReports, useRebuildReports } from '@/hooks/useReports'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useFxRates } from '@/hooks/useFxRates'
@@ -207,17 +208,11 @@ function DashboardHeader({
             </select>
           </label>
         )}
-        <select
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-          value={selected.year_month}
-          onChange={(e) => onSelect(e.target.value)}
-        >
-          {[...reports].reverse().map((r) => (
-            <option key={r.year_month} value={r.year_month}>
-              {formatYearMonth(r.year_month)}
-            </option>
-          ))}
-        </select>
+        <MonthPickerPopover
+          reports={reports}
+          selected={selected}
+          onSelect={onSelect}
+        />
       </div>
     </div>
   )
