@@ -56,13 +56,11 @@ const NAV: Section[] = [
   { label: 'Settings', to: routes.settings },
 ]
 
-// Smaller type than shadcn's text-sm default; the active item uses the accent
-// fill (set explicitly so the active style is legible here rather than inherited
-// from the cva). Sub-buttons additionally take size="sm" — their font size is a
-// data-[size]-scoped rule that out-specifies a plain text-xs, so the prop is the
-// only way to match the main items' size.
+// Uses shadcn's default text-sm for both main and sub items so the menu reads at
+// a normal size; the active item uses the accent fill (set explicitly so the
+// active style is legible here rather than inherited from the cva).
 const navItemClass =
-  'text-xs data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground'
+  'data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground'
 
 export function AppSidebar() {
   const { pathname } = useLocation()
@@ -80,7 +78,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="px-2 py-1 text-base font-semibold">balances</div>
+        <div className="px-2 py-1 text-xl font-semibold">balances</div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -109,7 +107,6 @@ export function AppSidebar() {
                         <SidebarMenuSubItem key={child.to}>
                           <SidebarMenuSubButton
                             asChild
-                            size="sm"
                             className={navItemClass}
                             isActive={leafActive(child.to)}
                           >
