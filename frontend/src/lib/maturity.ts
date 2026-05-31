@@ -1,3 +1,5 @@
+import { formatShortYearMonth } from '@/lib/format'
+
 // Maturity status + label for bond + time_deposit list rows.
 //
 // Four states, layered from least to most urgent:
@@ -32,10 +34,6 @@ function daysBetween(a: Date, b: Date): number {
   return Math.round((bx.getTime() - ax.getTime()) / oneDay)
 }
 
-function formatMonthYear(date: Date): string {
-  return date.toLocaleString(undefined, { month: 'short', year: 'numeric' })
-}
-
 export function maturityInfo(
   maturityDate: string,
   now: Date = new Date(),
@@ -46,7 +44,7 @@ export function maturityInfo(
   }
   const days = daysBetween(now, m)
   if (days < 0) {
-    return { state: 'matured', label: `⚠ Matured ${formatMonthYear(m)}` }
+    return { state: 'matured', label: `⚠ Matured ${formatShortYearMonth(m)}` }
   }
   if (days <= 30) {
     return {
@@ -55,9 +53,9 @@ export function maturityInfo(
     }
   }
   if (days <= 90) {
-    return { state: 'approaching', label: `Matures ${formatMonthYear(m)}` }
+    return { state: 'approaching', label: `Matures ${formatShortYearMonth(m)}` }
   }
-  return { state: 'default', label: `Matures ${formatMonthYear(m)}` }
+  return { state: 'default', label: `Matures ${formatShortYearMonth(m)}` }
 }
 
 // Tailwind class fragment per state. Kept here so list rows stay terse.

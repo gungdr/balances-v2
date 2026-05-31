@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { api, ApiError } from '@/api/client'
+import { formatDateTime } from '@/lib/format'
 
 type InviteResp = {
   id: string
@@ -79,7 +80,7 @@ export function InviteForm() {
               Invitation sent to {result.invited_email}
             </p>
             <p className="text-muted-foreground">
-              Expires {new Date(result.expires_at).toLocaleString()}
+              Expires {formatDateTime(result.expires_at)}
             </p>
             <p className="text-muted-foreground break-all">
               Accept URL: <code className="text-xs">{result.accept_url}</code>

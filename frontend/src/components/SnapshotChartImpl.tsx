@@ -5,7 +5,11 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart'
-import { formatCurrency } from '@/lib/format'
+import {
+  formatChartMonth,
+  formatCompactNumber,
+  formatCurrency,
+} from '@/lib/format'
 
 // Generic snapshot shape — all four position groups (asset, liability,
 // receivable, investment) have amount-shaped snapshots with year_month +
@@ -30,17 +34,10 @@ const chartConfig = {
 function toChartData(snapshots: SnapshotLike[]) {
   return [...snapshots]
     .sort((a, b) => a.year_month.localeCompare(b.year_month))
-    .map((s) => {
-      const d = new Date(s.year_month)
-      const monthLabel = d.toLocaleDateString('en-US', {
-        month: 'short',
-        year: '2-digit',
-      })
-      return {
-        month: monthLabel,
-        amount: Number(s.amount),
-      }
-    })
+    .map((s) => ({
+      month: formatChartMonth(new Date(s.year_month)),
+      amount: Number(s.amount),
+    }))
 }
 
 export default function SnapshotChartImpl({ snapshots, currency }: Props) {
@@ -63,12 +60,7 @@ export default function SnapshotChartImpl({ snapshots, currency }: Props) {
           tickMargin={8}
           fontSize={12}
           width={80}
-          tickFormatter={(v: number) =>
-            new Intl.NumberFormat('id-ID', {
-              notation: 'compact',
-              maximumFractionDigits: 1,
-            }).format(v)
-          }
+          tickFormatter={(v: number) => formatCompactNumber(v)}
         />
         <ChartTooltip
           content={

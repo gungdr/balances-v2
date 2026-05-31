@@ -11,7 +11,7 @@ import { useReports, useRebuildReports } from '@/hooks/useReports'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useFxRates } from '@/hooks/useFxRates'
 import { useSession } from '@/hooks/useSession'
-import { formatCurrency, formatYearMonth } from '@/lib/format'
+import { formatCurrency, formatNumber, formatYearMonth } from '@/lib/format'
 import { preferredName } from '@/lib/names'
 import {
   availableDisplayCurrencies,
@@ -446,7 +446,7 @@ function ExchangeRates({
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([cur, rate]) => (
               <div key={cur} className="tabular-nums">
-                1 {cur} = {Number(rate).toLocaleString('id-ID')} {currency}
+                1 {cur} = {formatNumber(rate)} {currency}
               </div>
             ))}
         </div>
