@@ -355,44 +355,95 @@ func (h *Handlers) handleMe(w http.ResponseWriter, r *http.Request) {
 
 const maxNicknameLen = 32
 
-type updateMeReq struct {
-	Nickname *string `json:"nickname"`
+// supportedLocales mirrors the allowed set in the users.locale CHECK
+// (migration 00020) and the frontend's SUPPORTED_LOCALES constant. Add a new
+// language by extending all three. The handler validates here so clients see
+// a 400 with a friendly message rather than a 500 from the CHECK violation.
+var supportedLocales = map[string]struct{}{
+	"en-GB": {},
+	"id-ID": {},
 }
 
-// handleUpdateMe updates the current user's own profile. Today that is only the
-// self-set nickname (the compact owner label, falling back to display_name on
-// read). display_name itself stays Google-sourced and is not editable here.
-// A blank/whitespace nickname clears it (stored NULL); over 32 chars is 400.
+// handleUpdateMe updates the current user's own profile. Editable today: the
+// self-set `nickname` (the compact owner label, falling back to display_name
+// on read) and the UI `locale` (ADR-0026). `display_name` stays Google-sourced
+// and is not editable here. Each field is updated independently; the request
+// can omit either or both. Decoding via map[string]json.RawMessage so the
+// handler can distinguish "field absent" (skip) from "field present and null"
+// (e.g. nickname:null clears) — a flat struct with *string fields collapses
+// both states to nil.
+//
+// Semantics per field:
+//   nickname: present + string → set (trimmed, blank/whitespace clears, >32 → 400)
+//             present + null   → clear
+//             absent           → unchanged
+//   locale:   present + string → set (must be in supportedLocales, else 400)
+//             present + null   → 400 (no clear semantics; locale always set)
+//             absent           → unchanged
 func (h *Handlers) handleUpdateMe(w http.ResponseWriter, r *http.Request) {
 	user, ok := UserFromContext(r.Context())
 	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
-	var req updateMeReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	var raw map[string]json.RawMessage
+	if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
 		http.Error(w, "invalid json body", http.StatusBadRequest)
 		return
 	}
-	var nickname *string
-	if req.Nickname != nil {
-		if trimmed := strings.TrimSpace(*req.Nickname); trimmed != "" {
-			if utf8.RuneCountInString(trimmed) > maxNicknameLen {
-				http.Error(w, "invalid request: nickname must be 32 characters or fewer", http.StatusBadRequest)
-				return
-			}
-			nickname = &trimmed
+	updated := user
+
+	if nicknameRaw, present := raw["nickname"]; present {
+		// *string unmarshals JSON null to nil; a plain string to a non-nil pointer.
+		var nickname *string
+		if err := json.Unmarshal(nicknameRaw, &nickname); err != nil {
+			http.Error(w, "invalid request: nickname must be a string or null", http.StatusBadRequest)
+			return
 		}
+		var stored *string
+		if nickname != nil {
+			if trimmed := strings.TrimSpace(*nickname); trimmed != "" {
+				if utf8.RuneCountInString(trimmed) > maxNicknameLen {
+					http.Error(w, "invalid request: nickname must be 32 characters or fewer", http.StatusBadRequest)
+					return
+				}
+				stored = &trimmed
+			}
+		}
+		next, err := h.q.UpdateUserNickname(r.Context(), db.UpdateUserNicknameParams{
+			UpdatedBy: &user.ID,
+			Nickname:  stored,
+		})
+		if err != nil {
+			slog.Error("update user nickname", "err", err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		updated = next
 	}
-	updated, err := h.q.UpdateUserNickname(r.Context(), db.UpdateUserNicknameParams{
-		UpdatedBy: &user.ID,
-		Nickname:  nickname,
-	})
-	if err != nil {
-		slog.Error("update user nickname", "err", err)
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
+
+	if localeRaw, present := raw["locale"]; present {
+		var locale *string
+		if err := json.Unmarshal(localeRaw, &locale); err != nil || locale == nil {
+			http.Error(w, "invalid request: locale must be a non-null string", http.StatusBadRequest)
+			return
+		}
+		if _, ok := supportedLocales[*locale]; !ok {
+			http.Error(w, "invalid request: unsupported locale", http.StatusBadRequest)
+			return
+		}
+		next, err := h.q.UpdateUserLocale(r.Context(), db.UpdateUserLocaleParams{
+			UpdatedBy: &user.ID,
+			Locale:    *locale,
+		})
+		if err != nil {
+			slog.Error("update user locale", "err", err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		updated = next
 	}
+
 	hh, err := h.q.GetHouseholdByID(r.Context(), updated.HouseholdID)
 	if err != nil {
 		slog.Error("get household for update me", "err", err)

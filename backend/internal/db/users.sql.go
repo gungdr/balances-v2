@@ -201,6 +201,45 @@ func (q *Queries) SetUserPicture(ctx context.Context, arg SetUserPictureParams) 
 	return i, err
 }
 
+const updateUserLocale = `-- name: UpdateUserLocale :one
+UPDATE users
+SET locale     = $2,
+    updated_by = $1,
+    updated_at = now()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING id, household_id, display_name, email, google_sub, locale, time_zone, created_by, created_at, updated_by, updated_at, deleted_at, nickname, picture_url
+`
+
+type UpdateUserLocaleParams struct {
+	UpdatedBy *uuid.UUID `json:"updated_by"`
+	Locale    string     `json:"locale"`
+}
+
+// Self-attributed UI-language change. The DB CHECK (migration 00020) enforces
+// the allowed BCP47 set; the handler additionally validates before issuing
+// this query so the client gets a 400 rather than a 500 on a bad value.
+func (q *Queries) UpdateUserLocale(ctx context.Context, arg UpdateUserLocaleParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUserLocale, arg.UpdatedBy, arg.Locale)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.HouseholdID,
+		&i.DisplayName,
+		&i.Email,
+		&i.GoogleSub,
+		&i.Locale,
+		&i.TimeZone,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedBy,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.Nickname,
+		&i.PictureUrl,
+	)
+	return i, err
+}
+
 const updateUserNickname = `-- name: UpdateUserNickname :one
 UPDATE users
 SET nickname   = $2,

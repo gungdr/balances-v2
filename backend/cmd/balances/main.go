@@ -307,9 +307,13 @@ func seedE2ECmd() error {
 		DisplayName: e2eAliceName,
 		Email:       e2eAliceEmail,
 		GoogleSub:   e2eAliceGoogleSub,
-		Locale:      "id-ID",
-		TimeZone:    "Asia/Jakarta",
-		CreatedBy:   nil,
+		// Pin to en-GB so Playwright specs that assert against the English UI
+		// don't drift if the runner's navigator.language ever changes. Specs
+		// that need to exercise the ID locale should switch via the Settings
+		// UI within the test rather than mutating the seed.
+		Locale:    "en-GB",
+		TimeZone:  "Asia/Jakarta",
+		CreatedBy: nil,
 	})
 	if err != nil {
 		return fmt.Errorf("create user alice: %w", err)
@@ -320,7 +324,7 @@ func seedE2ECmd() error {
 		DisplayName: "Bob",
 		Email:       "bob@example.com",
 		GoogleSub:   "e2e-bob",
-		Locale:      "id-ID",
+		Locale:      "en-GB",
 		TimeZone:    "Asia/Jakarta",
 		CreatedBy:   nil,
 	}); err != nil {

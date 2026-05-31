@@ -44,3 +44,14 @@ SET nickname   = $2,
     updated_at = now()
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
+
+-- name: UpdateUserLocale :one
+-- Self-attributed UI-language change. The DB CHECK (migration 00020) enforces
+-- the allowed BCP47 set; the handler additionally validates before issuing
+-- this query so the client gets a 400 rather than a 500 on a bad value.
+UPDATE users
+SET locale     = $2,
+    updated_by = $1,
+    updated_at = now()
+WHERE id = $1 AND deleted_at IS NULL
+RETURNING *;

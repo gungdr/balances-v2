@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ChangeEvent } from 'react'
 import {
   Card,
   CardContent,
@@ -21,6 +21,8 @@ import { ApiError } from '@/api/client'
 import { useSession } from '@/hooks/useSession'
 import { useUpdateMe } from '@/hooks/useUpdateMe'
 import { useUpdateHouseholdSettings } from '@/hooks/useHouseholdSettings'
+import { SUPPORTED_LOCALES, type Locale } from '@/i18n'
+import { useLocale } from '@/i18n/useLocale'
 import {
   useFxRates,
   useCreateFxRate,
@@ -68,6 +70,8 @@ export function SettingsScreen() {
       </div>
 
       <NicknameCard />
+
+      <LanguageCard />
 
       <Card>
         <CardHeader>
@@ -175,6 +179,65 @@ function NicknameCard() {
           </Button>
         </div>
 
+        {updateMe.isError && (
+          <p className="text-sm text-destructive">{errText(updateMe.error)}</p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+// LANGUAGE_LABELS maps each supported BCP47 locale to its in-language display
+// name. The label is shown in the dropdown regardless of the current UI
+// language so a user reading the wrong language can still find their option.
+const LANGUAGE_LABELS: Record<Locale, string> = {
+  'en-GB': 'English',
+  'id-ID': 'Bahasa Indonesia',
+}
+
+function LanguageCard() {
+  const { data: me } = useSession()
+  const { locale, setLocale } = useLocale()
+  const updateMe = useUpdateMe()
+
+  if (!me) return null
+
+  const onChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    const next = e.target.value as Locale
+    // Optimistically switch the UI; the PATCH persists the choice. If the
+    // PATCH fails, the next page load (or a manual re-select) will reconcile.
+    void setLocale(next)
+    updateMe.mutate({ locale: next })
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Language</CardTitle>
+        <CardDescription>
+          The language used for menus, labels, and date / number formatting.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-end gap-3">
+          <div className="space-y-1">
+            <Label htmlFor="language">Language</Label>
+            <select
+              id="language"
+              data-testid="settings-language-select"
+              className="flex h-9 w-56 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              value={locale}
+              onChange={onChange}
+              disabled={updateMe.isPending}
+            >
+              {SUPPORTED_LOCALES.map((l) => (
+                <option key={l} value={l}>
+                  {LANGUAGE_LABELS[l]}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
         {updateMe.isError && (
           <p className="text-sm text-destructive">{errText(updateMe.error)}</p>
         )}

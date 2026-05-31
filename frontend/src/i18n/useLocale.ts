@@ -1,17 +1,20 @@
-// Returns the active locale string and a setter that both calls i18next and
-// mirrors the choice into localStorage. Settings calls setLocale() after the
-// users.locale PATCH succeeds; other code reads the locale to drive format
-// helpers (lib/format.ts — issue #2).
+// Returns the active locale as a BCP47 string and a setter that both calls
+// i18next and mirrors the choice into localStorage. Settings calls setLocale()
+// after the users.locale PATCH succeeds; other code reads the locale to drive
+// format helpers (lib/format.ts).
 import { useTranslation } from 'react-i18next'
 import { LOCALSTORAGE_KEY, SUPPORTED_LOCALES, type Locale } from './index'
 
 function normalise(raw: string | undefined): Locale {
-  if (!raw) return 'en'
-  // i18next can hand back 'en-US', 'id-ID', etc. — strip the region.
+  if (!raw) return 'en-GB'
+  if ((SUPPORTED_LOCALES as readonly string[]).includes(raw)) {
+    return raw as Locale
+  }
+  // i18next may hand back a region-stripped 'en' or 'id' after load:
+  // 'languageOnly' resolution; project the base back onto a supported BCP47.
   const base = raw.split('-')[0]
-  return (SUPPORTED_LOCALES as readonly string[]).includes(base)
-    ? (base as Locale)
-    : 'en'
+  if (base === 'id') return 'id-ID'
+  return 'en-GB'
 }
 
 export function useLocale(): {

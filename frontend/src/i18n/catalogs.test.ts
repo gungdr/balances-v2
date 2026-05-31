@@ -29,8 +29,12 @@ import idSettings from '../../public/locales/id/settings.json'
 import idErrors from '../../public/locales/id/errors.json'
 
 type Catalog = Record<string, unknown>
+// Catalog directories under public/locales/ are 2-letter (i18next's
+// load: 'languageOnly' strips the region at request time), so the imports
+// resolve 'en' and 'id' regardless of the BCP47 locale identifier the rest
+// of the app uses.
 const CATALOGS: Record<Locale, Record<(typeof NAMESPACES)[number], Catalog>> = {
-  en: {
+  'en-GB': {
     common: enCommon,
     nav: enNav,
     dashboard: enDashboard,
@@ -42,7 +46,7 @@ const CATALOGS: Record<Locale, Record<(typeof NAMESPACES)[number], Catalog>> = {
     settings: enSettings,
     errors: enErrors,
   },
-  id: {
+  'id-ID': {
     common: idCommon,
     nav: idNav,
     dashboard: idDashboard,
@@ -67,8 +71,8 @@ describe('i18n catalogs', () => {
 
   it('every namespace catalog has the same key set across locales', () => {
     for (const ns of NAMESPACES) {
-      const enKeys = Object.keys(CATALOGS.en[ns]).sort()
-      const idKeys = Object.keys(CATALOGS.id[ns]).sort()
+      const enKeys = Object.keys(CATALOGS['en-GB'][ns]).sort()
+      const idKeys = Object.keys(CATALOGS['id-ID'][ns]).sort()
       expect(idKeys, `id/${ns}.json keys diverge from en/${ns}.json`).toEqual(
         enKeys,
       )

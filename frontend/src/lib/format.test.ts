@@ -23,19 +23,19 @@ import {
 
 describe('formatCurrency', () => {
   it('renders no-decimal currencies (IDR) without a fractional part in en', () => {
-    const out = formatCurrency('1500000', 'IDR', 'en')
+    const out = formatCurrency('1500000', 'IDR', 'en-GB')
     expect(out).toMatch(/IDR|Rp/)
     expect(out).not.toMatch(/[.,]\d{2}\b/) // no two-digit fraction
   })
 
   it('renders no-decimal currencies (IDR) without a fractional part in id', () => {
-    const out = formatCurrency('1500000', 'IDR', 'id')
+    const out = formatCurrency('1500000', 'IDR', 'id-ID')
     expect(out).toMatch(/Rp/)
     expect(out).not.toMatch(/[.,]\d{2}\b/)
   })
 
   it('renders other no-decimal currencies (JPY, KRW, VND) without decimals', () => {
-    for (const locale of ['en', 'id'] as const) {
+    for (const locale of ['en-GB', 'id-ID'] as const) {
       for (const ccy of ['JPY', 'KRW', 'VND']) {
         expect(formatCurrency('1000', ccy, locale)).not.toMatch(/[.,]\d{2}\b/)
       }
@@ -43,7 +43,7 @@ describe('formatCurrency', () => {
   })
 
   it('renders two decimals for ordinary currencies (USD) in both locales', () => {
-    for (const locale of ['en', 'id'] as const) {
+    for (const locale of ['en-GB', 'id-ID'] as const) {
       const out = formatCurrency('1234.5', 'USD', locale)
       expect(out).toMatch(/\d/)
       expect(out).toMatch(/[.,]\d{2}\b/)
@@ -51,7 +51,7 @@ describe('formatCurrency', () => {
   })
 
   it('returns the raw input when the amount is not a number', () => {
-    expect(formatCurrency('not-a-number', 'USD', 'en')).toBe('not-a-number')
+    expect(formatCurrency('not-a-number', 'USD', 'en-GB')).toBe('not-a-number')
   })
 })
 
@@ -59,44 +59,44 @@ describe('formatCurrency', () => {
 // a negative-offset runner TZ.
 describe('formatYearMonth', () => {
   it('en renders long month + year', () => {
-    expect(formatYearMonth('2024-05-15T12:00:00Z', 'en')).toBe('May 2024')
+    expect(formatYearMonth('2024-05-15T12:00:00Z', 'en-GB')).toBe('May 2024')
   })
   it('id renders the Indonesian month name', () => {
-    expect(formatYearMonth('2024-05-15T12:00:00Z', 'id')).toBe('Mei 2024')
+    expect(formatYearMonth('2024-05-15T12:00:00Z', 'id-ID')).toBe('Mei 2024')
   })
 })
 
 describe('formatDate', () => {
   it('en renders day + short month + year', () => {
-    expect(formatDate('2024-05-15T12:00:00Z', 'en')).toBe('15 May 2024')
+    expect(formatDate('2024-05-15T12:00:00Z', 'en-GB')).toBe('15 May 2024')
   })
   it('id renders the date with the Indonesian month name', () => {
-    expect(formatDate('2024-05-15T12:00:00Z', 'id')).toBe('15 Mei 2024')
+    expect(formatDate('2024-05-15T12:00:00Z', 'id-ID')).toBe('15 Mei 2024')
   })
 })
 
 describe('formatDateTime', () => {
   it('en includes day, month, year, hour, minute', () => {
-    const out = formatDateTime('2024-05-15T12:00:00Z', 'en')
+    const out = formatDateTime('2024-05-15T12:00:00Z', 'en-GB')
     expect(out).toMatch(/May/)
     expect(out).toMatch(/2024/)
     expect(out).toMatch(/15/)
     expect(out).toMatch(/\d{2}[:.]\d{2}/) // hh:mm or hh.mm
   })
   it('id uses the Indonesian month name', () => {
-    const out = formatDateTime('2024-05-15T12:00:00Z', 'id')
+    const out = formatDateTime('2024-05-15T12:00:00Z', 'id-ID')
     expect(out).toMatch(/Mei/)
   })
 })
 
 describe('formatShortYearMonth', () => {
   it('en renders short month + full year', () => {
-    expect(formatShortYearMonth(new Date('2024-05-15T12:00:00Z'), 'en')).toBe(
+    expect(formatShortYearMonth(new Date('2024-05-15T12:00:00Z'), 'en-GB')).toBe(
       'May 2024',
     )
   })
   it('id renders the Indonesian short month + full year', () => {
-    expect(formatShortYearMonth(new Date('2024-05-15T12:00:00Z'), 'id')).toBe(
+    expect(formatShortYearMonth(new Date('2024-05-15T12:00:00Z'), 'id-ID')).toBe(
       'Mei 2024',
     )
   })
@@ -104,12 +104,12 @@ describe('formatShortYearMonth', () => {
 
 describe('formatChartMonth', () => {
   it('en renders short month + 2-digit year', () => {
-    expect(formatChartMonth(new Date('2024-05-15T12:00:00Z'), 'en')).toBe(
+    expect(formatChartMonth(new Date('2024-05-15T12:00:00Z'), 'en-GB')).toBe(
       'May 24',
     )
   })
   it('id renders the Indonesian short month + 2-digit year', () => {
-    expect(formatChartMonth(new Date('2024-05-15T12:00:00Z'), 'id')).toBe(
+    expect(formatChartMonth(new Date('2024-05-15T12:00:00Z'), 'id-ID')).toBe(
       'Mei 24',
     )
   })
@@ -120,31 +120,31 @@ describe('formatCompactNumber', () => {
     // ICU compact-suffix case differs between en-US/en-GB and across Node
     // builds (macOS uppercase, some Linux Node builds lowercase), so the
     // assertion is case-insensitive.
-    expect(formatCompactNumber(1500, 'en')).toMatch(/1\.5\s*k/i)
-    expect(formatCompactNumber(2_300_000, 'en')).toMatch(/2\.3\s*m/i)
+    expect(formatCompactNumber(1500, 'en-GB')).toMatch(/1\.5\s*k/i)
+    expect(formatCompactNumber(2_300_000, 'en-GB')).toMatch(/2\.3\s*m/i)
   })
   it('id uses locale-native compact units', () => {
     // id-ID compact uses "rb" (ribu) and "jt" (juta) — assert presence of
     // the unit rather than exact spacing/glyph.
-    expect(formatCompactNumber(1500, 'id')).toMatch(/rb/)
-    expect(formatCompactNumber(2_300_000, 'id')).toMatch(/jt/)
+    expect(formatCompactNumber(1500, 'id-ID')).toMatch(/rb/)
+    expect(formatCompactNumber(2_300_000, 'id-ID')).toMatch(/jt/)
   })
 })
 
 describe('formatNumber', () => {
   it('en uses comma thousands and dot decimal', () => {
     // en-GB grouping uses commas: "12,345.67"
-    expect(formatNumber(12345.67, 'en')).toBe('12,345.67')
+    expect(formatNumber(12345.67, 'en-GB')).toBe('12,345.67')
   })
   it('id uses dot thousands and comma decimal', () => {
     // id-ID grouping uses dots: "12.345,67"
-    expect(formatNumber(12345.67, 'id')).toBe('12.345,67')
+    expect(formatNumber(12345.67, 'id-ID')).toBe('12.345,67')
   })
   it('accepts string input', () => {
-    expect(formatNumber('1000', 'en')).toBe('1,000')
+    expect(formatNumber('1000', 'en-GB')).toBe('1,000')
   })
   it('returns the raw string when the value is not a number', () => {
-    expect(formatNumber('not-a-number', 'en')).toBe('not-a-number')
+    expect(formatNumber('not-a-number', 'en-GB')).toBe('not-a-number')
   })
 })
 

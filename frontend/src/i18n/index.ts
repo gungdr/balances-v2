@@ -23,7 +23,14 @@ export const NAMESPACES = [
   'errors',
 ] as const
 
-export const SUPPORTED_LOCALES = ['en', 'id'] as const
+// Locales are stored and exchanged as BCP47 strings (matching users.locale and
+// the Intl APIs). Catalog directories under public/locales/ stay 2-letter and
+// are resolved at load time via i18next's load: 'languageOnly' option, which
+// strips the region before requesting the JSON — 'id-ID' loads from
+// /locales/id/<ns>.json. To add a regional variant (e.g. 'en-GB'), extend
+// SUPPORTED_LOCALES and the matching CHECK in backend migration 00020;
+// catalogs don't need to grow unless the translations actually diverge.
+export const SUPPORTED_LOCALES = ['en-GB', 'id-ID'] as const
 export type Locale = (typeof SUPPORTED_LOCALES)[number]
 export const LOCALSTORAGE_KEY = 'balances.locale'
 
@@ -32,8 +39,10 @@ void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    fallbackLng: 'en',
+    fallbackLng: 'en-GB',
     supportedLngs: SUPPORTED_LOCALES as unknown as string[],
+    // Strip the region when requesting catalog files: 'id-ID' → /locales/id.
+    load: 'languageOnly',
     ns: NAMESPACES as unknown as string[],
     defaultNS: 'common',
     interpolation: { escapeValue: false }, // React already escapes

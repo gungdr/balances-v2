@@ -10,6 +10,7 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { useSession } from '@/hooks/useSession'
+import { useLocaleReconcile } from '@/i18n/useLocaleReconcile'
 import { api } from '@/api/client'
 
 // The authenticated layout: persistent sidebar on desktop, a hamburger-opened
@@ -18,6 +19,7 @@ import { api } from '@/api/client'
 export function AppShell() {
   const qc = useQueryClient()
   const { data: user } = useSession()
+  useLocaleReconcile(user)
 
   async function handleSignOut() {
     try {

@@ -52,11 +52,26 @@ nothing in the code switches on `'en'` vs `'id'`. The catalogs are namespaced by
 
 ### Locale persists on the user, not the browser
 
-A new `users.locale` column (migration `00020`, `TEXT NOT NULL DEFAULT 'en'`, CHECK
-`locale IN ('en','id')`) is the source of truth. Backend exposes it via the existing user-self
-endpoints (`GET /api/users/me`, `PATCH /api/users/me`). Settings gains a "Language" dropdown.
-First-login fallback reads `navigator.language` and writes the result back to the user row, so the
-next device picks it up automatically.
+`users.locale` (existing column from migration 00002, repurposed here) is the source of truth.
+Migration 00020 pins the allowed set via CHECK to the BCP47 forms the app supports — initially
+`'en-GB'` and `'id-ID'` — and leaves the existing default (`'id-ID'`, the household-targeted
+language) and stored values untouched. **The DB stays BCP47**, not 2-letter; Intl APIs want BCP47
+anyway, and storing the region keeps the door open for variants (`en-US`, `id-ID`) without a
+schema change. `en-GB` (not `en-US`) is the canonical English because the existing copy
+already uses day-first dates (`"15 May 2024"`) — `en-US` would produce `"May 15, 2024"`.
+
+Catalog directories under `public/locales/` stay 2-letter (`en/`, `id/`). i18next's
+`load: 'languageOnly'` option strips the region before requesting the JSON, so `'id-ID'` loads
+`/locales/id/<ns>.json`. Adding a regional variant doesn't require splitting catalogs unless the
+translations actually diverge.
+
+Backend exposes locale via the existing user-self endpoints (`GET /api/users/me`,
+`PATCH /api/users/me`). The PATCH handler decodes via `map[string]json.RawMessage` so it can
+distinguish field-absent (skip) from field-present-null (clear, for nickname; 400 for locale —
+locale has no "unset" state). Settings gains a "Language" dropdown that calls the PATCH and
+mirrors the choice into localStorage. First-login fallback in `AppShell` reads
+`navigator.languages`, maps to a supported BCP47, and writes the result back to the user row, so
+the next device picks it up automatically.
 
 Browser-only / cookie-only alternatives rejected: device-switching is a real flow for this
 household app (phone + laptop), and the user row already holds the cousin field `nickname` — the
@@ -116,8 +131,11 @@ against the fixed dictionary; the consistency cost of inline-translation-then-sw
   regressions. Allowlist for code tokens (`px-2`, `IDR`, etc.) in tests/fixtures.
 - **`docs/glossary-id.md` is the canonical ID dictionary.** Translation PRs reference it; a new term
   expands it.
-- **Migration `00020` adds `users.locale`.** `GET/PATCH /api/users/me` round-trip it; Settings UI
-  gets a Language dropdown.
+- **Migration `00020` pins `users.locale` to the BCP47 allowed set** via a CHECK constraint
+  (`locale IN ('en-GB','id-ID')`). The column existed since 00002; this only constrains it. The
+  PATCH handler additionally validates so clients get a 400 rather than a 500 on a CHECK
+  violation. Adding a language: extend the CHECK + the FE `SUPPORTED_LOCALES` + the handler's
+  `supportedLocales` map.
 - **HANDOFF gains a "Don't reintroduce bare JSX text" convention** under the existing FE-lint
   bullet, and an i18n entry in the M6-shipped list when the work completes.
 - **A follow-up ADR (0027) introduces a backend error-code envelope.** Tracking issue links it.

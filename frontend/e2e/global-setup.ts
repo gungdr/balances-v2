@@ -31,7 +31,18 @@ export default async function globalSetup() {
         sameSite: 'Lax' as const,
       },
     ],
-    origins: [],
+    origins: [
+      {
+        // Pin the UI to en-GB so specs that assert English copy aren't
+        // affected by the runner's navigator.language. The seeded user row
+        // also carries locale='en-GB' (cmd/balances seed-e2e); pre-priming
+        // localStorage here additionally skips the AppShell's first-login
+        // navigator reconciliation. To exercise the ID UI in a spec, switch
+        // via the Settings dropdown rather than mutating this seed.
+        origin: 'http://localhost:5273',
+        localStorage: [{ name: 'balances.locale', value: 'en-GB' }],
+      },
+    ],
   }
 
   await mkdir(path.dirname(authFile), { recursive: true })

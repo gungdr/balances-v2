@@ -157,4 +157,48 @@ func TestHandleUpdateMe(t *testing.T) {
 		rec := h.doRaw(t, "PATCH", "/me", map[string]any{"nickname": "Al"}, nil)
 		requireStatus(t, rec, http.StatusUnauthorized)
 	})
+
+	t.Run("200 sets locale to en-GB", func(t *testing.T) {
+		rec := h.do(t, "PATCH", "/me", map[string]any{"locale": "en-GB"})
+		requireStatus(t, rec, http.StatusOK)
+		body := decodeBody[meResponse](t, rec)
+		if body.Locale != "en-GB" {
+			t.Fatalf("locale: got %q, want en-GB", body.Locale)
+		}
+	})
+
+	t.Run("200 sets locale to id-ID", func(t *testing.T) {
+		rec := h.do(t, "PATCH", "/me", map[string]any{"locale": "id-ID"})
+		requireStatus(t, rec, http.StatusOK)
+		body := decodeBody[meResponse](t, rec)
+		if body.Locale != "id-ID" {
+			t.Fatalf("locale: got %q, want id-ID", body.Locale)
+		}
+	})
+
+	t.Run("400 unsupported locale", func(t *testing.T) {
+		// fr-FR is well-formed BCP47 but not in supportedLocales.
+		rec := h.do(t, "PATCH", "/me", map[string]any{"locale": "fr-FR"})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("400 garbage locale", func(t *testing.T) {
+		rec := h.do(t, "PATCH", "/me", map[string]any{"locale": "not-a-locale"})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("200 nickname + locale together", func(t *testing.T) {
+		rec := h.do(t, "PATCH", "/me", map[string]any{
+			"nickname": "Bee",
+			"locale":   "en-GB",
+		})
+		requireStatus(t, rec, http.StatusOK)
+		body := decodeBody[meResponse](t, rec)
+		if body.Locale != "en-GB" {
+			t.Errorf("locale: got %q, want en-GB", body.Locale)
+		}
+		if body.Nickname == nil || *body.Nickname != "Bee" {
+			t.Errorf("nickname: got %v, want \"Bee\"", body.Nickname)
+		}
+	})
 }

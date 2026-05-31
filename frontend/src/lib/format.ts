@@ -18,23 +18,22 @@ import { SUPPORTED_LOCALES, type Locale } from '@/i18n'
 
 const NO_DECIMAL_CURRENCIES = new Set(['IDR', 'JPY', 'KRW', 'VND'])
 
+// Active locale at the moment of the call, as the supported BCP47 string.
+// We accept anything i18next hands back (it may be a region-stripped base like
+// 'en' or 'id' after load: 'languageOnly' resolution) and project it onto the
+// supported set — Intl is fine with either form, but the call surface stays
+// regular.
 function activeLocale(): Locale {
-  const base = (i18n.language || 'en').split('-')[0]
-  return (SUPPORTED_LOCALES as readonly string[]).includes(base)
-    ? (base as Locale)
-    : 'en'
+  const raw = i18n.language || 'en-GB'
+  if ((SUPPORTED_LOCALES as readonly string[]).includes(raw)) {
+    return raw as Locale
+  }
+  const base = raw.split('-')[0]
+  return base === 'id' ? 'id-ID' : 'en-GB'
 }
 
-// Resolve our 2-letter Locale to a BCP47 tag for Intl. We pin 'en-GB' for the
-// English locale because it yields the day-first date order ("15 May 2024")
-// the app already uses in EN copy; 'id-ID' carries Bahasa Indonesia month
-// names and the dot-thousands/comma-decimal numeric convention.
-function bcp47(locale: Locale): string {
-  return locale === 'id' ? 'id-ID' : 'en-GB'
-}
-
-function resolve(locale: Locale | undefined): string {
-  return bcp47(locale ?? activeLocale())
+function resolve(locale: Locale | undefined): Locale {
+  return locale ?? activeLocale()
 }
 
 export function formatCurrency(
