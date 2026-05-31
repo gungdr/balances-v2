@@ -374,12 +374,13 @@ var supportedLocales = map[string]struct{}{
 // both states to nil.
 //
 // Semantics per field:
-//   nickname: present + string → set (trimmed, blank/whitespace clears, >32 → 400)
-//             present + null   → clear
-//             absent           → unchanged
-//   locale:   present + string → set (must be in supportedLocales, else 400)
-//             present + null   → 400 (no clear semantics; locale always set)
-//             absent           → unchanged
+//
+//	nickname: present + string → set (trimmed, blank/whitespace clears, >32 → 400)
+//	          present + null   → clear
+//	          absent           → unchanged
+//	locale:   present + string → set (must be in supportedLocales, else 400)
+//	          present + null   → 400 (no clear semantics; locale always set)
+//	          absent           → unchanged
 func (h *Handlers) handleUpdateMe(w http.ResponseWriter, r *http.Request) {
 	user, ok := UserFromContext(r.Context())
 	if !ok {
