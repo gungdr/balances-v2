@@ -67,6 +67,10 @@ always reports one stable status so a future branch protection has a safe requir
 
 M6 is the v1-polish milestone (see `docs/ROADMAP.md`). Still open in M6:
 
+- **Internationalization (EN + ID)** — react-i18next with persisted `users.locale`, locale-aware
+  `lib/format.ts`, ID financial-vocab glossary. Backend stays English; a follow-up ADR introduces a
+  typed error-code envelope so future locales never touch Go. See ADR-0026 and issues #1–#12;
+  Shape-C follow-up tracked as #13.
 - **PDF export** of monthly reports (user requirement, Q22).
 - **Fee cash→quantity helper** (Q12).
 - **TimeDeposit "duplicate matured TD" helper** (Q14c-iv): when a Maturity transaction has
