@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router'
+import { useTranslation } from 'react-i18next'
 import {
   Sidebar,
   SidebarContent,
@@ -15,45 +16,47 @@ import {
 } from '@/components/ui/sidebar'
 import { routes } from '@/lib/routes'
 
-type Leaf = { label: string; to: string }
+// `labelKey` indexes into the `nav` namespace catalog rather than carrying the
+// EN string inline — keeps the structural NAV array translation-agnostic.
+type Leaf = { labelKey: string; to: string }
 // A top-level destination. With `children` it's a group: the button links to
 // the group home and the subtype lists render beneath it (always expanded — few
 // enough items that hiding them behind a collapse would only add a click).
-type Section = { label: string; to: string; children?: Leaf[] }
+type Section = { labelKey: string; to: string; children?: Leaf[] }
 
 const NAV: Section[] = [
-  { label: 'Dashboard', to: routes.dashboard },
+  { labelKey: 'dashboard', to: routes.dashboard },
   {
-    label: 'Assets',
+    labelKey: 'assets',
     to: routes.assets,
     children: [
-      { label: 'Bank Accounts', to: routes.bankAccounts },
-      { label: 'Properties', to: routes.properties },
-      { label: 'Vehicles', to: routes.vehicles },
+      { labelKey: 'bankAccounts', to: routes.bankAccounts },
+      { labelKey: 'properties', to: routes.properties },
+      { labelKey: 'vehicles', to: routes.vehicles },
     ],
   },
   {
-    label: 'Liabilities',
+    labelKey: 'liabilities',
     to: routes.liabilities,
     children: [
-      { label: 'Personal', to: routes.liabilitiesPersonal },
-      { label: 'Institutional', to: routes.liabilitiesInstitutional },
+      { labelKey: 'personal', to: routes.liabilitiesPersonal },
+      { labelKey: 'institutional', to: routes.liabilitiesInstitutional },
     ],
   },
-  { label: 'Receivables', to: routes.receivables },
+  { labelKey: 'receivables', to: routes.receivables },
   {
-    label: 'Investments',
+    labelKey: 'investments',
     to: routes.investments,
     children: [
-      { label: 'Stocks', to: routes.stocks },
-      { label: 'Mutual Funds', to: routes.mutualFunds },
-      { label: 'Bonds', to: routes.bonds },
-      { label: 'Time Deposits', to: routes.timeDeposits },
-      { label: 'Gold', to: routes.gold },
+      { labelKey: 'stocks', to: routes.stocks },
+      { labelKey: 'mutualFunds', to: routes.mutualFunds },
+      { labelKey: 'bonds', to: routes.bonds },
+      { labelKey: 'timeDeposits', to: routes.timeDeposits },
+      { labelKey: 'gold', to: routes.gold },
     ],
   },
-  { label: 'Income', to: routes.income },
-  { label: 'Settings', to: routes.settings },
+  { labelKey: 'income', to: routes.income },
+  { labelKey: 'settings', to: routes.settings },
 ]
 
 // Uses shadcn's default text-sm for both main and sub items so the menu reads at
@@ -65,6 +68,7 @@ const navItemClass =
 export function AppSidebar() {
   const { pathname } = useLocation()
   const { setOpenMobile } = useSidebar()
+  const { t } = useTranslation(['nav', 'common'])
   // Close the mobile drawer after a navigation; a no-op on desktop.
   const close = () => setOpenMobile(false)
 
@@ -78,7 +82,9 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="px-2 py-1 text-xl font-semibold">balances</div>
+        <div className="px-2 py-1 text-xl font-semibold">
+          {t('brand', { ns: 'common' })}
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -98,7 +104,7 @@ export function AppSidebar() {
                     }
                   >
                     <Link to={section.to} onClick={close}>
-                      {section.label}
+                      {t(section.labelKey)}
                     </Link>
                   </SidebarMenuButton>
                   {section.children && (
@@ -111,7 +117,7 @@ export function AppSidebar() {
                             isActive={leafActive(child.to)}
                           >
                             <Link to={child.to} onClick={close}>
-                              {child.label}
+                              {t(child.labelKey)}
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>

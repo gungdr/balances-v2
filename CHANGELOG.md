@@ -786,6 +786,56 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
   - **Cross-refs:** HANDOFF gets a glossary-pointer convention bullet ("Indonesian copy follows
     `docs/glossary-id.md`; extend in the same PR that adds a new term") + the M6-shipped list
     bullet. ADR-0026 now links the glossary file path.
+- **Chrome i18n extraction (M6, full stack — issue #5).** First extraction slice; establishes the
+  per-screen pattern the rest of #6–#11 will copy. Touched 7 components + 6 catalog files; ~50
+  string sites moved into the `common` / `nav` / `settings` namespaces.
+  - **Components:** `AppShell` (`Sign out`, brand), `AppSidebar` (NAV labels — array carries
+    `labelKey` instead of literal text), `SignInScreen` (tagline + CTA), `SettingsScreen` (title
+    + subtitle + Currency, Nickname, Language, FX cards), `InviteForm` (folded into the chrome
+    sweep because it mounts from Settings and a mixed-language card would be a UX bug),
+    `ConfirmDialog` (default `Confirm` / `Cancel` / `Working…` labels resolved via i18n so call
+    sites that don't override them still translate), `AssetsHome` / `LiabilitiesHome` /
+    `InvestmentsHome` placeholders.
+  - **Catalogs:** `public/locales/{en,id}/{common,nav,settings}.json` populated against the
+    glossary from #4. Sole = **Tunggal**, Personal-subtype = **Pribadi** (the two coexist
+    cleanly because they appear in different contexts — Liabilities subtype vs ownership picker).
+    Bond → **Obligasi** in `nav.bonds` per the glossary's deliberate divergence.
+  - **`errText` / `formatError` helpers refactored** to accept the localized fallback as a
+    parameter so the function stays English-only at the helper level and the caller passes
+    `t('common:somethingWentWrong')`. Server-error bodies still display in the local copy
+    pending the ADR-0027 error-code envelope; only the no-body fallback routes through i18n now.
+  - **Bundled-resource init (not `i18next-http-backend`).** The first attempt followed
+    ADR-0026's original draft (HttpBackend + `loadPath: '/locales/{{lng}}/{{ns}}.json'` with
+    `load: 'languageOnly'` + `supportedLngs: ['en-GB', 'id-ID']`). The HTTP fetches never fired
+    and the resource store stayed empty. **Root cause:** `load: 'languageOnly'` stripped the
+    detected `id-ID` to `id`; i18next then rejected `id` because it wasn't in `supportedLngs`
+    and `nonExplicitSupportedLngs` defaults to false — so no language resolved and no fetch
+    was issued. Initially mis-diagnosed as an ESM-interop quirk with i18next-http-backend v4;
+    the real bug was the language-tag mismatch. (See the "Considered alternatives" tail of
+    ADR-0026 for the bundled-vs-HttpBackend trade-off after the bug was understood.)
+  - **Why we still moved to bundled resources after fixing the bug:** at our scale (single
+    household app, EN+ID expected lifetime, ~30 KB total catalogs) bundled wins on simplicity:
+    sync first paint with no Suspense boundary or deferred mount, build-time TS validation of
+    imports, no runtime HTTP request for catalogs. Trade-off accepted: adding a new language
+    requires a small `i18n/index.ts` edit (10 imports + a `resources` map row), not just
+    dropping a JSON file — ADR-0026's "JSON-only" line softened to match. Lazy-loading wins
+    don't apply until we have 5+ languages or much heavier catalogs.
+  - **Mechanical changes from the swap:**
+    - Resource bundles keyed by full BCP47 (`'en-GB'` / `'id-ID'`) to match `supportedLngs`;
+      `load: 'languageOnly'` dropped (no longer needed without an HTTP path to map).
+    - `main.tsx` no longer defers `createRoot` behind an `i18nReady` promise — resources are
+      present synchronously on first paint.
+    - `i18next-http-backend` dependency uninstalled (`npm uninstall`).
+    - Catalog files moved from `public/locales/` to `src/locales/` because vite warns when
+      assets in `public/` are imported from JS (`public/` is for runtime URL fetches; bundled
+      assets belong in `src/`). The 2-letter directory names (`en/`, `id/`) stay.
+    - ADR-0026 updated to record the swap and the trade-off.
+  - **Code-token allowlist:** the two FX-card placeholders (`'USD'`, `'16000'`) stay literal,
+    wrapped as `placeholder={'USD'}` JSXExpressionContainers with a comment that they're data,
+    not translatable copy. The ESLint rule (selector-based, hits Literal under
+    JSXAttribute) leaves expressions alone.
+  - Lint 1213 → 1165 warnings (48 chrome-files cleared, scope files now clean). Build green,
+    vitest 13/13 (127/127). Playwright run pending final commit.
 
 ## What M4.2 shipped
 

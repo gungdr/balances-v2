@@ -1,4 +1,5 @@
 import { useState, type ChangeEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Card,
   CardContent,
@@ -31,14 +32,18 @@ import {
 import { formatYearMonth } from '@/lib/format'
 import { InviteForm } from '@/components/InviteForm'
 
-function errText(err: unknown): string {
+// Server-error formatter. Server bodies stay visible (the status-code →
+// translated toast mapping lands with ADR-0027); only the no-body fallback
+// routes through i18n.
+function errText(err: unknown, fallback: string): string {
   if (err instanceof ApiError && typeof err.body === 'string' && err.body) {
     return err.body
   }
-  return err instanceof Error ? err.message : 'Something went wrong'
+  return err instanceof Error ? err.message : fallback
 }
 
 export function SettingsScreen() {
+  const { t } = useTranslation(['settings', 'common'])
   const { data: me } = useSession()
   const updateSettings = useUpdateHouseholdSettings()
   const [currency, setCurrency] = useState<string | null>(null)
@@ -62,11 +67,8 @@ export function SettingsScreen() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Reporting currency, multi-currency tracking, and household
-          invitations.
-        </p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+        <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
 
       <NicknameCard />
@@ -75,16 +77,15 @@ export function SettingsScreen() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Currency</CardTitle>
-          <CardDescription>
-            Net worth is reported in this currency. Turn on multi-currency to
-            hold positions in other currencies and enter monthly exchange rates.
-          </CardDescription>
+          <CardTitle className="text-base">{t('currency.title')}</CardTitle>
+          <CardDescription>{t('currency.description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-end gap-3">
             <div className="space-y-1">
-              <Label htmlFor="reporting-currency">Reporting currency</Label>
+              <Label htmlFor="reporting-currency">
+                {t('currency.reportingLabel')}
+              </Label>
               <Input
                 id="reporting-currency"
                 className="w-28 uppercase"
@@ -98,7 +99,7 @@ export function SettingsScreen() {
               onClick={saveCurrency}
               disabled={updateSettings.isPending || reportingCurrency.length !== 3}
             >
-              Save
+              {t('common:save')}
             </Button>
           </div>
 
@@ -110,12 +111,12 @@ export function SettingsScreen() {
               disabled={updateSettings.isPending}
               onChange={(e) => toggleMulti(e.target.checked)}
             />
-            Enable multi-currency tracking
+            {t('currency.multiToggle')}
           </label>
 
           {updateSettings.isError && (
             <p className="text-sm text-destructive">
-              {errText(updateSettings.error)}
+              {errText(updateSettings.error, t('common:somethingWentWrong'))}
             </p>
           )}
         </CardContent>
@@ -129,6 +130,7 @@ export function SettingsScreen() {
 }
 
 function NicknameCard() {
+  const { t } = useTranslation(['settings', 'common'])
   const { data: me } = useSession()
   const updateMe = useUpdateMe()
   const [draft, setDraft] = useState<string | null>(null)
@@ -151,16 +153,15 @@ function NicknameCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Your name</CardTitle>
+        <CardTitle className="text-base">{t('nickname.title')}</CardTitle>
         <CardDescription>
-          A short nickname shown in ownership labels and owner pickers. Leave it
-          blank to use your full name ({me.display_name}).
+          {t('nickname.description', { displayName: me.display_name })}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-end gap-3">
           <div className="space-y-1">
-            <Label htmlFor="nickname">Nickname</Label>
+            <Label htmlFor="nickname">{t('nickname.label')}</Label>
             <Input
               id="nickname"
               className="w-56"
@@ -175,12 +176,14 @@ function NicknameCard() {
             onClick={save}
             disabled={updateMe.isPending || !dirty}
           >
-            Save
+            {t('common:save')}
           </Button>
         </div>
 
         {updateMe.isError && (
-          <p className="text-sm text-destructive">{errText(updateMe.error)}</p>
+          <p className="text-sm text-destructive">
+            {errText(updateMe.error, t('common:somethingWentWrong'))}
+          </p>
         )}
       </CardContent>
     </Card>
@@ -196,6 +199,7 @@ const LANGUAGE_LABELS: Record<Locale, string> = {
 }
 
 function LanguageCard() {
+  const { t } = useTranslation('settings')
   const { data: me } = useSession()
   const { locale, setLocale } = useLocale()
   const updateMe = useUpdateMe()
@@ -213,15 +217,13 @@ function LanguageCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Language</CardTitle>
-        <CardDescription>
-          The language used for menus, labels, and date / number formatting.
-        </CardDescription>
+        <CardTitle className="text-base">{t('language.title')}</CardTitle>
+        <CardDescription>{t('language.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-end gap-3">
           <div className="space-y-1">
-            <Label htmlFor="language">Language</Label>
+            <Label htmlFor="language">{t('language.label')}</Label>
             <select
               id="language"
               data-testid="settings-language-select"
@@ -239,7 +241,9 @@ function LanguageCard() {
           </div>
         </div>
         {updateMe.isError && (
-          <p className="text-sm text-destructive">{errText(updateMe.error)}</p>
+          <p className="text-sm text-destructive">
+            {errText(updateMe.error, t('common:somethingWentWrong'))}
+          </p>
         )}
       </CardContent>
     </Card>
@@ -247,6 +251,7 @@ function LanguageCard() {
 }
 
 function FxRatesCard() {
+  const { t } = useTranslation(['settings', 'common'])
   const { data: rates, isPending } = useFxRates()
   const createRate = useCreateFxRate()
   const deleteRate = useDeleteFxRate()
@@ -274,17 +279,13 @@ function FxRatesCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Exchange rates</CardTitle>
-        <CardDescription>
-          One rate per month per currency — reporting-currency units per 1 unit
-          of the foreign currency (the month-end rate). Later months reuse the
-          most recent rate until you enter a new one.
-        </CardDescription>
+        <CardTitle className="text-base">{t('fx.title')}</CardTitle>
+        <CardDescription>{t('fx.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1">
-            <Label htmlFor="fx-month">Month</Label>
+            <Label htmlFor="fx-month">{t('fx.month')}</Label>
             <Input
               id="fx-month"
               type="month"
@@ -294,49 +295,55 @@ function FxRatesCard() {
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="fx-currency">Currency</Label>
+            <Label htmlFor="fx-currency">{t('fx.currency')}</Label>
             <Input
               id="fx-currency"
               className="w-24 uppercase"
               maxLength={3}
-              placeholder="USD"
+              // ISO currency code — a data token, not translatable copy.
+              placeholder={'USD'}
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="fx-rate">Rate</Label>
+            <Label htmlFor="fx-rate">{t('fx.rate')}</Label>
             <Input
               id="fx-rate"
               inputMode="decimal"
               className="w-36"
-              placeholder="16000"
+              // Example numeric rate; not translatable copy.
+              placeholder={'16000'}
               value={rate}
               onChange={(e) => setRate(e.target.value)}
             />
           </div>
           <Button onClick={add} disabled={!canAdd || createRate.isPending}>
-            Add rate
+            {t('fx.addRate')}
           </Button>
         </div>
 
         {createRate.isError && (
-          <p className="text-sm text-destructive">{errText(createRate.error)}</p>
+          <p className="text-sm text-destructive">
+            {errText(createRate.error, t('common:somethingWentWrong'))}
+          </p>
         )}
 
-        {isPending && <p className="text-sm text-muted-foreground">Loading…</p>}
+        {isPending && (
+          <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
+        )}
 
         {rates && rates.length === 0 && (
-          <p className="text-sm text-muted-foreground">No rates entered yet.</p>
+          <p className="text-sm text-muted-foreground">{t('fx.empty')}</p>
         )}
 
         {rates && rates.length > 0 && (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Month</TableHead>
-                <TableHead>Currency</TableHead>
-                <TableHead>Rate</TableHead>
+                <TableHead>{t('fx.month')}</TableHead>
+                <TableHead>{t('fx.currency')}</TableHead>
+                <TableHead>{t('fx.rate')}</TableHead>
                 <TableHead className="w-16"></TableHead>
               </TableRow>
             </TableHeader>
@@ -352,7 +359,7 @@ function FxRatesCard() {
                       size="sm"
                       onClick={() => deleteRate.mutate(r.id)}
                     >
-                      Delete
+                      {t('common:delete')}
                     </Button>
                   </TableCell>
                 </TableRow>

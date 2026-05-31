@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Outlet } from 'react-router'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { UserAvatar } from '@/components/UserAvatar'
 import { AppSidebar } from '@/components/AppSidebar'
@@ -19,6 +20,7 @@ import { api } from '@/api/client'
 export function AppShell() {
   const qc = useQueryClient()
   const { data: user } = useSession()
+  const { t } = useTranslation('common')
   useLocaleReconcile(user)
 
   async function handleSignOut() {
@@ -46,7 +48,7 @@ export function AppShell() {
           <div className="flex items-center gap-2">
             {/* Drawer toggle: phones only — the sidebar is always visible on desktop. */}
             <SidebarTrigger className="md:hidden" />
-            <div className="font-semibold md:hidden">balances</div>
+            <div className="font-semibold md:hidden">{t('brand')}</div>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
@@ -60,7 +62,7 @@ export function AppShell() {
               </div>
             </div>
             <Button variant="outline" size="sm" onClick={handleSignOut}>
-              Sign out
+              {t('signOut')}
             </Button>
           </div>
         </header>

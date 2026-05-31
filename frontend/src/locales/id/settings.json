@@ -1,0 +1,39 @@
+{
+  "title": "Pengaturan",
+  "subtitle": "Mata uang pelaporan, pelacakan multi-mata-uang, dan undangan rumah tangga.",
+  "nickname": {
+    "title": "Nama Anda",
+    "description": "Nama panggilan singkat yang muncul di label kepemilikan dan pemilih pemilik. Kosongkan untuk memakai nama lengkap ({{displayName}}).",
+    "label": "Nama panggilan"
+  },
+  "language": {
+    "title": "Bahasa",
+    "description": "Bahasa yang dipakai untuk menu, label, dan format tanggal / angka.",
+    "label": "Bahasa"
+  },
+  "currency": {
+    "title": "Mata Uang",
+    "description": "Kekayaan bersih dilaporkan dalam mata uang ini. Aktifkan multi-mata-uang untuk menyimpan posisi dalam mata uang lain dan memasukkan kurs bulanan.",
+    "reportingLabel": "Mata uang pelaporan",
+    "multiToggle": "Aktifkan pelacakan multi-mata-uang"
+  },
+  "fx": {
+    "title": "Kurs",
+    "description": "Satu kurs per bulan per mata uang — unit mata uang pelaporan per 1 unit mata uang asing (kurs akhir bulan). Bulan berikutnya memakai kurs terakhir hingga Anda memasukkan yang baru.",
+    "month": "Bulan",
+    "currency": "Mata Uang",
+    "rate": "Kurs",
+    "addRate": "Tambah kurs",
+    "empty": "Belum ada kurs."
+  },
+  "invite": {
+    "title": "Undang anggota rumah tangga",
+    "description": "Mereka akan menerima email berisi tautan masuk.",
+    "emailLabel": "Alamat email",
+    "emailPlaceholder": "seseorang@contoh.com",
+    "submit": "Kirim undangan",
+    "sentTo": "Undangan terkirim ke {{email}}",
+    "expires": "Kedaluwarsa {{when}}",
+    "acceptUrl": "URL terima:"
+  }
+}

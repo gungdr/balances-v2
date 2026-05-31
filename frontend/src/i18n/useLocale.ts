@@ -10,8 +10,8 @@ function normalise(raw: string | undefined): Locale {
   if ((SUPPORTED_LOCALES as readonly string[]).includes(raw)) {
     return raw as Locale
   }
-  // i18next may hand back a region-stripped 'en' or 'id' after load:
-  // 'languageOnly' resolution; project the base back onto a supported BCP47.
+  // navigator.language or a stale localStorage value may return a 2-letter
+  // 'en' / 'id'; project the base back onto a supported BCP47 form.
   const base = raw.split('-')[0]
   if (base === 'id') return 'id-ID'
   return 'en-GB'

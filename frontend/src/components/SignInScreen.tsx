@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -8,19 +9,17 @@ import {
 } from '@/components/ui/card'
 
 export function SignInScreen() {
+  const { t } = useTranslation('common')
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted p-6">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>balances</CardTitle>
-          <CardDescription>
-            Track your household net worth without itemising every
-            transaction.
-          </CardDescription>
+          <CardTitle>{t('brand')}</CardTitle>
+          <CardDescription>{t('signIn.tagline')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Button asChild className="w-full">
-            <a href="/api/auth/google/start">Sign in with Google</a>
+            <a href="/api/auth/google/start">{t('signIn.withGoogle')}</a>
           </Button>
         </CardContent>
       </Card>

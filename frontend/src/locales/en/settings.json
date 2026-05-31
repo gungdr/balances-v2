@@ -1,0 +1,39 @@
+{
+  "title": "Settings",
+  "subtitle": "Reporting currency, multi-currency tracking, and household invitations.",
+  "nickname": {
+    "title": "Your name",
+    "description": "A short nickname shown in ownership labels and owner pickers. Leave it blank to use your full name ({{displayName}}).",
+    "label": "Nickname"
+  },
+  "language": {
+    "title": "Language",
+    "description": "The language used for menus, labels, and date / number formatting.",
+    "label": "Language"
+  },
+  "currency": {
+    "title": "Currency",
+    "description": "Net worth is reported in this currency. Turn on multi-currency to hold positions in other currencies and enter monthly exchange rates.",
+    "reportingLabel": "Reporting currency",
+    "multiToggle": "Enable multi-currency tracking"
+  },
+  "fx": {
+    "title": "Exchange rates",
+    "description": "One rate per month per currency — reporting-currency units per 1 unit of the foreign currency (the month-end rate). Later months reuse the most recent rate until you enter a new one.",
+    "month": "Month",
+    "currency": "Currency",
+    "rate": "Rate",
+    "addRate": "Add rate",
+    "empty": "No rates entered yet."
+  },
+  "invite": {
+    "title": "Invite someone to your household",
+    "description": "They'll receive an email with a sign-in link.",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "someone@example.com",
+    "submit": "Send invitation",
+    "sentTo": "Invitation sent to {{email}}",
+    "expires": "Expires {{when}}",
+    "acceptUrl": "Accept URL:"
+  }
+}

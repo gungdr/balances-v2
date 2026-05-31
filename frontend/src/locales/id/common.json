@@ -1,0 +1,31 @@
+{
+  "brand": "balances",
+  "signIn": {
+    "tagline": "Pantau kekayaan bersih rumah tangga tanpa mencatat setiap transaksi.",
+    "withGoogle": "Masuk dengan Google"
+  },
+  "signOut": "Keluar",
+  "save": "Simpan",
+  "cancel": "Batal",
+  "confirm": "Konfirmasi",
+  "delete": "Hapus",
+  "working": "Memproses…",
+  "loading": "Memuat…",
+  "sending": "Mengirim…",
+  "somethingWentWrong": "Terjadi kesalahan",
+  "unknownError": "kesalahan tidak diketahui",
+  "home": {
+    "assets": {
+      "title": "Aset",
+      "body": "Ringkasan aset Anda akan muncul di sini. Sementara ini, pilih kategori dari menu."
+    },
+    "liabilities": {
+      "title": "Liabilitas",
+      "body": "Ringkasan liabilitas Anda akan muncul di sini. Sementara ini, pilih kategori dari menu."
+    },
+    "investments": {
+      "title": "Investasi",
+      "body": "Ringkasan investasi Anda akan muncul di sini. Sementara ini, pilih kategori dari menu."
+    }
+  }
+}

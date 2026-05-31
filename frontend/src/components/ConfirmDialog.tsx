@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,17 +25,22 @@ type Props = {
 // ConfirmDialog wraps shadcn's AlertDialog for the common pattern of
 // "are you sure?" prompts before destructive actions. Replaces ad-hoc
 // window.confirm calls so the app's design language stays consistent.
+// Default Confirm/Cancel/Working labels are resolved via i18n so call sites
+// that don't override them still translate (ADR-0026).
 export function ConfirmDialog({
   open,
   onOpenChange,
   title,
   description,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   destructive,
   onConfirm,
   pending,
 }: Props) {
+  const { t } = useTranslation('common')
+  const confirm = confirmLabel ?? t('confirm')
+  const cancel = cancelLabel ?? t('cancel')
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -45,13 +51,13 @@ export function ConfirmDialog({
           )}
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={pending}>{cancelLabel}</AlertDialogCancel>
+          <AlertDialogCancel disabled={pending}>{cancel}</AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
             disabled={pending}
             className={destructive ? 'bg-destructive hover:bg-destructive/90' : undefined}
           >
-            {pending ? 'Working…' : confirmLabel}
+            {pending ? t('working') : confirm}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

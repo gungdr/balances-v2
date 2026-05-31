@@ -1,0 +1,19 @@
+{
+  "dashboard": "Dashboard",
+  "assets": "Aset",
+  "bankAccounts": "Rekening Bank",
+  "properties": "Properti",
+  "vehicles": "Kendaraan",
+  "liabilities": "Liabilitas",
+  "personal": "Pribadi",
+  "institutional": "Institusional",
+  "receivables": "Piutang",
+  "investments": "Investasi",
+  "stocks": "Saham",
+  "mutualFunds": "Reksa Dana",
+  "bonds": "Obligasi",
+  "timeDeposits": "Deposito",
+  "gold": "Emas",
+  "income": "Pemasukan",
+  "settings": "Pengaturan"
+}

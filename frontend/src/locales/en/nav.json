@@ -1,0 +1,19 @@
+{
+  "dashboard": "Dashboard",
+  "assets": "Assets",
+  "bankAccounts": "Bank Accounts",
+  "properties": "Properties",
+  "vehicles": "Vehicles",
+  "liabilities": "Liabilities",
+  "personal": "Personal",
+  "institutional": "Institutional",
+  "receivables": "Receivables",
+  "investments": "Investments",
+  "stocks": "Stocks",
+  "mutualFunds": "Mutual Funds",
+  "bonds": "Bonds",
+  "timeDeposits": "Time Deposits",
+  "gold": "Gold",
+  "income": "Income",
+  "settings": "Settings"
+}

@@ -53,6 +53,11 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     year-nav + 4×3 month grid, disabled cells for months without a report).
   - Indonesian financial-vocab glossary (`docs/glossary-id.md`) — canonical EN↔ID dictionary that
     issues #5–#11 translate against.
+  - Chrome extraction (issue #5): `AppShell`, `AppSidebar`, `SignInScreen`, `SettingsScreen`,
+    `InviteForm`, `ConfirmDialog`, and the 3 group-home placeholders now route every literal
+    through `t()`; `common`/`nav`/`settings` namespaces populated EN+ID. i18next swapped from
+    `i18next-http-backend` to bundled-resource init (static JSON imports of every catalog) — see
+    CHANGELOG for the language-tag-mismatch debug story behind the swap.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

@@ -60,10 +60,35 @@ anyway, and storing the region keeps the door open for variants (`en-US`, `id-ID
 schema change. `en-GB` (not `en-US`) is the canonical English because the existing copy
 already uses day-first dates (`"15 May 2024"`) — `en-US` would produce `"May 15, 2024"`.
 
-Catalog directories under `public/locales/` stay 2-letter (`en/`, `id/`). i18next's
-`load: 'languageOnly'` option strips the region before requesting the JSON, so `'id-ID'` loads
-`/locales/id/<ns>.json`. Adding a regional variant doesn't require splitting catalogs unless the
+Catalog source directories under `src/locales/` stay 2-letter (`en/`, `id/`) for filesystem
+cleanliness. The runtime imports each JSON statically and re-keys the resource bundles by full
+BCP47 (`'en-GB'`, `'id-ID'`) so the lookup matches `supportedLngs` directly — no region-strip
+step is needed. Adding a regional variant doesn't require splitting catalogs unless the
 translations actually diverge.
+
+**Catalogs are bundled statically, not fetched at runtime.** Earlier drafts of this ADR called
+for `i18next-http-backend` so future languages would be a JSON-file drop. Switched to static
+imports at the chrome-extraction slice (issue #5). Reasons:
+
+- **Simplicity at our scale.** Bundled catalogs are ~30 KB for 10 namespaces × 2 locales —
+  immaterial in a single-household app. The lazy-load wins of HttpBackend (smaller initial JS,
+  catalog-per-language fetches) don't pay off until 5+ languages or much heavier catalogs.
+- **No first-paint race.** Bundled resources are present synchronously on the first render, so
+  `t()` returns real copy immediately. The HttpBackend path required either a Suspense boundary
+  or a deferred `createRoot` mount to avoid a "raw key" flash.
+- **Build-time validation.** TypeScript sees every catalog import, so a typo'd path or missing
+  file fails the build instead of silently 404'ing in the browser.
+
+Trade-off accepted: adding a new language is no longer "drop a JSON file." It also requires
+extending the static import block + the `resources` map in `i18n/index.ts` (~12 lines of edit),
+plus the existing CHECK + `SUPPORTED_LOCALES` extension. The list below ("Future languages are
+JSON-only") is softened accordingly.
+
+A bug found and fixed along the way, worth recording so it doesn't get re-introduced: with
+`supportedLngs: ['en-GB', 'id-ID']`, `load: 'languageOnly'` strips the detected `id-ID` to `id`
+*before* the supportedLngs check, then rejects it because `nonExplicitSupportedLngs` defaults
+to false — i18next resolves no language, the backend never fires, and t() returns the key.
+Resource bundles (and the supportedLngs list) must be keyed by the *full* BCP47 form to match.
 
 Backend exposes locale via the existing user-self endpoints (`GET /api/users/me`,
 `PATCH /api/users/me`). The PATCH handler decodes via `map[string]json.RawMessage` so it can
@@ -140,5 +165,8 @@ inline-translation-then-sweep is avoided.
 - **HANDOFF gains a "Don't reintroduce bare JSX text" convention** under the existing FE-lint
   bullet, and an i18n entry in the M6-shipped list when the work completes.
 - **A follow-up ADR (0027) introduces a backend error-code envelope.** Tracking issue links it.
-- **Future languages are JSON-only.** Add `public/locales/<lang>/<ns>.json` files and the `<lang>`
-  option to the user-locale CHECK + the Settings dropdown — no code switching on locale.
+- **Future languages: JSON files + a small `i18n/index.ts` edit.** Add
+  `src/locales/<lang>/<ns>.json` files, extend the static-import block and the `resources` map
+  in `i18n/index.ts` (keyed by full BCP47 — `'fr-FR'`, not `'fr'`), extend `SUPPORTED_LOCALES`,
+  and add the matching CHECK in backend migration 00020 plus the Settings dropdown entry. No
+  switching-on-locale anywhere in app code beyond the imports/map.

@@ -1,0 +1,31 @@
+{
+  "brand": "balances",
+  "signIn": {
+    "tagline": "Track your household net worth without itemising every transaction.",
+    "withGoogle": "Sign in with Google"
+  },
+  "signOut": "Sign out",
+  "save": "Save",
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "delete": "Delete",
+  "working": "Working…",
+  "loading": "Loading…",
+  "sending": "Sending…",
+  "somethingWentWrong": "Something went wrong",
+  "unknownError": "unknown error",
+  "home": {
+    "assets": {
+      "title": "Assets",
+      "body": "An overview of your assets is coming here. For now, choose a category from the menu."
+    },
+    "liabilities": {
+      "title": "Liabilities",
+      "body": "An overview of your liabilities is coming here. For now, choose a category from the menu."
+    },
+    "investments": {
+      "title": "Investments",
+      "body": "An overview of your investments is coming here. For now, choose a category from the menu."
+    }
+  }
+}
