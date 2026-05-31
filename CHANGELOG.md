@@ -769,6 +769,23 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     select, so no spec edits were required; the ids are in place for a future
     `month-picker.spec.ts`.
   - Lint + build + vitest (91/91) + Playwright (16/16) all green.
+- **Indonesian glossary doc (M6, docs-only — issue #4).** Authored `docs/glossary-id.md`, the
+  canonical EN↔ID dictionary for ~50 terms across position groups, subtypes, ledger nouns,
+  lifecycle, money/accounting, time/dates, auth/household, risk/regularity, income categories,
+  actions/chrome, and errors. Pins decisions before the per-feature extraction issues (#5–#11)
+  start translating, so consistency drift (`Liabilitas` vs `Kewajiban`, `Bunga Berjalan` vs `Bunga
+  Akrual`) doesn't need a sweep later.
+  - **Deliberate divergence from CONTEXT.md's _Avoid_ list:** Bond → **Obligasi** in ID UI. The
+    CONTEXT avoid applied to English code/UI (Bond stays canonical there); Obligasi is the
+    standard Indonesian finance term and the right ID translation. Glossary calls this out
+    explicitly so future agents don't "fix" it back.
+  - **Avoid-pair calls:** Amount → **Nominal** and Quantity → **Jumlah** are deliberately kept
+    distinct so the two don't collide on a single screen (Snapshot dialogs especially).
+    Sole-ownership → **Tunggal**, not **Pribadi**, to avoid overloading with the Personal-liability
+    subtype.
+  - **Cross-refs:** HANDOFF gets a glossary-pointer convention bullet ("Indonesian copy follows
+    `docs/glossary-id.md`; extend in the same PR that adds a new term") + the M6-shipped list
+    bullet. ADR-0026 now links the glossary file path.
 
 ## What M4.2 shipped
 

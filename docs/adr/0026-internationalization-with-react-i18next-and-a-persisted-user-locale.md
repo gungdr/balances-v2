@@ -103,9 +103,10 @@ for the bleed cases is unnecessary; the project convention already prefers `data
 
 ### A glossary doc precedes ID translation
 
-`docs/glossary-id.md` lists the ~30 financial-vocab decisions (Receivable → Piutang, Liability →
-Liabilitas, Snapshot → Snapshot, etc.) and is written first. Subsequent extraction issues translate
-against the fixed dictionary; the consistency cost of inline-translation-then-sweep is avoided.
+[`docs/glossary-id.md`](../glossary-id.md) lists the ~30 financial-vocab decisions (Receivable →
+Piutang, Liability → Liabilitas, Snapshot → Snapshot, etc.) and is written first. Subsequent
+extraction issues translate against the fixed dictionary; the consistency cost of
+inline-translation-then-sweep is avoided.
 
 ## Considered alternatives
 
@@ -129,8 +130,8 @@ against the fixed dictionary; the consistency cost of inline-translation-then-sw
   active locale.
 - **ESLint rule against bare JSX text.** `react/jsx-no-literals` (or the equivalent) catches
   regressions. Allowlist for code tokens (`px-2`, `IDR`, etc.) in tests/fixtures.
-- **`docs/glossary-id.md` is the canonical ID dictionary.** Translation PRs reference it; a new term
-  expands it.
+- **[`docs/glossary-id.md`](../glossary-id.md) is the canonical ID dictionary.** Translation PRs
+  reference it; a new term expands it.
 - **Migration `00020` pins `users.locale` to the BCP47 allowed set** via a CHECK constraint
   (`locale IN ('en-GB','id-ID')`). The column existed since 00002; this only constrains it. The
   PATCH handler additionally validates so clients get a 400 rather than a 500 on a CHECK

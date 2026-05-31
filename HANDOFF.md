@@ -51,6 +51,8 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     shared `lib/revaluation.ts` + sign-aware hint in `CreateSnapshotDialog`.
   - Dashboard month picker: 120-option `<select>` → `MonthPickerPopover` (shadcn Popover +
     year-nav + 4×3 month grid, disabled cells for months without a report).
+  - Indonesian financial-vocab glossary (`docs/glossary-id.md`) — canonical EN↔ID dictionary that
+    issues #5–#11 translate against.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
@@ -187,6 +189,9 @@ These are not ADRs because they're tactical, but they're load-bearing:
   `react-refresh/only-export-components` is disabled for `components/ui/**` (shadcn-generated).
   `react-hooks/set-state-in-effect` is enforced everywhere else — no `setState` inside `useEffect`
   body.
+- **Indonesian copy follows `docs/glossary-id.md`.** That file is the canonical EN↔ID dictionary
+  (Liability→Liabilitas, Receivable→Piutang, Snapshot stays English, etc.). When a new term lands,
+  extend the glossary in the same PR — don't decide translations inline in catalog JSON.
 - **Pagination clamp is derived during render**, not done in an effect. Pattern: `const
   effectivePage = Math.min(page, totalPages)`. Use `effectivePage` for slicing and for the
   `PaginationControls page` prop; keep raw `setPage` for click handlers. Don't reintroduce
