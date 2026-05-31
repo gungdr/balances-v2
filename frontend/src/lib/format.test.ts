@@ -117,8 +117,11 @@ describe('formatChartMonth', () => {
 
 describe('formatCompactNumber', () => {
   it('en uses K/M suffixes', () => {
-    expect(formatCompactNumber(1500, 'en')).toMatch(/1\.5K/)
-    expect(formatCompactNumber(2_300_000, 'en')).toMatch(/2\.3M/)
+    // ICU compact-suffix case differs between en-US/en-GB and across Node
+    // builds (macOS uppercase, some Linux Node builds lowercase), so the
+    // assertion is case-insensitive.
+    expect(formatCompactNumber(1500, 'en')).toMatch(/1\.5\s*k/i)
+    expect(formatCompactNumber(2_300_000, 'en')).toMatch(/2\.3\s*m/i)
   })
   it('id uses locale-native compact units', () => {
     // id-ID compact uses "rb" (ribu) and "jt" (juta) — assert presence of
