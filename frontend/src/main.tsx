@@ -5,8 +5,10 @@ import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query'
+import { I18nextProvider } from 'react-i18next'
 import './index.css'
 import App from './App.tsx'
+import i18n from './i18n'
 
 // Any successful write may change a monthly-report input — a snapshot,
 // transaction, income event, position metadata/lifecycle, or FX rate. Reports
@@ -26,8 +28,10 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
+    <I18nextProvider i18n={i18n}>
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </I18nextProvider>
   </StrictMode>,
 )
