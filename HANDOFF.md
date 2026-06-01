@@ -63,6 +63,15 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     shared `SnapshotChartImpl` legend now translate; `dashboard` namespace populated EN+ID,
     short month names added to `common.months.*`. i18next pluralisation (`_one`/`_other`) used
     for stale-positions + missing-FX lines.
+  - Bank-accounts extraction (issue #7, **template** for #8–#11): `BankAccountsScreen` +
+    `Detail` + `ListRow` + `Create/Edit` dialogs, the shared `Create/EditSnapshotDialog` +
+    `SnapshotRow` + `ImportSnapshotsDialog` + `TerminatePositionDialog`, and the cross-list
+    `ListHeadline` + `ShowInactiveToggle` all route through `t()`. Group-specific copy →
+    `assets.bankAccount.*`; shared field labels → `common.fields.*`; shared dialogs →
+    `common.snapshot/terminate/import.*`; `errors.failedToLoad` populated. `lib/lifecycle.ts`
+    (`statusLabel` + new `statusOptions(group)`) and `lib/ownership.ts` (`ownershipLabel`)
+    translate via the imported `i18n` instance with English `defaultValue` fallbacks so the
+    node-env unit tests keep passing. Pattern doc lives at the top of `BankAccountsScreen.tsx`.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

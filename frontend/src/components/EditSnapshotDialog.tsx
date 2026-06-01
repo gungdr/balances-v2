@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { UseMutationResult } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -52,6 +53,7 @@ export function EditSnapshotDialog<TResult>({
   snapshot,
   mutation,
 }: Props<TResult>) {
+  const { t } = useTranslation('common')
   const [form, setForm] = useState({
     amount: snapshot.amount,
     as_of_date: snapshot.as_of_date ? snapshot.as_of_date.slice(0, 10) : '',
@@ -78,15 +80,14 @@ export function EditSnapshotDialog<TResult>({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit snapshot</DialogTitle>
-          <DialogDescription>
-            Update the amount, statement date, or description for this
-            snapshot. To change the month, delete and re-create.
-          </DialogDescription>
+          <DialogTitle>{t('snapshot.editTitle')}</DialogTitle>
+          <DialogDescription>{t('snapshot.editDescription')}</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid gap-2">
-            <Label htmlFor="edit_amount">Amount ({snapshot.currency})</Label>
+            <Label htmlFor="edit_amount">
+              {t('fields.amountIn', { currency: snapshot.currency })}
+            </Label>
             <Input
               id="edit_amount"
               required
@@ -97,7 +98,7 @@ export function EditSnapshotDialog<TResult>({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="edit_as_of_date">Statement date (optional)</Label>
+            <Label htmlFor="edit_as_of_date">{t('fields.statementDate')}</Label>
             <Input
               id="edit_as_of_date"
               type="date"
@@ -110,9 +111,7 @@ export function EditSnapshotDialog<TResult>({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="edit_snap_description">
-              Description (optional)
-            </Label>
+            <Label htmlFor="edit_snap_description">{t('fields.description')}</Label>
             <Input
               id="edit_snap_description"
               value={form.description}
@@ -124,7 +123,7 @@ export function EditSnapshotDialog<TResult>({
 
           {mutation.isError && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('unknownError'))}
             </p>
           )}
 
@@ -134,10 +133,12 @@ export function EditSnapshotDialog<TResult>({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t('cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Saving…' : 'Save changes'}
+              {mutation.isPending
+                ? t('actions.saving')
+                : t('actions.saveChanges')}
             </Button>
           </DialogFooter>
         </form>
@@ -146,11 +147,11 @@ export function EditSnapshotDialog<TResult>({
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownMsg: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownMsg
 }

@@ -1,3 +1,4 @@
 {
-  "_scaffold": "errors"
+  "failedToLoad": "Gagal memuat: {{message}}",
+  "unknownError": "kesalahan tidak diketahui"
 }

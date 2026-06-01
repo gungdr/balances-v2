@@ -1,4 +1,24 @@
+// i18n template (issue #7). The per-group extraction pattern lives here and
+// is reused by the other position groups (#8 properties/vehicles, #9
+// liabilities/receivables, #10 investments, #11 income):
+//
+// • Group-specific copy → namespace per group (`assets`, `liabilities`,
+//   `investments`, `income`). Bank-account text lives at
+//   `assets.bankAccount.*`.
+// • Shared field labels (reused across ≥2 groups) → `common.fields.*`.
+// • Shared dialogs (snapshot / terminate / import) → `common.snapshot.*`,
+//   `common.terminate.*`, `common.import.*` — Create/Edit/RowSnapshot,
+//   TerminatePositionDialog and ImportSnapshotsDialog all read from these.
+// • Lifecycle status labels → `common.lifecycle.<group>.<status>` (resolved
+//   via lib/lifecycle.ts → i18n.t with a defaultValue fallback).
+// • Ownership labels → `common.ownership.*` (resolved via lib/ownership.ts).
+// • Error / toast copy → `errors.*`.
+//
+// Plural-sensitive lines use i18next's `_one` / `_other` suffix; counts are
+// passed as the `count` interpolation key. Single-noun screens pass their
+// own noun/nounPlural pair into the shared list keys.
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { SortableHeader } from '@/components/SortableHeader'
@@ -34,10 +54,14 @@ type Row = {
 const tiebreakByName = (a: Row, b: Row) => a.name.localeCompare(b.name)
 
 export function BankAccountsScreen({ onSelect }: Props) {
+  const { t } = useTranslation(['assets', 'common', 'errors'])
   const { data, isPending, error } = useBankAccounts()
   const { data: members } = useHouseholdMembers()
   const { data: currentUser } = useSession()
   const [showInactive, setShowInactive] = useState(false)
+
+  const noun = t('assets:bankAccount.noun')
+  const nounPlural = t('assets:bankAccount.nounPlural')
 
   const rows = useMemo<Row[]>(
     () =>
@@ -89,9 +113,11 @@ export function BankAccountsScreen({ onSelect }: Props) {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Bank Accounts</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t('assets:bankAccount.listTitle')}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Track monthly balances across your household's bank accounts.
+            {t('assets:bankAccount.listSubtitle')}
           </p>
         </div>
         <CreateBankAccountDialog />
@@ -100,26 +126,28 @@ export function BankAccountsScreen({ onSelect }: Props) {
       <ListHeadline
         totals={totals}
         count={count}
-        label="Total balance"
-        noun="account"
-        nounPlural="accounts"
+        label={t('assets:bankAccount.totalBalance')}
+        noun={noun}
+        nounPlural={nounPlural}
         testId="bank-accounts-total"
       />
 
-      {isPending && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {isPending && (
+        <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
+      )}
 
       {error && (
         <p className="text-sm text-destructive">
-          Failed to load: {(error as Error).message}
+          {t('errors:failedToLoad', { message: (error as Error).message })}
         </p>
       )}
 
       {data && data.length === 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>No bank accounts yet</CardTitle>
+            <CardTitle>{t('assets:bankAccount.emptyTitle')}</CardTitle>
             <CardDescription>
-              Create your first bank account to start tracking month-end balances.
+              {t('assets:bankAccount.emptyBody')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -133,7 +161,7 @@ export function BankAccountsScreen({ onSelect }: Props) {
           {terminatedCount > 0 && (
             <ShowInactiveToggle
               count={terminatedCount}
-              nounPlural="accounts"
+              nounPlural={nounPlural}
               checked={showInactive}
               onChange={setShowInactive}
             />
@@ -141,9 +169,11 @@ export function BankAccountsScreen({ onSelect }: Props) {
 
           {visibleRows.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No active accounts. {terminatedCount} inactive account
-              {terminatedCount === 1 ? '' : 's'} hidden — tick "Show inactive
-              accounts" to {terminatedCount === 1 ? 'see it' : 'see them'}.
+              {t('common:list.noActive', {
+                count: terminatedCount,
+                noun,
+                nounPlural,
+              })}
             </p>
           ) : (
             <Card>
@@ -152,28 +182,28 @@ export function BankAccountsScreen({ onSelect }: Props) {
                   <TableHeader>
                     <TableRow>
                       <SortableHeader
-                        label="Name"
+                        label={t('common:tableHeaders.name')}
                         testId="sort-name"
                         active={sortKey === 'name'}
                         dir={sortDir}
                         onSort={() => toggle('name')}
                       />
                       <SortableHeader
-                        label="Ownership"
+                        label={t('common:tableHeaders.ownership')}
                         testId="sort-ownership"
                         active={sortKey === 'ownership'}
                         dir={sortDir}
                         onSort={() => toggle('ownership')}
                       />
                       <SortableHeader
-                        label="Status"
+                        label={t('common:tableHeaders.status')}
                         testId="sort-status"
                         active={sortKey === 'status'}
                         dir={sortDir}
                         onSort={() => toggle('status')}
                       />
                       <SortableHeader
-                        label="Latest balance"
+                        label={t('assets:bankAccount.sortLatestBalance')}
                         testId="sort-balance"
                         align="right"
                         active={sortKey === 'balance'}

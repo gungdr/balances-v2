@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -13,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ApiError } from '@/api/client'
 import { useUpdateLifecycle } from '@/hooks/useLifecycle'
-import { STATUS_OPTIONS, type LifecycleGroup } from '@/lib/lifecycle'
+import { statusOptions, type LifecycleGroup } from '@/lib/lifecycle'
 
 // todayISO returns YYYY-MM-DD in the local timezone. toISOString() would shift
 // users east of UTC into yesterday for the first hours of their day.
@@ -47,6 +48,7 @@ export function TerminatePositionDialog({
   currentTerminatedAt,
   currentNote,
 }: Props) {
+  const { t } = useTranslation('common')
   const [open, setOpen] = useState(false)
   const mutation = useUpdateLifecycle(group, id, listKey)
 
@@ -98,31 +100,26 @@ export function TerminatePositionDialog({
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          {wasActive ? 'Close position' : 'Edit status'}
+          {wasActive ? t('terminate.closeTrigger') : t('terminate.editTrigger')}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {wasActive ? 'Close position' : 'Edit lifecycle status'}
+            {wasActive ? t('terminate.closeTitle') : t('terminate.editTitle')}
           </DialogTitle>
-          <DialogDescription>
-            Mark this position closed, sold, or otherwise terminated. A
-            terminated position stops counting toward net worth from its
-            termination month onward. You can also reopen it by switching back
-            to Active.
-          </DialogDescription>
+          <DialogDescription>{t('terminate.description')}</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid gap-2">
-            <Label htmlFor="lifecycle_status">Status</Label>
+            <Label htmlFor="lifecycle_status">{t('terminate.statusLabel')}</Label>
             <select
               id="lifecycle_status"
               className="h-9 rounded-md border border-input bg-background px-3 text-sm"
               value={status}
               onChange={(e) => onStatusChange(e.target.value)}
             >
-              {STATUS_OPTIONS[group].map((o) => (
+              {statusOptions(group).map((o) => (
                 <option key={o.value} value={o.value}>
                   {o.label}
                 </option>
@@ -132,7 +129,9 @@ export function TerminatePositionDialog({
 
           {!isActive && (
             <div className="grid gap-2">
-              <Label htmlFor="lifecycle_terminated_at">Terminated on</Label>
+              <Label htmlFor="lifecycle_terminated_at">
+                {t('terminate.terminatedOnLabel')}
+              </Label>
               <Input
                 id="lifecycle_terminated_at"
                 type="date"
@@ -144,27 +143,27 @@ export function TerminatePositionDialog({
           )}
 
           <div className="grid gap-2">
-            <Label htmlFor="lifecycle_note">Note (optional)</Label>
+            <Label htmlFor="lifecycle_note">{t('terminate.noteLabel')}</Label>
             <Input
               id="lifecycle_note"
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Sold to a private buyer"
+              placeholder={t('terminate.notePlaceholder')}
             />
           </div>
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('unknownError'))}
             </p>
           )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              Cancel
+              {t('cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Saving…' : 'Save'}
+              {mutation.isPending ? t('actions.saving') : t('save')}
             </Button>
           </DialogFooter>
         </form>
@@ -173,11 +172,11 @@ export function TerminatePositionDialog({
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownMsg: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownMsg
 }

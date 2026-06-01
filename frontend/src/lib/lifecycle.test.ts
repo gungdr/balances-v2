@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
-  STATUS_OPTIONS,
+  STATUS_VALUES,
   statusLabel,
+  statusOptions,
   isActiveStatus,
   type LifecycleGroup,
 } from '@/lib/lifecycle'
@@ -13,22 +14,35 @@ const groups: LifecycleGroup[] = [
   'investments',
 ]
 
-describe('STATUS_OPTIONS', () => {
-  it('leads every group with the active option', () => {
+describe('STATUS_VALUES', () => {
+  it('leads every group with the active value', () => {
     for (const group of groups) {
-      expect(STATUS_OPTIONS[group][0]).toEqual({ value: 'active', label: 'Active' })
+      expect(STATUS_VALUES[group][0]).toBe('active')
+    }
+  })
+})
+
+describe('statusOptions', () => {
+  it('preserves the per-group order and pairs each value with a label', () => {
+    for (const group of groups) {
+      const opts = statusOptions(group)
+      expect(opts.map((o) => o.value)).toEqual(STATUS_VALUES[group])
+      for (const o of opts) {
+        // i18n is not initialised in unit tests; the lookup returns the
+        // defaultValue (the raw status) — still a non-empty string we can
+        // surface in a dropdown. Catalog correctness is asserted in
+        // i18n/catalogs.test.ts.
+        expect(typeof o.label).toBe('string')
+        expect(o.label.length).toBeGreaterThan(0)
+      }
     }
   })
 })
 
 describe('statusLabel', () => {
-  it('resolves a known status to its human label', () => {
-    expect(statusLabel('liabilities', 'paid_off')).toBe('Paid off')
-    expect(statusLabel('investments', 'matured')).toBe('Matured')
-    expect(statusLabel('assets', 'disposed')).toBe('Disposed')
-  })
-
-  it('falls back to the raw value for an unknown status', () => {
+  it('falls back to the raw value when no translation is loaded', () => {
+    // Without an initialised i18n the helper returns the defaultValue, which
+    // is the status key itself — handy for tests and a safe runtime fallback.
     expect(statusLabel('receivables', 'sold')).toBe('sold')
     expect(statusLabel('assets', 'mystery')).toBe('mystery')
   })

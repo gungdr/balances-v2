@@ -1,3 +1,44 @@
 {
-  "_scaffold": "assets"
+  "bankAccount": {
+    "listTitle": "Rekening Bank",
+    "listSubtitle": "Pantau saldo bulanan di rekening bank rumah tangga Anda.",
+    "totalBalance": "Total saldo",
+    "noun": "rekening",
+    "nounPlural": "rekening",
+    "emptyTitle": "Belum ada rekening bank",
+    "emptyBody": "Buat rekening bank pertama untuk mulai melacak saldo akhir bulan.",
+    "rowActions": "Aksi rekening bank",
+    "deleteTitle": "Hapus rekening bank ini?",
+    "deleteRowDescription": "{{name}} akan disembunyikan dari daftar dan laporan. Bisa dipulihkan via database, belum via UI.",
+    "deleteDetailDescription": "Snapshot dan riwayat akan disembunyikan. Bisa dipulihkan via database, belum via UI.",
+    "sortLatestBalance": "Saldo terkini",
+    "createTrigger": "+ Rekening bank baru",
+    "createTitle": "Rekening bank baru",
+    "createDescription": "Lacak satu rekening bank di rumah tangga Anda. Anda akan mencatat snapshot saldo bulanan dari rekening koran setelahnya.",
+    "editTitle": "Ubah rekening bank",
+    "editDescription": "Perbarui nama tampilan, detail bank, deskripsi, atau kepemilikan rekening. Mata uang belum bisa diubah.",
+    "detailHeaderLine": "{{bankName}} · {{accountNumber}} · {{accountType}}",
+    "detailsCardTitle": "Detail Rekening",
+    "detailsCardLine": "Kepemilikan: {{ownership}} · Mata uang: {{currency}} · Status:",
+    "chartTitle": "Saldo dari Waktu ke Waktu",
+    "chartDescription": "Perkembangan saldo bulanan dalam {{currency}}.",
+    "snapshotsTitle": "Snapshot",
+    "snapshotsDescription": "Bacaan saldo bulanan dari rekening koran Anda.",
+    "snapshotsEmpty": "Belum ada snapshot. Klik \"Snapshot baru\" untuk mencatat saldo bulan ini.",
+    "fields": {
+      "bankName": "Nama bank",
+      "accountNumber": "Nomor rekening",
+      "accountType": "Jenis rekening"
+    },
+    "accountTypes": {
+      "savings": "Tabungan",
+      "current": "Giro",
+      "other": "Lainnya"
+    },
+    "placeholders": {
+      "displayName": "BCA Tabungan",
+      "bankName": "BCA",
+      "currency": "IDR"
+    }
+  }
 }

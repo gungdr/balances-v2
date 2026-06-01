@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,6 +27,7 @@ type Props = {
 }
 
 export function BankAccountListRow({ item, ownerLabel, onSelect }: Props) {
+  const { t } = useTranslation(['assets', 'common'])
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const deleteMutation = useDeleteBankAccount()
@@ -53,8 +55,13 @@ export function BankAccountListRow({ item, ownerLabel, onSelect }: Props) {
             {item.asset.display_name}
           </div>
           <div className="text-xs text-muted-foreground">
-            {item.details.bank_name} · {item.details.account_number} ·{' '}
-            {item.details.account_type}
+            {t('assets:bankAccount.detailHeaderLine', {
+              bankName: item.details.bank_name,
+              accountNumber: item.details.account_number,
+              accountType: t(
+                `assets:bankAccount.accountTypes.${item.details.account_type}`,
+              ),
+            })}
           </div>
         </TableCell>
         <TableCell>{ownerLabel}</TableCell>
@@ -75,7 +82,7 @@ export function BankAccountListRow({ item, ownerLabel, onSelect }: Props) {
               </div>
             </>
           ) : (
-            <span className="text-muted-foreground">—</span>
+            <span className="text-muted-foreground">{'—'}</span>
           )}
         </TableCell>
         <TableCell className="text-right">
@@ -84,7 +91,7 @@ export function BankAccountListRow({ item, ownerLabel, onSelect }: Props) {
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label="Bank account actions"
+                aria-label={t('assets:bankAccount.rowActions')}
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreHorizontal className="size-4" />
@@ -92,13 +99,13 @@ export function BankAccountListRow({ item, ownerLabel, onSelect }: Props) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                Edit
+                {t('common:actions.edit')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setDeleteOpen(true)}
                 variant="destructive"
               >
-                Delete
+                {t('common:delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -115,9 +122,11 @@ export function BankAccountListRow({ item, ownerLabel, onSelect }: Props) {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this bank account?"
-        description={`${item.asset.display_name} will be hidden from lists and reports. This can be undone via the database, not yet via the UI.`}
-        confirmLabel="Delete"
+        title={t('assets:bankAccount.deleteTitle')}
+        description={t('assets:bankAccount.deleteRowDescription', {
+          name: item.asset.display_name,
+        })}
+        confirmLabel={t('common:delete')}
         destructive
         pending={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}

@@ -41,5 +41,118 @@
       "title": "Investasi",
       "body": "Ringkasan investasi Anda akan muncul di sini. Sementara ini, pilih kategori dari menu."
     }
+  },
+  "actions": {
+    "edit": "Ubah",
+    "back": "← Kembali",
+    "done": "Selesai",
+    "create": "Tambah",
+    "creating": "Menambahkan…",
+    "saving": "Menyimpan…",
+    "saveChanges": "Simpan perubahan",
+    "checking": "Memeriksa…"
+  },
+  "fields": {
+    "displayName": "Nama tampilan",
+    "description": "Deskripsi (opsional)",
+    "amount": "Nominal",
+    "amountIn": "Nominal ({{currency}})",
+    "currency": "Mata uang",
+    "month": "Bulan",
+    "statementDate": "Tanggal laporan (opsional)",
+    "notes": "Catatan",
+    "ownership": "Kepemilikan"
+  },
+  "ownership": {
+    "joint": "Bersama",
+    "sole": "Tunggal",
+    "soleOwner": "Pemilik tunggal",
+    "youSuffix": " (Anda)"
+  },
+  "lifecycle": {
+    "assets": {
+      "active": "Aktif",
+      "closed": "Ditutup",
+      "sold": "Terjual",
+      "disposed": "Dilepas"
+    },
+    "liabilities": {
+      "active": "Aktif",
+      "paid_off": "Lunas",
+      "forgiven": "Dibebaskan",
+      "written_off": "Dihapusbukukan"
+    },
+    "receivables": {
+      "active": "Aktif",
+      "collected": "Tertagih",
+      "written_off": "Dihapusbukukan"
+    },
+    "investments": {
+      "active": "Aktif",
+      "sold": "Terjual",
+      "matured": "Jatuh Tempo"
+    }
+  },
+  "tableHeaders": {
+    "name": "Nama",
+    "ownership": "Kepemilikan",
+    "status": "Status",
+    "month": "Bulan",
+    "amount": "Nominal",
+    "notes": "Catatan"
+  },
+  "list": {
+    "showInactive": "Tampilkan {{nounPlural}} non-aktif ({{count}})",
+    "activeCount_one": "di {{count}} {{noun}} aktif",
+    "activeCount_other": "di {{count}} {{noun}} aktif",
+    "noActive_one": "Tidak ada {{nounPlural}} aktif. {{count}} {{noun}} non-aktif tersembunyi — centang \"Tampilkan {{nounPlural}} non-aktif\" untuk melihatnya.",
+    "noActive_other": "Tidak ada {{nounPlural}} aktif. {{count}} {{noun}} non-aktif tersembunyi — centang \"Tampilkan {{nounPlural}} non-aktif\" untuk melihatnya."
+  },
+  "snapshot": {
+    "trigger": "+ Snapshot baru",
+    "createTitle": "Catat snapshot bulanan",
+    "createDescription": "Masukkan nilai akhir bulan. Mata uang dikunci ke mata uang asal posisi ({{currency}}).",
+    "editTitle": "Ubah snapshot",
+    "editDescription": "Perbarui nominal, tanggal laporan, atau deskripsi snapshot ini. Untuk mengubah bulan, hapus lalu buat ulang.",
+    "save": "Simpan snapshot",
+    "statementPrefix": "laporan: {{date}}",
+    "rowActions": "Aksi snapshot",
+    "deleteTitle": "Hapus snapshot ini?",
+    "deleteDescription": "Bacaan {{month}} akan disembunyikan dari laporan. Bisa dipulihkan via database, belum via UI.",
+    "revaluationHint": "💡 Saran {{amount}} — berdasarkan {{sign}}{{magnitude}}% /thn × {{months}} bln dari {{anchor}}.",
+    "revaluationApply": "Terapkan",
+    "descriptionPlaceholder": "dari laporan BCA",
+    "amountPlaceholder": "mis. 12500000"
+  },
+  "terminate": {
+    "closeTrigger": "Tutup posisi",
+    "editTrigger": "Ubah status",
+    "closeTitle": "Tutup posisi",
+    "editTitle": "Ubah status siklus hidup",
+    "description": "Tandai posisi ini ditutup, terjual, atau dihentikan. Posisi yang dihentikan berhenti dihitung ke kekayaan bersih mulai bulan penghentian. Anda juga bisa membukanya kembali dengan kembali ke Aktif.",
+    "statusLabel": "Status",
+    "terminatedOnLabel": "Dihentikan pada",
+    "noteLabel": "Catatan (opsional)",
+    "notePlaceholder": "Dijual ke pembeli pribadi"
+  },
+  "import": {
+    "trigger": "Impor dari spreadsheet",
+    "title": "Impor snapshot",
+    "description": "Tambahkan saldo bulanan secara massal dari spreadsheet — berguna untuk mengisi riwayat bertahun-tahun sekaligus.",
+    "step1Label": "1. Unduh template",
+    "templateLink": "Unduh template (.xlsx)",
+    "step1Hint": "Isi satu baris per saldo akhir bulan (mata uang default {{currency}}). Buka di Google Sheets, LibreOffice, Numbers, atau Excel; simpan sebagai <bold>.xlsx</bold> (bukan CSV). Cukup isi bulan-bulan yang Anda punya angkanya.",
+    "step2Label": "2. Unggah file yang sudah diisi",
+    "needsFixing_one": "{{count}} baris perlu diperbaiki — tidak ada yang diimpor:",
+    "needsFixing_other": "{{count}} baris perlu diperbaiki — tidak ada yang diimpor:",
+    "rowError": "Baris {{row}}: {{message}}",
+    "emptyPreview": "Tidak ada baris ditemukan dalam file. Tambahkan saldo lalu unggah ulang.",
+    "preview": "Siap: {{insert}} baru, {{update}} diperbarui. Belum disimpan — tekan Impor untuk konfirmasi.",
+    "committed_one": "Diimpor {{insert}} baru + {{update}} diperbarui bulan.",
+    "committed_other": "Diimpor {{insert}} baru + {{update}} diperbarui bulan.",
+    "checkFile": "Periksa file",
+    "importN_one": "Impor {{count}} bulan",
+    "importN_other": "Impor {{count}} bulan",
+    "importPlain": "Impor"
   }
 }

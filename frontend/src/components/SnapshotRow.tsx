@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { UseMutationResult } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -36,6 +37,7 @@ export function SnapshotRow<TUpdate, TDelete>({
   updateMutation,
   deleteMutation,
 }: Props<TUpdate, TDelete>) {
+  const { t } = useTranslation('common')
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
 
@@ -54,7 +56,9 @@ export function SnapshotRow<TUpdate, TDelete>({
           </div>
           {snapshot.as_of_date && (
             <div className="text-xs text-muted-foreground">
-              statement: {formatDate(snapshot.as_of_date)}
+              {t('snapshot.statementPrefix', {
+                date: formatDate(snapshot.as_of_date),
+              })}
             </div>
           )}
         </TableCell>
@@ -65,19 +69,19 @@ export function SnapshotRow<TUpdate, TDelete>({
         <TableCell className="text-right">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Snapshot actions">
+              <Button variant="ghost" size="icon" aria-label={t('snapshot.rowActions')}>
                 <MoreHorizontal className="size-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                Edit
+                {t('actions.edit')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setDeleteOpen(true)}
                 variant="destructive"
               >
-                Delete
+                {t('delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -95,9 +99,11 @@ export function SnapshotRow<TUpdate, TDelete>({
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this snapshot?"
-        description={`The ${formatYearMonth(snapshot.year_month)} reading will be hidden from reports. This can be undone via the database, not yet via the UI.`}
-        confirmLabel="Delete"
+        title={t('snapshot.deleteTitle')}
+        description={t('snapshot.deleteDescription', {
+          month: formatYearMonth(snapshot.year_month),
+        })}
+        confirmLabel={t('delete')}
         destructive
         pending={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}

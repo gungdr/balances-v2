@@ -1,3 +1,44 @@
 {
-  "_scaffold": "assets"
+  "bankAccount": {
+    "listTitle": "Bank Accounts",
+    "listSubtitle": "Track monthly balances across your household's bank accounts.",
+    "totalBalance": "Total balance",
+    "noun": "account",
+    "nounPlural": "accounts",
+    "emptyTitle": "No bank accounts yet",
+    "emptyBody": "Create your first bank account to start tracking month-end balances.",
+    "rowActions": "Bank account actions",
+    "deleteTitle": "Delete this bank account?",
+    "deleteRowDescription": "{{name}} will be hidden from lists and reports. This can be undone via the database, not yet via the UI.",
+    "deleteDetailDescription": "Snapshots and history will be hidden. This can be undone via the database, not yet via the UI.",
+    "sortLatestBalance": "Latest balance",
+    "createTrigger": "+ New bank account",
+    "createTitle": "New bank account",
+    "createDescription": "Track a bank account in your household. You'll record monthly balance snapshots from your bank statements afterwards.",
+    "editTitle": "Edit bank account",
+    "editDescription": "Update the account's display name, bank details, description, or ownership. Currency is not editable yet.",
+    "detailHeaderLine": "{{bankName}} · {{accountNumber}} · {{accountType}}",
+    "detailsCardTitle": "Account Details",
+    "detailsCardLine": "Ownership: {{ownership}} · Currency: {{currency}} · Status:",
+    "chartTitle": "Balance Over Time",
+    "chartDescription": "Monthly balance progression in {{currency}}.",
+    "snapshotsTitle": "Snapshots",
+    "snapshotsDescription": "Monthly balance readings from your bank statements.",
+    "snapshotsEmpty": "No snapshots yet. Click \"New snapshot\" to record this month's balance.",
+    "fields": {
+      "bankName": "Bank name",
+      "accountNumber": "Account number",
+      "accountType": "Account type"
+    },
+    "accountTypes": {
+      "savings": "Savings",
+      "current": "Current",
+      "other": "Other"
+    },
+    "placeholders": {
+      "displayName": "BCA Savings",
+      "bankName": "BCA",
+      "currency": "IDR"
+    }
+  }
 }

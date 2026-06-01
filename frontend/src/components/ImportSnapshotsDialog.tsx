@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import type { UseMutationResult } from '@tanstack/react-query'
+import { useTranslation, Trans } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -27,6 +28,7 @@ type Props = {
 // nothing); "Import" only lights up once the file is clean. Aimed at a
 // non-technical user backfilling years of statements at once.
 export function ImportSnapshotsDialog({ templateUrl, mutation, currency }: Props) {
+  const { t } = useTranslation('common')
   const [open, setOpen] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [result, setResult] = useState<ImportResult | null>(null)
@@ -65,38 +67,40 @@ export function ImportSnapshotsDialog({ templateUrl, mutation, currency }: Props
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline" data-testid="import-snapshots-trigger">
-          Import from spreadsheet
+          {t('import.trigger')}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Import snapshots</DialogTitle>
-          <DialogDescription>
-            Bulk-add monthly balances from a spreadsheet — handy for backfilling
-            years of history at once.
-          </DialogDescription>
+          <DialogTitle>{t('import.title')}</DialogTitle>
+          <DialogDescription>{t('import.description')}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="grid gap-1.5">
-            <Label>1. Download the template</Label>
+            <Label>{t('import.step1Label')}</Label>
             <a
               href={templateUrl}
               className="text-sm text-primary underline underline-offset-4"
               data-testid="import-template-link"
             >
-              Download template (.xlsx)
+              {t('import.templateLink')}
             </a>
             <p className="text-xs text-muted-foreground">
-              Fill one row per month-end balance (currency defaults to{' '}
-              {currency}). Open it in Google Sheets, LibreOffice, Numbers, or
-              Excel; save as <strong>.xlsx</strong> (not CSV). You only need the
-              months you actually have a figure for.
+              {/* <bold> tag in the catalog renders via Trans → <strong>. Keeps
+                  the inline emphasis without splitting the sentence into three
+                  separate keys per locale. */}
+              <Trans
+                i18nKey="import.step1Hint"
+                t={t}
+                values={{ currency }}
+                components={{ bold: <strong /> }}
+              />
             </p>
           </div>
 
           <div className="grid gap-1.5">
-            <Label htmlFor="import-file">2. Upload the filled-in file</Label>
+            <Label htmlFor="import-file">{t('import.step2Label')}</Label>
             <input
               id="import-file"
               ref={fileRef}
@@ -113,9 +117,7 @@ export function ImportSnapshotsDialog({ templateUrl, mutation, currency }: Props
               {result.errors.length > 0 ? (
                 <div className="space-y-1">
                   <p className="text-destructive">
-                    {result.errors.length} row
-                    {result.errors.length === 1 ? '' : 's'} need fixing — nothing
-                    was imported:
+                    {t('import.needsFixing', { count: result.errors.length })}
                   </p>
                   <ul
                     className="list-disc space-y-0.5 pl-5 text-destructive"
@@ -123,20 +125,19 @@ export function ImportSnapshotsDialog({ templateUrl, mutation, currency }: Props
                   >
                     {result.errors.map((e) => (
                       <li key={e.row}>
-                        Row {e.row}: {e.message}
+                        {t('import.rowError', { row: e.row, message: e.message })}
                       </li>
                     ))}
                   </ul>
                 </div>
               ) : emptyPreview ? (
-                <p className="text-muted-foreground">
-                  No rows found in the file. Add some balances and re-upload.
-                </p>
+                <p className="text-muted-foreground">{t('import.emptyPreview')}</p>
               ) : (
                 <p className="text-muted-foreground">
-                  Ready: <strong>{result.to_insert}</strong> new,{' '}
-                  <strong>{result.to_update}</strong> updated. Nothing saved yet
-                  — press Import to confirm.
+                  {t('import.preview', {
+                    insert: result.to_insert,
+                    update: result.to_update,
+                  })}
                 </p>
               )}
             </div>
@@ -144,14 +145,17 @@ export function ImportSnapshotsDialog({ templateUrl, mutation, currency }: Props
 
           {committed && (
             <p className="text-sm text-emerald-600" data-testid="import-done">
-              Imported {result.to_insert} new + {result.to_update} updated
-              month{total === 1 ? '' : 's'}.
+              {t('import.committed', {
+                count: total,
+                insert: result.to_insert,
+                update: result.to_update,
+              })}
             </p>
           )}
 
           {mutation.isError && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('unknownError'))}
             </p>
           )}
         </div>
@@ -159,12 +163,12 @@ export function ImportSnapshotsDialog({ templateUrl, mutation, currency }: Props
         <DialogFooter>
           {committed ? (
             <Button type="button" onClick={close}>
-              Done
+              {t('actions.done')}
             </Button>
           ) : (
             <>
               <Button type="button" variant="outline" onClick={close}>
-                Cancel
+                {t('cancel')}
               </Button>
               <Button
                 type="button"
@@ -173,7 +177,9 @@ export function ImportSnapshotsDialog({ templateUrl, mutation, currency }: Props
                 onClick={() => run('preview')}
                 data-testid="import-check-btn"
               >
-                {mutation.isPending && !committed ? 'Checking…' : 'Check file'}
+                {mutation.isPending && !committed
+                  ? t('actions.checking')
+                  : t('import.checkFile')}
               </Button>
               <Button
                 type="button"
@@ -181,7 +187,9 @@ export function ImportSnapshotsDialog({ templateUrl, mutation, currency }: Props
                 onClick={() => run('commit')}
                 data-testid="import-commit-btn"
               >
-                {cleanPreview ? `Import ${total} month${total === 1 ? '' : 's'}` : 'Import'}
+                {cleanPreview
+                  ? t('import.importN', { count: total })
+                  : t('import.importPlain')}
               </Button>
             </>
           )}
@@ -191,11 +199,11 @@ export function ImportSnapshotsDialog({ templateUrl, mutation, currency }: Props
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownMsg: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownMsg
 }

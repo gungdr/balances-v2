@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -29,6 +30,7 @@ const empty = {
 }
 
 export function CreateBankAccountDialog() {
+  const { t } = useTranslation(['assets', 'common'])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(empty)
   const { data: user } = useSession()
@@ -65,19 +67,18 @@ export function CreateBankAccountDialog() {
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
-        <Button>+ New bank account</Button>
+        <Button>{t('assets:bankAccount.createTrigger')}</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New bank account</DialogTitle>
+          <DialogTitle>{t('assets:bankAccount.createTitle')}</DialogTitle>
           <DialogDescription>
-            Track a bank account in your household. You'll record monthly
-            balance snapshots from your bank statements afterwards.
+            {t('assets:bankAccount.createDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid gap-2">
-            <Label htmlFor="display_name">Display name</Label>
+            <Label htmlFor="display_name">{t('common:fields.displayName')}</Label>
             <Input
               id="display_name"
               required
@@ -85,23 +86,25 @@ export function CreateBankAccountDialog() {
               onChange={(e) =>
                 setForm({ ...form, display_name: e.target.value })
               }
-              placeholder="BCA Savings"
+              placeholder={t('assets:bankAccount.placeholders.displayName')}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="bank_name">Bank name</Label>
+            <Label htmlFor="bank_name">{t('assets:bankAccount.fields.bankName')}</Label>
             <Input
               id="bank_name"
               required
               value={form.bank_name}
               onChange={(e) => setForm({ ...form, bank_name: e.target.value })}
-              placeholder="BCA"
+              placeholder={t('assets:bankAccount.placeholders.bankName')}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="account_number">Account number</Label>
+            <Label htmlFor="account_number">
+              {t('assets:bankAccount.fields.accountNumber')}
+            </Label>
             <Input
               id="account_number"
               required
@@ -114,7 +117,9 @@ export function CreateBankAccountDialog() {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="account_type">Account type</Label>
+              <Label htmlFor="account_type">
+                {t('assets:bankAccount.fields.accountType')}
+              </Label>
               <select
                 id="account_type"
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -126,13 +131,19 @@ export function CreateBankAccountDialog() {
                   })
                 }
               >
-                <option value="savings">Savings</option>
-                <option value="current">Current</option>
-                <option value="other">Other</option>
+                <option value="savings">
+                  {t('assets:bankAccount.accountTypes.savings')}
+                </option>
+                <option value="current">
+                  {t('assets:bankAccount.accountTypes.current')}
+                </option>
+                <option value="other">
+                  {t('assets:bankAccount.accountTypes.other')}
+                </option>
               </select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="native_currency">Currency</Label>
+              <Label htmlFor="native_currency">{t('common:fields.currency')}</Label>
               <Input
                 id="native_currency"
                 required
@@ -143,14 +154,14 @@ export function CreateBankAccountDialog() {
                     native_currency: e.target.value.toUpperCase(),
                   })
                 }
-                placeholder="IDR"
+                placeholder={t('assets:bankAccount.placeholders.currency')}
                 maxLength={3}
               />
             </div>
           </div>
 
           <div className="grid gap-2">
-            <Label>Ownership</Label>
+            <Label>{t('common:fields.ownership')}</Label>
             <div className="flex gap-4 text-sm">
               <label className="flex items-center gap-2">
                 <input
@@ -160,7 +171,7 @@ export function CreateBankAccountDialog() {
                   checked={form.ownership_type === 'joint'}
                   onChange={() => setForm({ ...form, ownership_type: 'joint' })}
                 />
-                Joint
+                {t('common:ownership.joint')}
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -170,12 +181,12 @@ export function CreateBankAccountDialog() {
                   checked={form.ownership_type === 'sole'}
                   onChange={() => setForm({ ...form, ownership_type: 'sole' })}
                 />
-                Sole owner
+                {t('common:ownership.soleOwner')}
               </label>
             </div>
             {form.ownership_type === 'sole' && (
               <select
-                aria-label="Sole owner"
+                aria-label={t('common:ownership.soleOwner')}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                 value={effectiveSoleOwnerID ?? ''}
                 onChange={(e) =>
@@ -185,7 +196,7 @@ export function CreateBankAccountDialog() {
                 {(members ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
                     {preferredName(m)}
-                    {user && m.id === user.id ? ' (you)' : ''}
+                    {user && m.id === user.id ? t('common:ownership.youSuffix') : ''}
                   </option>
                 ))}
               </select>
@@ -193,7 +204,7 @@ export function CreateBankAccountDialog() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="description">Description (optional)</Label>
+            <Label htmlFor="description">{t('common:fields.description')}</Label>
             <Input
               id="description"
               value={form.description}
@@ -205,16 +216,18 @@ export function CreateBankAccountDialog() {
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Creating…' : 'Create'}
+              {mutation.isPending
+                ? t('common:actions.creating')
+                : t('common:actions.create')}
             </Button>
           </DialogFooter>
         </form>
@@ -223,11 +236,11 @@ export function CreateBankAccountDialog() {
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownMsg: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownMsg
 }

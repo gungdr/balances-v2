@@ -41,5 +41,118 @@
       "title": "Investments",
       "body": "An overview of your investments is coming here. For now, choose a category from the menu."
     }
+  },
+  "actions": {
+    "edit": "Edit",
+    "back": "← Back",
+    "done": "Done",
+    "create": "Create",
+    "creating": "Creating…",
+    "saving": "Saving…",
+    "saveChanges": "Save changes",
+    "checking": "Checking…"
+  },
+  "fields": {
+    "displayName": "Display name",
+    "description": "Description (optional)",
+    "amount": "Amount",
+    "amountIn": "Amount ({{currency}})",
+    "currency": "Currency",
+    "month": "Month",
+    "statementDate": "Statement date (optional)",
+    "notes": "Notes",
+    "ownership": "Ownership"
+  },
+  "ownership": {
+    "joint": "Joint",
+    "sole": "Sole",
+    "soleOwner": "Sole owner",
+    "youSuffix": " (you)"
+  },
+  "lifecycle": {
+    "assets": {
+      "active": "Active",
+      "closed": "Closed",
+      "sold": "Sold",
+      "disposed": "Disposed"
+    },
+    "liabilities": {
+      "active": "Active",
+      "paid_off": "Paid off",
+      "forgiven": "Forgiven",
+      "written_off": "Written off"
+    },
+    "receivables": {
+      "active": "Active",
+      "collected": "Collected",
+      "written_off": "Written off"
+    },
+    "investments": {
+      "active": "Active",
+      "sold": "Sold",
+      "matured": "Matured"
+    }
+  },
+  "tableHeaders": {
+    "name": "Name",
+    "ownership": "Ownership",
+    "status": "Status",
+    "month": "Month",
+    "amount": "Amount",
+    "notes": "Notes"
+  },
+  "list": {
+    "showInactive": "Show inactive {{nounPlural}} ({{count}})",
+    "activeCount_one": "across {{count}} active {{noun}}",
+    "activeCount_other": "across {{count}} active {{noun}}",
+    "noActive_one": "No active {{nounPlural}}. {{count}} inactive {{noun}} hidden — tick \"Show inactive {{nounPlural}}\" to see it.",
+    "noActive_other": "No active {{nounPlural}}. {{count}} inactive {{noun}} hidden — tick \"Show inactive {{nounPlural}}\" to see them."
+  },
+  "snapshot": {
+    "trigger": "+ New snapshot",
+    "createTitle": "Record monthly snapshot",
+    "createDescription": "Enter the month-end value. Currency is locked to the position's native currency ({{currency}}).",
+    "editTitle": "Edit snapshot",
+    "editDescription": "Update the amount, statement date, or description for this snapshot. To change the month, delete and re-create.",
+    "save": "Save snapshot",
+    "statementPrefix": "statement: {{date}}",
+    "rowActions": "Snapshot actions",
+    "deleteTitle": "Delete this snapshot?",
+    "deleteDescription": "The {{month}} reading will be hidden from reports. This can be undone via the database, not yet via the UI.",
+    "revaluationHint": "💡 Suggested {{amount}} — based on {{sign}}{{magnitude}}% /yr × {{months}} mo from {{anchor}}.",
+    "revaluationApply": "Apply",
+    "descriptionPlaceholder": "from BCA statement",
+    "amountPlaceholder": "e.g. 12500000"
+  },
+  "terminate": {
+    "closeTrigger": "Close position",
+    "editTrigger": "Edit status",
+    "closeTitle": "Close position",
+    "editTitle": "Edit lifecycle status",
+    "description": "Mark this position closed, sold, or otherwise terminated. A terminated position stops counting toward net worth from its termination month onward. You can also reopen it by switching back to Active.",
+    "statusLabel": "Status",
+    "terminatedOnLabel": "Terminated on",
+    "noteLabel": "Note (optional)",
+    "notePlaceholder": "Sold to a private buyer"
+  },
+  "import": {
+    "trigger": "Import from spreadsheet",
+    "title": "Import snapshots",
+    "description": "Bulk-add monthly balances from a spreadsheet — handy for backfilling years of history at once.",
+    "step1Label": "1. Download the template",
+    "templateLink": "Download template (.xlsx)",
+    "step1Hint": "Fill one row per month-end balance (currency defaults to {{currency}}). Open it in Google Sheets, LibreOffice, Numbers, or Excel; save as <bold>.xlsx</bold> (not CSV). You only need the months you actually have a figure for.",
+    "step2Label": "2. Upload the filled-in file",
+    "needsFixing_one": "{{count}} row needs fixing — nothing was imported:",
+    "needsFixing_other": "{{count}} rows need fixing — nothing was imported:",
+    "rowError": "Row {{row}}: {{message}}",
+    "emptyPreview": "No rows found in the file. Add some balances and re-upload.",
+    "preview": "Ready: {{insert}} new, {{update}} updated. Nothing saved yet — press Import to confirm.",
+    "committed_one": "Imported {{insert}} new + {{update}} updated month.",
+    "committed_other": "Imported {{insert}} new + {{update}} updated months.",
+    "checkFile": "Check file",
+    "importN_one": "Import {{count}} month",
+    "importN_other": "Import {{count}} months",
+    "importPlain": "Import"
   }
 }

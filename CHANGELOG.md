@@ -860,6 +860,55 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
   - **No `data-testid` changes**, no public-API changes; `MonthPickerPopover.MONTH_LABELS`
     became `MONTH_KEYS` (`jan`…`dec` indexing into `common.months`).
   - Lint 1166 → 1127 (39 dashboard-files cleared). Build green, vitest 13/13 (127/127).
+- **Bank-accounts i18n extraction (M6, frontend-only — issue #7).** Third extraction slice and the
+  **template** the four remaining group extractions (#8 properties/vehicles, #9 liabilities/
+  receivables, #10 investments, #11 income) will copy. Touched 9 components + 2 helpers + 4 catalog
+  files; ~130 string sites moved into `common` / `assets` / `errors`.
+  - **Components:** `BankAccountsScreen` (carries the new pattern doc block at file top),
+    `BankAccountDetail`, `BankAccountListRow`, `Create/EditBankAccountDialog`. Shared
+    amount-shape dialogs extracted in the same slice and reused as-is by #8/#9:
+    `Create/EditSnapshotDialog`, `SnapshotRow`, `ImportSnapshotsDialog`, `TerminatePositionDialog`.
+    Cross-list helpers `ListHeadline` + `ShowInactiveToggle` now own their own `t()`.
+  - **Helpers translated via the imported `i18n` instance** (not a hook, not a `TFunction` prop):
+    `lib/lifecycle.ts` (`statusLabel`, new `statusOptions(group)` replaces the old
+    `STATUS_OPTIONS` table; `STATUS_VALUES` keeps the per-group ordering) and `lib/ownership.ts`
+    (`ownershipLabel`'s `Joint` / `Sole` / ` (you)` literals). Callers re-render via
+    `useTranslation` upstream, so the `i18n.t` lookup picks up the live locale each render.
+    Both helpers use `defaultValue: <english>` so the unit tests (vitest runs in `node`
+    without an init'd i18n) still pass against the raw values — catalog correctness is asserted
+    separately by `i18n/catalogs.test.ts`. `lib/lifecycle.test.ts` rewritten against the new
+    `STATUS_VALUES` + `statusOptions` API; the old "label === English" assertions dropped.
+  - **Pattern decisions (settled here, ported to #8–#11):**
+    - Group-specific copy → group namespace (`assets.bankAccount.*`,
+      `liabilities.personal.*`, …). Shared field labels reused across ≥2 groups →
+      `common.fields.*`. Shared dialogs (snapshot / terminate / import) →
+      `common.snapshot.*` / `common.terminate.*` / `common.import.*` — `Create/EditSnapshotDialog`,
+      `SnapshotRow`, `TerminatePositionDialog`, `ImportSnapshotsDialog` all read from these
+      shared keys, so a new group never reproduces dialog copy.
+    - Lifecycle status labels → `common.lifecycle.<group>.<status>` (resolved through
+      `lib/lifecycle.ts → i18n.t`). Ownership labels → `common.ownership.*` (resolved through
+      `lib/ownership.ts`). Status enums on extension tables (e.g. `account_type` = savings /
+      current / other) translate at the call site via `t('assets:bankAccount.accountTypes.<v>')`
+      against an enum sub-namespace per group.
+    - Pluralisation uses i18next's `_one` / `_other` suffix: `common.list.activeCount`,
+      `common.list.noActive`, `common.import.needsFixing` / `committed` / `importN`. Count-aware
+      copy passes the raw `count` + caller's `noun`/`nounPlural` pair so the shared key carries
+      the count semantics and the screen provides only the noun.
+    - `errors.json` populated with `failedToLoad` + `unknownError`; `formatError(err, fallback)`
+      in dialogs (`Create/EditBankAccountDialog`, `Create/EditSnapshotDialog`,
+      `ImportSnapshotsDialog`, `TerminatePositionDialog`) takes the localised unknown-error
+      string as an explicit parameter (mirrors the chrome refactor in #5).
+  - **Import dialog's bolded sentence fragment uses `<Trans>`** with a `<bold>` component slot
+    rather than splitting the sentence into three keys per locale. First use of `<Trans>` in
+    the extraction sweep; pattern documented for the bond/time-deposit dialogs in #10.
+  - **ID copy follows `docs/glossary-id.md`:** Rekening Bank, Tabungan / Giro / Lainnya
+    (account types), Saldo, Snapshot (kept as loanword), Bersama / Tunggal (ownership),
+    Aktif / Ditutup / Terjual / Dilepas (lifecycle).
+  - **No `data-testid` changes**, no public-API changes other than `lib/lifecycle.ts` swapping
+    `STATUS_OPTIONS` (data table) for `statusOptions(group)` (function); the only caller was
+    `TerminatePositionDialog`.
+  - Lint 1127 → 987 (140 bank-account + shared-dialog warnings cleared). Build green,
+    vitest 13/13 (127/127).
 
 ## What M4.2 shipped
 

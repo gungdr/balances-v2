@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 type Props = {
   count: number
   // Plural noun, e.g. "accounts" / "positions".
@@ -10,6 +12,7 @@ type Props = {
 // Callers render it only when there are inactive rows to reveal, so the count
 // is always ≥ 1 here.
 export function ShowInactiveToggle({ count, nounPlural, checked, onChange }: Props) {
+  const { t } = useTranslation('common')
   return (
     <div className="flex justify-end">
       <label className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -20,7 +23,7 @@ export function ShowInactiveToggle({ count, nounPlural, checked, onChange }: Pro
           onChange={(e) => onChange(e.target.checked)}
           data-testid="show-inactive"
         />
-        Show inactive {nounPlural} ({count})
+        {t('list.showInactive', { count, nounPlural })}
       </label>
     </div>
   )

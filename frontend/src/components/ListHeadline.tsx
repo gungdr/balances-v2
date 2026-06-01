@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { formatCurrency } from '@/lib/format'
 import type { CurrencyTotal } from '@/lib/totals'
 
@@ -7,7 +8,8 @@ type Props = {
   // e.g. "Total balance" / "Total value" / "Total owed".
   label: string
   // Singular + plural for the count line ("1 account" / "3 accounts"); explicit
-  // because plurals are irregular (property → properties).
+  // because plurals are irregular (property → properties). Indonesian collapses
+  // both forms to the same noun — same prop shape works for either locale.
   noun: string
   nounPlural: string
   testId?: string
@@ -25,20 +27,26 @@ export function ListHeadline({
   nounPlural,
   testId,
 }: Props) {
+  const { t } = useTranslation('common')
   if (totals.length === 0) return null
   return (
     <div className="rounded-lg border p-4" data-testid={testId}>
       <div className="text-sm text-muted-foreground">{label}</div>
       <div className="mt-0.5 text-2xl font-semibold tabular-nums">
-        {totals.map((t, i) => (
-          <span key={t.currency}>
-            {i > 0 && <span className="text-muted-foreground"> · </span>}
-            {formatCurrency(String(t.amount), t.currency)}
+        {totals.map((row, i) => (
+          <span key={row.currency}>
+            {i > 0 && (
+              <span aria-hidden className="text-muted-foreground">
+                {/* Typographic separator glyph; locale-neutral. */}
+                {' · '}
+              </span>
+            )}
+            {formatCurrency(String(row.amount), row.currency)}
           </span>
         ))}
       </div>
       <div className="mt-0.5 text-xs text-muted-foreground">
-        across {count} active {count === 1 ? noun : nounPlural}
+        {t('list.activeCount', { count, noun: count === 1 ? noun : nounPlural })}
       </div>
     </div>
   )
