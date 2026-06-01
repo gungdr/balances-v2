@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -93,6 +94,7 @@ export function CreateIncomeDialog({
   seed,
   hideTrigger = false,
 }: Props = {}) {
+  const { t } = useTranslation(['income', 'common'])
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : uncontrolledOpen
@@ -149,22 +151,24 @@ export function CreateIncomeDialog({
     <Dialog open={open} onOpenChange={(o) => (o ? openDialog() : close())}>
       {!hideTrigger && (
         <DialogTrigger asChild>
-          <Button>+ New income</Button>
+          <Button>{t('income:createTrigger')}</Button>
         </DialogTrigger>
       )}
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{seed ? 'Duplicate income' : 'New income'}</DialogTitle>
+          <DialogTitle>
+            {seed ? t('income:duplicateTitle') : t('income:createTitle')}
+          </DialogTitle>
           <DialogDescription>
             {seed
-              ? 'Pre-filled from the original. Date defaults to today.'
-              : 'Record earned cash entering your household — salary, gifts, refunds, payouts.'}
+              ? t('income:duplicateDescription')
+              : t('income:createDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="income_date">Date</Label>
+              <Label htmlFor="income_date">{t('income:fields.date')}</Label>
               <Input
                 id="income_date"
                 type="date"
@@ -174,7 +178,9 @@ export function CreateIncomeDialog({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="income_category">Category</Label>
+              <Label htmlFor="income_category">
+                {t('income:fields.category')}
+              </Label>
               <select
                 id="income_category"
                 required
@@ -188,33 +194,47 @@ export function CreateIncomeDialog({
                 }
               >
                 <option value="" disabled>
-                  Select category
+                  {t('income:categoryOptions.placeholder')}
                 </option>
-                <option value="salary">Salary</option>
-                <option value="business_income">Business income</option>
-                <option value="rental_income">Rental income</option>
-                <option value="gift">Gift</option>
-                <option value="tax_refund">Tax refund</option>
-                <option value="insurance_payout">Insurance payout</option>
-                <option value="other">Other</option>
+                <option value="salary">
+                  {t('income:categoryOptions.salary')}
+                </option>
+                <option value="business_income">
+                  {t('income:categoryOptions.business_income')}
+                </option>
+                <option value="rental_income">
+                  {t('income:categoryOptions.rental_income')}
+                </option>
+                <option value="gift">{t('income:categoryOptions.gift')}</option>
+                <option value="tax_refund">
+                  {t('income:categoryOptions.tax_refund')}
+                </option>
+                <option value="insurance_payout">
+                  {t('income:categoryOptions.insurance_payout')}
+                </option>
+                <option value="other">
+                  {t('income:categoryOptions.other')}
+                </option>
               </select>
             </div>
           </div>
 
           <div className="grid grid-cols-[1fr_120px] gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="income_amount">Amount</Label>
+              <Label htmlFor="income_amount">{t('income:fields.amount')}</Label>
               <Input
                 id="income_amount"
                 required
                 inputMode="decimal"
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                placeholder="15000000"
+                placeholder={t('income:placeholders.amount')}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="income_currency">Currency</Label>
+              <Label htmlFor="income_currency">
+                {t('income:fields.currency')}
+              </Label>
               <Input
                 id="income_currency"
                 required
@@ -231,19 +251,21 @@ export function CreateIncomeDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="income_description">Description (optional)</Label>
+            <Label htmlFor="income_description">
+              {t('income:fields.description')}
+            </Label>
             <Input
               id="income_description"
               value={form.description}
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
               }
-              placeholder="Base salary"
+              placeholder={t('income:placeholders.description')}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label>Regularity</Label>
+            <Label>{t('income:regularity.label')}</Label>
             <div className="flex gap-4 text-sm">
               <label className="flex items-center gap-2">
                 <input
@@ -253,7 +275,7 @@ export function CreateIncomeDialog({
                   checked={form.regularity === 'routine'}
                   onChange={() => setForm({ ...form, regularity: 'routine' })}
                 />
-                Routine
+                {t('income:regularity.routine')}
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -265,13 +287,13 @@ export function CreateIncomeDialog({
                     setForm({ ...form, regularity: 'incidental' })
                   }
                 />
-                Incidental
+                {t('income:regularity.incidental')}
               </label>
             </div>
           </div>
 
           <div className="grid gap-2">
-            <Label>Ownership</Label>
+            <Label>{t('common:fields.ownership')}</Label>
             <div className="flex gap-4 text-sm">
               <label className="flex items-center gap-2">
                 <input
@@ -283,7 +305,7 @@ export function CreateIncomeDialog({
                     setForm({ ...form, ownership_type: 'sole' })
                   }
                 />
-                Sole owner
+                {t('common:ownership.soleOwner')}
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -295,12 +317,12 @@ export function CreateIncomeDialog({
                     setForm({ ...form, ownership_type: 'joint' })
                   }
                 />
-                Joint
+                {t('common:ownership.joint')}
               </label>
             </div>
             {form.ownership_type === 'sole' && (
               <select
-                aria-label="Sole owner"
+                aria-label={t('common:ownership.soleOwner')}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                 value={effectiveSoleOwnerID ?? ''}
                 onChange={(e) =>
@@ -310,7 +332,7 @@ export function CreateIncomeDialog({
                 {(members ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
                     {preferredName(m)}
-                    {user && m.id === user.id ? ' (you)' : ''}
+                    {user && m.id === user.id ? t('common:ownership.youSuffix') : ''}
                   </option>
                 ))}
               </select>
@@ -319,16 +341,18 @@ export function CreateIncomeDialog({
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Saving…' : 'Create'}
+              {mutation.isPending
+                ? t('income:submit.saving')
+                : t('income:submit.create')}
             </Button>
           </DialogFooter>
         </form>
@@ -337,11 +361,11 @@ export function CreateIncomeDialog({
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownMsg: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownMsg
 }

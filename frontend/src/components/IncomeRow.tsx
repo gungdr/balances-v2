@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { MoreHorizontal, Repeat, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -19,23 +20,14 @@ import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { ownershipLabel } from '@/lib/ownership'
-import type { Income, IncomeCategory } from '@/api/types'
-
-const CATEGORY_LABEL: Record<IncomeCategory, string> = {
-  salary: 'Salary',
-  business_income: 'Business',
-  rental_income: 'Rental',
-  gift: 'Gift',
-  tax_refund: 'Tax refund',
-  insurance_payout: 'Insurance',
-  other: 'Other',
-}
+import type { Income } from '@/api/types'
 
 type Props = {
   income: Income
 }
 
 export function IncomeRow({ income }: Props) {
+  const { t } = useTranslation(['income', 'common'])
   const [editOpen, setEditOpen] = useState(false)
   const [duplicateOpen, setDuplicateOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -68,7 +60,13 @@ export function IncomeRow({ income }: Props) {
 
   const isRoutine = income.regularity === 'routine'
   const RegularityIcon = isRoutine ? Repeat : Sparkles
-  const regularityLabel = isRoutine ? 'Routine income' : 'Incidental income'
+  // Short row-chip label for the category (Salary / Business / Rental / ...)
+  // — distinct from the longer dropdown options ("Business income") so the
+  // table cell stays compact.
+  const categoryChip = t(`income:categories.${income.category}`)
+  const regularityLabel = t(
+    isRoutine ? 'income:regularity.routineRowLabel' : 'income:regularity.incidentalRowLabel',
+  )
 
   return (
     <>
@@ -79,7 +77,7 @@ export function IncomeRow({ income }: Props) {
         <TableCell>
           <div className="flex items-center gap-1.5">
             <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs">
-              {CATEGORY_LABEL[income.category]}
+              {categoryChip}
             </span>
             <RegularityIcon
               className="size-3.5 text-muted-foreground"
@@ -94,7 +92,9 @@ export function IncomeRow({ income }: Props) {
           {formatCurrency(income.amount, income.currency)}
         </TableCell>
         <TableCell className="text-sm text-muted-foreground">
-          {income.description || <span className="text-muted-foreground/60">—</span>}
+          {income.description || (
+            <span className="text-muted-foreground/60">{'—'}</span>
+          )}
         </TableCell>
         <TableCell className="text-xs text-muted-foreground">
           {ownerLabel}
@@ -105,23 +105,23 @@ export function IncomeRow({ income }: Props) {
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label="Income actions"
+                aria-label={t('income:rowActions')}
               >
                 <MoreHorizontal className="size-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                Edit
+                {t('common:actions.edit')}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setDuplicateOpen(true)}>
-                Duplicate
+                {t('income:actions.duplicate')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setDeleteOpen(true)}
                 variant="destructive"
               >
-                Delete
+                {t('common:delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -148,12 +148,13 @@ export function IncomeRow({ income }: Props) {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this income entry?"
-        description={`${CATEGORY_LABEL[income.category]} · ${formatCurrency(
-          income.amount,
-          income.currency,
-        )} on ${formatDate(income.date)} will be hidden from lists and reports. This can be undone via the database, not yet via the UI.`}
-        confirmLabel="Delete"
+        title={t('income:deleteTitle')}
+        description={t('income:deleteDescription', {
+          category: categoryChip,
+          amount: formatCurrency(income.amount, income.currency),
+          date: formatDate(income.date),
+        })}
+        confirmLabel={t('common:delete')}
         destructive
         pending={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}

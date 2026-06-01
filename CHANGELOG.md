@@ -992,6 +992,47 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     preserved in the EN catalog.
   - Lint 827 → 681 (146 liability + receivable warnings cleared). Build green, vitest
     13/13 (127/127). Playwright pending final commit.
+- **Income i18n extraction (M6, frontend-only — issue #11).** Sixth extraction slice;
+  the flat flow-event group end-to-end. 4 components touched (`IncomeScreen`,
+  `IncomeRow`, `Create/EditIncomeDialog`); ~66 string sites moved into `income.*`.
+  Pulled ahead of #10 at user request — income is the simpler of the two
+  remaining extractions and unblocks tackling #10 (investments + transactions, 18
+  components) in isolation.
+  - **Two-tier category catalog.** Income rows render a compact chip ("Salary" /
+    "Business" / "Rental"), while the Create/Edit dropdowns spell out the longer
+    forms ("Business income" / "Rental income" / "Insurance payout"). Catalog
+    mirrors the divergence with `income.categories.*` (chip) + parallel
+    `income.categoryOptions.*` (dropdown, with a `placeholder` sibling for the
+    disabled "Select category" option). The previous in-component
+    `CATEGORY_LABEL: Record<IncomeCategory, string>` constant table was deleted —
+    the call site in `IncomeRow` now reads `t(\`income:categories.\${income.category}\`)`
+    directly and reuses that resolved string in the delete-confirm sentence.
+  - **Regularity icons keep their accessible labels.** The `Repeat` (routine) /
+    `Sparkles` (incidental) row icons resolve their `aria-label` + `<title>` via
+    `income.regularity.routineRowLabel` / `incidentalRowLabel` so a screen reader
+    announces "Pemasukan rutin" in ID. The chip-bar filter labels (`Routine` /
+    `Incidental` / `All` → `Rutin` / `Insidental` / `Semua`) live alongside under
+    `income.filter.*`.
+  - **Filter-empty line localised by enum.** When the filter chip is set and no
+    rows match, the screen picks one of three keys (`filter.emptyAll` /
+    `emptyRoutine` / `emptyIncidental`) rather than interpolating a stray English
+    enum into a generic frame — keeps the ID noun ("rutin" / "insidental") agreeing
+    with the surrounding sentence.
+  - **Duplicate flow preserved.** The row-level Duplicate menu item still mounts
+    `CreateIncomeDialog` with a `DuplicateSeed` and the dialog title flips between
+    `createTitle` and `duplicateTitle` based on `seed` presence. The Create's
+    Sole-default ownership (M4.5 grilling lineage) survives the i18n sweep.
+  - **ID copy from `docs/glossary-id.md`:** Pemasukan (Income — chose over
+    Pendapatan for the non-technical-household register), Gaji / Pendapatan usaha /
+    Pendapatan sewa / Hadiah / Pengembalian pajak / Klaim asuransi / Lainnya (the
+    seven category dropdowns), Rutin / Insidental (regularity), Duplikat
+    (Duplicate verb on the row menu), Saring (Filter — verb form for the
+    `filter.ariaLabel`).
+  - **No `data-testid` changes**, no public-API changes; the in-component
+    `CATEGORY_LABEL` table removed from `IncomeRow` (only call site).
+  - Lint 681 → 615 (66 income warnings cleared; 615 remaining are all `#10`
+    investment-transaction-dialog scope). Build green, vitest 13/13 (127/127).
+    Playwright pending final commit.
 
 ## What M4.2 shipped
 

@@ -1,3 +1,76 @@
 {
-  "_scaffold": "income"
+  "listTitle": "Income",
+  "listSubtitle": "Earned cash entering your household — salary, business income, gifts, refunds, payouts. Investment returns are tracked separately on each instrument.",
+  "emptyTitle": "No income recorded yet",
+  "emptyBody": "Add your first income entry — typically the most recent paycheck or transfer.",
+  "rowActions": "Income actions",
+  "actions": {
+    "duplicate": "Duplicate"
+  },
+  "deleteTitle": "Delete this income entry?",
+  "deleteDescription": "{{category}} · {{amount}} on {{date}} will be hidden from lists and reports. This can be undone via the database, not yet via the UI.",
+  "filter": {
+    "ariaLabel": "Filter by regularity",
+    "all": "All",
+    "routine": "Routine",
+    "incidental": "Incidental",
+    "emptyAll": "No income to show.",
+    "emptyRoutine": "No routine income to show.",
+    "emptyIncidental": "No incidental income to show."
+  },
+  "categories": {
+    "salary": "Salary",
+    "business_income": "Business",
+    "rental_income": "Rental",
+    "gift": "Gift",
+    "tax_refund": "Tax refund",
+    "insurance_payout": "Insurance",
+    "other": "Other"
+  },
+  "categoryOptions": {
+    "placeholder": "Select category",
+    "salary": "Salary",
+    "business_income": "Business income",
+    "rental_income": "Rental income",
+    "gift": "Gift",
+    "tax_refund": "Tax refund",
+    "insurance_payout": "Insurance payout",
+    "other": "Other"
+  },
+  "regularity": {
+    "label": "Regularity",
+    "routine": "Routine",
+    "incidental": "Incidental",
+    "routineRowLabel": "Routine income",
+    "incidentalRowLabel": "Incidental income"
+  },
+  "tableHeaders": {
+    "date": "Date",
+    "category": "Category",
+    "amount": "Amount",
+    "description": "Description",
+    "ownership": "Ownership"
+  },
+  "createTrigger": "+ New income",
+  "createTitle": "New income",
+  "createDescription": "Record earned cash entering your household — salary, gifts, refunds, payouts.",
+  "duplicateTitle": "Duplicate income",
+  "duplicateDescription": "Pre-filled from the original. Date defaults to today.",
+  "editTitle": "Edit income",
+  "editDescription": "Corrections retroactively shift the income statement for the affected month.",
+  "fields": {
+    "date": "Date",
+    "category": "Category",
+    "amount": "Amount",
+    "currency": "Currency",
+    "description": "Description (optional)"
+  },
+  "placeholders": {
+    "amount": "15000000",
+    "description": "Base salary"
+  },
+  "submit": {
+    "saving": "Saving…",
+    "create": "Create"
+  }
 }

@@ -1,3 +1,76 @@
 {
-  "_scaffold": "income"
+  "listTitle": "Pemasukan",
+  "listSubtitle": "Uang yang masuk ke rumah tangga Anda — gaji, pendapatan usaha, hadiah, pengembalian, klaim. Hasil investasi dilacak terpisah pada masing-masing instrumen.",
+  "emptyTitle": "Belum ada pemasukan tercatat",
+  "emptyBody": "Tambahkan pemasukan pertama Anda — biasanya gaji atau transfer terakhir.",
+  "rowActions": "Aksi pemasukan",
+  "actions": {
+    "duplicate": "Duplikat"
+  },
+  "deleteTitle": "Hapus entri pemasukan ini?",
+  "deleteDescription": "{{category}} · {{amount}} pada {{date}} akan disembunyikan dari daftar dan laporan. Bisa dipulihkan via database, belum via UI.",
+  "filter": {
+    "ariaLabel": "Saring berdasarkan keteraturan",
+    "all": "Semua",
+    "routine": "Rutin",
+    "incidental": "Insidental",
+    "emptyAll": "Tidak ada pemasukan untuk ditampilkan.",
+    "emptyRoutine": "Tidak ada pemasukan rutin untuk ditampilkan.",
+    "emptyIncidental": "Tidak ada pemasukan insidental untuk ditampilkan."
+  },
+  "categories": {
+    "salary": "Gaji",
+    "business_income": "Usaha",
+    "rental_income": "Sewa",
+    "gift": "Hadiah",
+    "tax_refund": "Pengembalian pajak",
+    "insurance_payout": "Asuransi",
+    "other": "Lainnya"
+  },
+  "categoryOptions": {
+    "placeholder": "Pilih kategori",
+    "salary": "Gaji",
+    "business_income": "Pendapatan usaha",
+    "rental_income": "Pendapatan sewa",
+    "gift": "Hadiah",
+    "tax_refund": "Pengembalian pajak",
+    "insurance_payout": "Klaim asuransi",
+    "other": "Lainnya"
+  },
+  "regularity": {
+    "label": "Keteraturan",
+    "routine": "Rutin",
+    "incidental": "Insidental",
+    "routineRowLabel": "Pemasukan rutin",
+    "incidentalRowLabel": "Pemasukan insidental"
+  },
+  "tableHeaders": {
+    "date": "Tanggal",
+    "category": "Kategori",
+    "amount": "Nominal",
+    "description": "Deskripsi",
+    "ownership": "Kepemilikan"
+  },
+  "createTrigger": "+ Pemasukan baru",
+  "createTitle": "Pemasukan baru",
+  "createDescription": "Catat uang yang masuk ke rumah tangga Anda — gaji, hadiah, pengembalian, klaim.",
+  "duplicateTitle": "Duplikat pemasukan",
+  "duplicateDescription": "Sudah terisi dari entri asli. Tanggal default hari ini.",
+  "editTitle": "Ubah pemasukan",
+  "editDescription": "Koreksi akan menggeser laporan pemasukan untuk bulan yang terkait secara retroaktif.",
+  "fields": {
+    "date": "Tanggal",
+    "category": "Kategori",
+    "amount": "Nominal",
+    "currency": "Mata uang",
+    "description": "Deskripsi (opsional)"
+  },
+  "placeholders": {
+    "amount": "15000000",
+    "description": "Gaji pokok"
+  },
+  "submit": {
+    "saving": "Menyimpan…",
+    "create": "Tambah"
+  }
 }

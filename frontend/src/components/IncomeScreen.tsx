@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Card,
   CardContent,
@@ -24,13 +25,12 @@ const PAGE_SIZE = 12
 
 type RegularityFilter = 'all' | Regularity
 
-const FILTER_OPTIONS: { value: RegularityFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'routine', label: 'Routine' },
-  { value: 'incidental', label: 'Incidental' },
-]
+// Filter values are stable enum keys; labels resolve at render via t() so the
+// chip-bar localises with the rest of the screen.
+const FILTER_VALUES: RegularityFilter[] = ['all', 'routine', 'incidental']
 
 export function IncomeScreen() {
+  const { t } = useTranslation(['income', 'common', 'errors'])
   const { data, isPending, error } = useIncome()
   const [page, setPage] = useState(1)
   const [regularityFilter, setRegularityFilter] =
@@ -48,38 +48,45 @@ export function IncomeScreen() {
     effectivePage * PAGE_SIZE,
   )
 
+  // The filter-empty line picks one of three messages so the noun reads
+  // naturally in either locale rather than interpolating a raw "all" / "rutin"
+  // keyword into a generic frame.
+  const emptyKey =
+    regularityFilter === 'routine'
+      ? 'income:filter.emptyRoutine'
+      : regularityFilter === 'incidental'
+        ? 'income:filter.emptyIncidental'
+        : 'income:filter.emptyAll'
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Income</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t('income:listTitle')}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Earned cash entering your household — salary, business income,
-            gifts, refunds, payouts. Investment returns are tracked separately
-            on each instrument.
+            {t('income:listSubtitle')}
           </p>
         </div>
         <CreateIncomeDialog />
       </div>
 
       {isPending && (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
       )}
 
       {error && (
         <p className="text-sm text-destructive">
-          Failed to load: {(error as Error).message}
+          {t('errors:failedToLoad', { message: (error as Error).message })}
         </p>
       )}
 
       {data && data.length === 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>No income recorded yet</CardTitle>
-            <CardDescription>
-              Add your first income entry — typically the most recent paycheck
-              or transfer.
-            </CardDescription>
+            <CardTitle>{t('income:emptyTitle')}</CardTitle>
+            <CardDescription>{t('income:emptyBody')}</CardDescription>
           </CardHeader>
           <CardContent>
             <CreateIncomeDialog />
@@ -89,38 +96,44 @@ export function IncomeScreen() {
 
       {data && data.length > 0 && (
         <div className="space-y-3">
-          <div className="flex gap-2" role="group" aria-label="Filter by regularity">
-            {FILTER_OPTIONS.map((opt) => (
+          <div
+            className="flex gap-2"
+            role="group"
+            aria-label={t('income:filter.ariaLabel')}
+          >
+            {FILTER_VALUES.map((value) => (
               <Button
-                key={opt.value}
+                key={value}
                 size="sm"
-                variant={regularityFilter === opt.value ? 'default' : 'outline'}
+                variant={regularityFilter === value ? 'default' : 'outline'}
                 onClick={() => {
-                  setRegularityFilter(opt.value)
+                  setRegularityFilter(value)
                   setPage(1)
                 }}
-                data-testid={`regularity-filter-${opt.value}`}
+                data-testid={`regularity-filter-${value}`}
               >
-                {opt.label}
+                {t(`income:filter.${value}`)}
               </Button>
             ))}
           </div>
 
           {filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No {regularityFilter} income to show.
-            </p>
+            <p className="text-sm text-muted-foreground">{t(emptyKey)}</p>
           ) : (
             <Card>
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Ownership</TableHead>
+                      <TableHead>{t('income:tableHeaders.date')}</TableHead>
+                      <TableHead>{t('income:tableHeaders.category')}</TableHead>
+                      <TableHead>{t('income:tableHeaders.amount')}</TableHead>
+                      <TableHead>
+                        {t('income:tableHeaders.description')}
+                      </TableHead>
+                      <TableHead>
+                        {t('income:tableHeaders.ownership')}
+                      </TableHead>
                       <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>

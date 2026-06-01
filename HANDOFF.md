@@ -99,6 +99,20 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     Piutang, Pihak lawan (counterparty), Pokok (principal), Suku bunga (interest
     rate), Tenor (term, common Indonesian finance loanword), Jatuh tempo (maturity
     / due date).
+  - Income extraction (issue #11): the flat flow-event group end-to-end
+    (`IncomeScreen` + `IncomeRow` + `Create/EditIncomeDialog`). `income` namespace
+    carries: the 7 categories under `categories.*` (short row-chip labels:
+    Salary / Business / Rental / Gift / Tax refund / Insurance / Other) and a
+    parallel `categoryOptions.*` block with the longer dropdown forms ("Business
+    income"); regularity copy (`regularity.routine` / `incidental` + the icon
+    `*RowLabel` variants for the Repeat / Sparkles row icons); the three-chip
+    `filter.{all,routine,incidental}` bar plus three matching `emptyAll` /
+    `emptyRoutine` / `emptyIncidental` lines so the filter-empty noun reads
+    naturally per locale; the delete-confirm summary as a single interpolated
+    sentence. Sole-default semantics preserved (M4.5 grilling lineage). ID copy
+    from the glossary: Pemasukan (Income), Gaji / Pendapatan usaha / Pendapatan
+    sewa / Hadiah / Pengembalian pajak / Klaim asuransi / Lainnya (categories),
+    Rutin / Insidental (regularity), Duplikat (Duplicate row-action verb).
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
