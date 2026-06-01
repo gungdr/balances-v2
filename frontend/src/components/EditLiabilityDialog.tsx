@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -39,6 +40,7 @@ function toForm(l: Liability) {
 }
 
 export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
+  const { t } = useTranslation(['liabilities', 'common'])
   const mutation = useUpdateLiability(liability.id)
   const { data: user } = useSession()
   const { data: members } = useHouseholdMembers()
@@ -70,15 +72,14 @@ export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit liability</DialogTitle>
+          <DialogTitle>{t('liabilities:editTitle')}</DialogTitle>
           <DialogDescription>
-            Subtype and currency are not editable — create a new liability if
-            those need to change. Ownership is editable.
+            {t('liabilities:editDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid gap-2">
-            <Label htmlFor="edit_l_display_name">Display name</Label>
+            <Label htmlFor="edit_l_display_name">{t('common:fields.displayName')}</Label>
             <Input
               id="edit_l_display_name"
               required
@@ -90,7 +91,9 @@ export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="edit_l_counterparty">Counterparty</Label>
+            <Label htmlFor="edit_l_counterparty">
+              {t('liabilities:fields.counterparty')}
+            </Label>
             <Input
               id="edit_l_counterparty"
               required
@@ -103,7 +106,9 @@ export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="edit_l_principal">Principal (optional)</Label>
+              <Label htmlFor="edit_l_principal">
+                {t('liabilities:fields.principalEdit')}
+              </Label>
               <Input
                 id="edit_l_principal"
                 inputMode="decimal"
@@ -115,7 +120,7 @@ export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit_l_interest_rate">
-                Interest rate (% per year, optional)
+                {t('liabilities:fields.interestRateEdit')}
               </Label>
               <Input
                 id="edit_l_interest_rate"
@@ -130,7 +135,7 @@ export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
 
           <div className="grid grid-cols-3 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="edit_l_term">Term (months)</Label>
+              <Label htmlFor="edit_l_term">{t('liabilities:fields.termEdit')}</Label>
               <Input
                 id="edit_l_term"
                 inputMode="numeric"
@@ -141,7 +146,9 @@ export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit_l_start">Start</Label>
+              <Label htmlFor="edit_l_start">
+                {t('liabilities:fields.startDateEdit')}
+              </Label>
               <Input
                 id="edit_l_start"
                 type="date"
@@ -152,7 +159,9 @@ export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit_l_maturity">Maturity</Label>
+              <Label htmlFor="edit_l_maturity">
+                {t('liabilities:fields.maturityDateEdit')}
+              </Label>
               <Input
                 id="edit_l_maturity"
                 type="date"
@@ -165,7 +174,7 @@ export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
           </div>
 
           <div className="grid gap-2">
-            <Label>Ownership</Label>
+            <Label>{t('common:fields.ownership')}</Label>
             <div className="flex gap-4 text-sm">
               <label className="flex items-center gap-2">
                 <input
@@ -175,7 +184,7 @@ export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
                   checked={form.ownership_type === 'joint'}
                   onChange={() => setForm({ ...form, ownership_type: 'joint' })}
                 />
-                Joint
+                {t('common:ownership.joint')}
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -185,12 +194,12 @@ export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
                   checked={form.ownership_type === 'sole'}
                   onChange={() => setForm({ ...form, ownership_type: 'sole' })}
                 />
-                Sole owner
+                {t('common:ownership.soleOwner')}
               </label>
             </div>
             {form.ownership_type === 'sole' && (
               <select
-                aria-label="Sole owner"
+                aria-label={t('common:ownership.soleOwner')}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                 value={effectiveSoleOwnerID ?? ''}
                 onChange={(e) =>
@@ -200,7 +209,7 @@ export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
                 {(members ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
                     {preferredName(m)}
-                    {user && m.id === user.id ? ' (you)' : ''}
+                    {user && m.id === user.id ? t('common:ownership.youSuffix') : ''}
                   </option>
                 ))}
               </select>
@@ -208,7 +217,7 @@ export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="edit_l_description">Description (optional)</Label>
+            <Label htmlFor="edit_l_description">{t('common:fields.description')}</Label>
             <Input
               id="edit_l_description"
               value={form.description}
@@ -220,7 +229,7 @@ export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
@@ -230,10 +239,12 @@ export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Saving…' : 'Save changes'}
+              {mutation.isPending
+                ? t('common:actions.saving')
+                : t('common:actions.saveChanges')}
             </Button>
           </DialogFooter>
         </form>
@@ -242,11 +253,11 @@ export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownMsg: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownMsg
 }

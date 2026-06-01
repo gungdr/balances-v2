@@ -1,3 +1,37 @@
 {
-  "_scaffold": "receivables"
+  "listTitle": "Piutang",
+  "listSubtitle": "Uang yang terutang kepada rumah tangga Anda — pinjaman, simpanan dalam proses, pengembalian dana yang belum tertagih.",
+  "totalOutstanding": "Total piutang",
+  "noun": "piutang",
+  "nounPlural": "piutang",
+  "emptyTitle": "Belum ada piutang",
+  "emptyBody": "Buat piutang pertama untuk mulai melacak saldo akhir bulan yang terutang kepada Anda.",
+  "rowActions": "Aksi piutang",
+  "deleteTitle": "Hapus piutang ini?",
+  "deleteRowDescription": "{{name}} akan disembunyikan dari daftar dan laporan. Bisa dipulihkan via database, belum via UI.",
+  "deleteDetailDescription": "Snapshot dan riwayat akan disembunyikan. Bisa dipulihkan via database, belum via UI.",
+  "sortLatestBalance": "Saldo terkini",
+  "createTrigger": "+ Piutang baru",
+  "createTitle": "Piutang baru",
+  "createDescription": "Lacak uang yang terutang kepada rumah tangga Anda — pinjaman yang Anda berikan, simpanan yang harus dikembalikan, pengembalian dana dalam proses.",
+  "editTitle": "Ubah piutang",
+  "editDescription": "Mata uang tidak bisa diubah — buat piutang baru jika perlu diubah. Kepemilikan bisa diubah.",
+  "detailSubtitleWithDue": "{{counterparty}} · jatuh tempo {{date}}",
+  "rowDueSuffix": " · jatuh tempo {{date}}",
+  "detailsCardTitle": "Detail Piutang",
+  "detailsCardLine": "Kepemilikan: {{ownership}} · Mata uang: {{currency}} · Status:",
+  "chartTitle": "Saldo Terutang dari Waktu ke Waktu",
+  "chartDescription": "Perkembangan saldo bulanan dalam {{currency}}.",
+  "snapshotsTitle": "Snapshot",
+  "snapshotsDescription": "Bacaan saldo terutang bulanan (input manual).",
+  "snapshotsEmpty": "Belum ada snapshot. Klik \"Snapshot baru\" untuk mencatat saldo terutang bulan ini.",
+  "fields": {
+    "counterparty": "Pihak lawan",
+    "dueDate": "Tanggal jatuh tempo (opsional)"
+  },
+  "placeholders": {
+    "displayName": "Pinjaman ke saudara",
+    "currency": "IDR",
+    "counterparty": "John Doe"
+  }
 }

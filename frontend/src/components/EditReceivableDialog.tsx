@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -39,6 +40,7 @@ export function EditReceivableDialog({
   onOpenChange,
   receivable,
 }: Props) {
+  const { t } = useTranslation(['receivables', 'common'])
   const mutation = useUpdateReceivable(receivable.id)
   const { data: user } = useSession()
   const { data: members } = useHouseholdMembers()
@@ -66,15 +68,14 @@ export function EditReceivableDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit receivable</DialogTitle>
+          <DialogTitle>{t('receivables:editTitle')}</DialogTitle>
           <DialogDescription>
-            Currency is not editable — create a new receivable if it needs to
-            change. Ownership is editable.
+            {t('receivables:editDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid gap-2">
-            <Label htmlFor="edit_r_display_name">Display name</Label>
+            <Label htmlFor="edit_r_display_name">{t('common:fields.displayName')}</Label>
             <Input
               id="edit_r_display_name"
               required
@@ -86,7 +87,9 @@ export function EditReceivableDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="edit_r_counterparty">Counterparty</Label>
+            <Label htmlFor="edit_r_counterparty">
+              {t('receivables:fields.counterparty')}
+            </Label>
             <Input
               id="edit_r_counterparty"
               required
@@ -98,7 +101,7 @@ export function EditReceivableDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="edit_r_due_date">Due date (optional)</Label>
+            <Label htmlFor="edit_r_due_date">{t('receivables:fields.dueDate')}</Label>
             <Input
               id="edit_r_due_date"
               type="date"
@@ -108,7 +111,7 @@ export function EditReceivableDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label>Ownership</Label>
+            <Label>{t('common:fields.ownership')}</Label>
             <div className="flex gap-4 text-sm">
               <label className="flex items-center gap-2">
                 <input
@@ -118,7 +121,7 @@ export function EditReceivableDialog({
                   checked={form.ownership_type === 'joint'}
                   onChange={() => setForm({ ...form, ownership_type: 'joint' })}
                 />
-                Joint
+                {t('common:ownership.joint')}
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -128,12 +131,12 @@ export function EditReceivableDialog({
                   checked={form.ownership_type === 'sole'}
                   onChange={() => setForm({ ...form, ownership_type: 'sole' })}
                 />
-                Sole owner
+                {t('common:ownership.soleOwner')}
               </label>
             </div>
             {form.ownership_type === 'sole' && (
               <select
-                aria-label="Sole owner"
+                aria-label={t('common:ownership.soleOwner')}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                 value={effectiveSoleOwnerID ?? ''}
                 onChange={(e) =>
@@ -143,7 +146,7 @@ export function EditReceivableDialog({
                 {(members ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
                     {preferredName(m)}
-                    {user && m.id === user.id ? ' (you)' : ''}
+                    {user && m.id === user.id ? t('common:ownership.youSuffix') : ''}
                   </option>
                 ))}
               </select>
@@ -151,7 +154,7 @@ export function EditReceivableDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="edit_r_description">Description (optional)</Label>
+            <Label htmlFor="edit_r_description">{t('common:fields.description')}</Label>
             <Input
               id="edit_r_description"
               value={form.description}
@@ -163,7 +166,7 @@ export function EditReceivableDialog({
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
@@ -173,10 +176,12 @@ export function EditReceivableDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Saving…' : 'Save changes'}
+              {mutation.isPending
+                ? t('common:actions.saving')
+                : t('common:actions.saveChanges')}
             </Button>
           </DialogFooter>
         </form>
@@ -185,11 +190,11 @@ export function EditReceivableDialog({
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownMsg: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownMsg
 }

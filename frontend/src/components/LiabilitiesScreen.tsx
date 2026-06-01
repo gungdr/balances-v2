@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { SortableHeader } from '@/components/SortableHeader'
@@ -21,19 +22,6 @@ type Props = {
   onSelect: (id: string) => void
 }
 
-const COPY = {
-  personal: {
-    title: 'Personal Liabilities',
-    description:
-      'Informal debts — money owed to family, friends, or other individuals.',
-  },
-  institutional: {
-    title: 'Institutional Liabilities',
-    description:
-      'Formal debts — mortgages, bank loans, outstanding credit-card balances.',
-  },
-} as const
-
 type SortKey = 'name' | 'ownership' | 'status' | 'balance'
 
 type Row = {
@@ -48,11 +36,16 @@ type Row = {
 const tiebreakByName = (a: Row, b: Row) => a.name.localeCompare(b.name)
 
 export function LiabilitiesScreen({ subtype, onSelect }: Props) {
+  const { t } = useTranslation(['liabilities', 'common', 'errors'])
   const { data, isPending, error } = useLiabilities(subtype)
   const { data: members } = useHouseholdMembers()
   const { data: currentUser } = useSession()
   const [showInactive, setShowInactive] = useState(false)
-  const copy = COPY[subtype]
+
+  const noun = t('liabilities:noun')
+  const nounPlural = t('liabilities:nounPlural')
+  // Lowercased subtype noun for inline use in copy ("No personal liabilities yet").
+  const subtypeLower = t(`liabilities:subtypes.${subtype}`).toLowerCase()
 
   const rows = useMemo<Row[]>(
     () =>
@@ -104,8 +97,12 @@ export function LiabilitiesScreen({ subtype, onSelect }: Props) {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{copy.title}</h1>
-          <p className="text-sm text-muted-foreground">{copy.description}</p>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t(`liabilities:screens.${subtype}.title`)}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {t(`liabilities:screens.${subtype}.description`)}
+          </p>
         </div>
         <CreateLiabilityDialog defaultSubtype={subtype} />
       </div>
@@ -113,27 +110,28 @@ export function LiabilitiesScreen({ subtype, onSelect }: Props) {
       <ListHeadline
         totals={totals}
         count={count}
-        label="Total owed"
-        noun="liability"
-        nounPlural="liabilities"
+        label={t('liabilities:totalOwed')}
+        noun={noun}
+        nounPlural={nounPlural}
         testId="liabilities-total"
       />
 
-      {isPending && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {isPending && (
+        <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
+      )}
 
       {error && (
         <p className="text-sm text-destructive">
-          Failed to load: {(error as Error).message}
+          {t('errors:failedToLoad', { message: (error as Error).message })}
         </p>
       )}
 
       {data && data.length === 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>No {subtype} liabilities yet</CardTitle>
+            <CardTitle>{t('liabilities:emptyTitle', { subtype: subtypeLower })}</CardTitle>
             <CardDescription>
-              Create your first {subtype} liability to start tracking month-end
-              balances.
+              {t('liabilities:emptyBody', { subtype: subtypeLower })}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -147,7 +145,7 @@ export function LiabilitiesScreen({ subtype, onSelect }: Props) {
           {terminatedCount > 0 && (
             <ShowInactiveToggle
               count={terminatedCount}
-              nounPlural="liabilities"
+              nounPlural={nounPlural}
               checked={showInactive}
               onChange={setShowInactive}
             />
@@ -155,10 +153,11 @@ export function LiabilitiesScreen({ subtype, onSelect }: Props) {
 
           {visibleRows.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No active liabilities. {terminatedCount} inactive
-              {terminatedCount === 1 ? ' liability' : ' liabilities'} hidden —
-              tick "Show inactive liabilities" to{' '}
-              {terminatedCount === 1 ? 'see it' : 'see them'}.
+              {t('common:list.noActive', {
+                count: terminatedCount,
+                noun,
+                nounPlural,
+              })}
             </p>
           ) : (
             <Card>
@@ -167,28 +166,28 @@ export function LiabilitiesScreen({ subtype, onSelect }: Props) {
                   <TableHeader>
                     <TableRow>
                       <SortableHeader
-                        label="Name"
+                        label={t('common:tableHeaders.name')}
                         testId="sort-name"
                         active={sortKey === 'name'}
                         dir={sortDir}
                         onSort={() => toggle('name')}
                       />
                       <SortableHeader
-                        label="Ownership"
+                        label={t('common:tableHeaders.ownership')}
                         testId="sort-ownership"
                         active={sortKey === 'ownership'}
                         dir={sortDir}
                         onSort={() => toggle('ownership')}
                       />
                       <SortableHeader
-                        label="Status"
+                        label={t('common:tableHeaders.status')}
                         testId="sort-status"
                         active={sortKey === 'status'}
                         dir={sortDir}
                         onSort={() => toggle('status')}
                       />
                       <SortableHeader
-                        label="Latest balance"
+                        label={t('liabilities:sortLatestBalance')}
                         testId="sort-balance"
                         align="right"
                         active={sortKey === 'balance'}

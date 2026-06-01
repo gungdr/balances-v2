@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -25,6 +26,7 @@ type Props = {
 }
 
 export function ReceivableListRow({ item, ownerLabel, onSelect }: Props) {
+  const { t } = useTranslation(['receivables', 'common'])
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const deleteMutation = useDeleteReceivable()
@@ -49,9 +51,10 @@ export function ReceivableListRow({ item, ownerLabel, onSelect }: Props) {
           </div>
           <div className="text-xs text-muted-foreground">
             {item.receivable.counterparty_name}
-            {item.receivable.due_date && (
-              <> · due {formatDate(item.receivable.due_date)}</>
-            )}
+            {item.receivable.due_date &&
+              t('receivables:rowDueSuffix', {
+                date: formatDate(item.receivable.due_date),
+              })}
           </div>
         </TableCell>
         <TableCell>{ownerLabel}</TableCell>
@@ -72,7 +75,7 @@ export function ReceivableListRow({ item, ownerLabel, onSelect }: Props) {
               </div>
             </>
           ) : (
-            <span className="text-muted-foreground">—</span>
+            <span className="text-muted-foreground">{'—'}</span>
           )}
         </TableCell>
         <TableCell className="text-right">
@@ -81,7 +84,7 @@ export function ReceivableListRow({ item, ownerLabel, onSelect }: Props) {
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label="Receivable actions"
+                aria-label={t('receivables:rowActions')}
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreHorizontal className="size-4" />
@@ -89,13 +92,13 @@ export function ReceivableListRow({ item, ownerLabel, onSelect }: Props) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                Edit
+                {t('common:actions.edit')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setDeleteOpen(true)}
                 variant="destructive"
               >
-                Delete
+                {t('common:delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -112,9 +115,11 @@ export function ReceivableListRow({ item, ownerLabel, onSelect }: Props) {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this receivable?"
-        description={`${item.receivable.display_name} will be hidden from lists and reports. This can be undone via the database, not yet via the UI.`}
-        confirmLabel="Delete"
+        title={t('receivables:deleteTitle')}
+        description={t('receivables:deleteRowDescription', {
+          name: item.receivable.display_name,
+        })}
+        confirmLabel={t('common:delete')}
         destructive
         pending={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}

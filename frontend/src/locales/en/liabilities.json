@@ -1,3 +1,70 @@
 {
-  "_scaffold": "liabilities"
+  "subtypes": {
+    "personal": "Personal",
+    "institutional": "Institutional"
+  },
+  "screens": {
+    "personal": {
+      "title": "Personal Liabilities",
+      "description": "Informal debts — money owed to family, friends, or other individuals."
+    },
+    "institutional": {
+      "title": "Institutional Liabilities",
+      "description": "Formal debts — mortgages, bank loans, outstanding credit-card balances."
+    }
+  },
+  "totalOwed": "Total owed",
+  "noun": "liability",
+  "nounPlural": "liabilities",
+  "emptyTitle": "No {{subtype}} liabilities yet",
+  "emptyBody": "Create your first {{subtype}} liability to start tracking month-end balances.",
+  "rowActions": "Liability actions",
+  "deleteTitle": "Delete this liability?",
+  "deleteRowDescription": "{{name}} will be hidden from lists and reports. This can be undone via the database, not yet via the UI.",
+  "deleteDetailDescription": "Snapshots and history will be hidden. This can be undone via the database, not yet via the UI.",
+  "sortLatestBalance": "Latest balance",
+  "createTrigger": "+ New liability",
+  "createTitle": "New liability",
+  "createDescription": "Track a debt your household owes. Personal liabilities are informal (family, friends); institutional are formal (mortgage, bank loan, credit-card balance).",
+  "editTitle": "Edit liability",
+  "editDescription": "Subtype and currency are not editable — create a new liability if those need to change. Ownership is editable.",
+  "detailSubtitle": "{{subtype}} · {{counterparty}}",
+  "detailsCardTitle": "Liability Details",
+  "detailsCardLine": "Ownership: {{ownership}} · Currency: {{currency}} · Status:",
+  "principalLabel": "Principal:",
+  "interestRateLabel": "Interest rate:",
+  "interestRateValue": "{{rate}}% /yr",
+  "termLabel": "Term:",
+  "termValue_one": "{{count}} month",
+  "termValue_other": "{{count}} months",
+  "periodLabel": "Period:",
+  "periodValue": "{{start}} → {{end}}",
+  "periodMissing": "—",
+  "chartTitle": "Outstanding Balance Over Time",
+  "chartDescription": "Monthly balance progression in {{currency}}.",
+  "snapshotsTitle": "Snapshots",
+  "snapshotsDescription": "Monthly outstanding-balance readings (manual entry).",
+  "snapshotsEmpty": "No snapshots yet. Click \"New snapshot\" to record this month's outstanding balance.",
+  "fields": {
+    "subtype": "Subtype",
+    "counterparty": "Counterparty",
+    "principal": "Principal (optional)",
+    "principalEdit": "Principal (optional)",
+    "interestRate": "Interest rate (% per year, optional)",
+    "interestRateEdit": "Interest rate (% per year, optional)",
+    "term": "Term (months, opt.)",
+    "termEdit": "Term (months)",
+    "startDate": "Start (optional)",
+    "startDateEdit": "Start",
+    "maturityDate": "Maturity (optional)",
+    "maturityDateEdit": "Maturity"
+  },
+  "placeholders": {
+    "displayName": "BCA KPR",
+    "currency": "IDR",
+    "counterparty": "Bank BCA / John Doe",
+    "principal": "1500000000",
+    "interestRate": "0.08 = 8% /yr",
+    "term": "180"
+  }
 }

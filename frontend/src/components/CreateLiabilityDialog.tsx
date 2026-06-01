@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -41,6 +42,7 @@ function emptyForm(defaultSubtype: 'personal' | 'institutional') {
 }
 
 export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
+  const { t } = useTranslation(['liabilities', 'common'])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(emptyForm(defaultSubtype))
   const { data: user } = useSession()
@@ -81,20 +83,18 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
-        <Button>+ New liability</Button>
+        <Button>{t('liabilities:createTrigger')}</Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>New liability</DialogTitle>
+          <DialogTitle>{t('liabilities:createTitle')}</DialogTitle>
           <DialogDescription>
-            Track a debt your household owes. Personal liabilities are informal
-            (family, friends); institutional are formal (mortgage, bank loan,
-            credit-card balance).
+            {t('liabilities:createDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid gap-2">
-            <Label htmlFor="display_name">Display name</Label>
+            <Label htmlFor="display_name">{t('common:fields.displayName')}</Label>
             <Input
               id="display_name"
               required
@@ -102,13 +102,13 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
               onChange={(e) =>
                 setForm({ ...form, display_name: e.target.value })
               }
-              placeholder="BCA KPR"
+              placeholder={t('liabilities:placeholders.displayName')}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="subtype">Subtype</Label>
+              <Label htmlFor="subtype">{t('liabilities:fields.subtype')}</Label>
               <select
                 id="subtype"
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -120,12 +120,14 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
                   })
                 }
               >
-                <option value="personal">Personal</option>
-                <option value="institutional">Institutional</option>
+                <option value="personal">{t('liabilities:subtypes.personal')}</option>
+                <option value="institutional">
+                  {t('liabilities:subtypes.institutional')}
+                </option>
               </select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="native_currency">Currency</Label>
+              <Label htmlFor="native_currency">{t('common:fields.currency')}</Label>
               <Input
                 id="native_currency"
                 required
@@ -136,14 +138,16 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
                     native_currency: e.target.value.toUpperCase(),
                   })
                 }
-                placeholder="IDR"
+                placeholder={t('liabilities:placeholders.currency')}
                 maxLength={3}
               />
             </div>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="counterparty_name">Counterparty</Label>
+            <Label htmlFor="counterparty_name">
+              {t('liabilities:fields.counterparty')}
+            </Label>
             <Input
               id="counterparty_name"
               required
@@ -151,13 +155,13 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
               onChange={(e) =>
                 setForm({ ...form, counterparty_name: e.target.value })
               }
-              placeholder="Bank BCA / John Doe"
+              placeholder={t('liabilities:placeholders.counterparty')}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="principal">Principal (optional)</Label>
+              <Label htmlFor="principal">{t('liabilities:fields.principal')}</Label>
               <Input
                 id="principal"
                 inputMode="decimal"
@@ -165,12 +169,12 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
                 onChange={(e) =>
                   setForm({ ...form, principal: e.target.value })
                 }
-                placeholder="1500000000"
+                placeholder={t('liabilities:placeholders.principal')}
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="interest_rate">
-                Interest rate (% per year, optional)
+                {t('liabilities:fields.interestRate')}
               </Label>
               <Input
                 id="interest_rate"
@@ -179,14 +183,14 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
                 onChange={(e) =>
                   setForm({ ...form, interest_rate: e.target.value })
                 }
-                placeholder="0.08 = 8% /yr"
+                placeholder={t('liabilities:placeholders.interestRate')}
               />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="term_months">Term (months, opt.)</Label>
+              <Label htmlFor="term_months">{t('liabilities:fields.term')}</Label>
               <Input
                 id="term_months"
                 inputMode="numeric"
@@ -194,11 +198,11 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
                 onChange={(e) =>
                   setForm({ ...form, term_months: e.target.value })
                 }
-                placeholder="180"
+                placeholder={t('liabilities:placeholders.term')}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="start_date">Start (optional)</Label>
+              <Label htmlFor="start_date">{t('liabilities:fields.startDate')}</Label>
               <Input
                 id="start_date"
                 type="date"
@@ -209,7 +213,9 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="maturity_date">Maturity (optional)</Label>
+              <Label htmlFor="maturity_date">
+                {t('liabilities:fields.maturityDate')}
+              </Label>
               <Input
                 id="maturity_date"
                 type="date"
@@ -222,7 +228,7 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
           </div>
 
           <div className="grid gap-2">
-            <Label>Ownership</Label>
+            <Label>{t('common:fields.ownership')}</Label>
             <div className="flex gap-4 text-sm">
               <label className="flex items-center gap-2">
                 <input
@@ -232,7 +238,7 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
                   checked={form.ownership_type === 'joint'}
                   onChange={() => setForm({ ...form, ownership_type: 'joint' })}
                 />
-                Joint
+                {t('common:ownership.joint')}
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -242,12 +248,12 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
                   checked={form.ownership_type === 'sole'}
                   onChange={() => setForm({ ...form, ownership_type: 'sole' })}
                 />
-                Sole owner
+                {t('common:ownership.soleOwner')}
               </label>
             </div>
             {form.ownership_type === 'sole' && (
               <select
-                aria-label="Sole owner"
+                aria-label={t('common:ownership.soleOwner')}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                 value={effectiveSoleOwnerID ?? ''}
                 onChange={(e) =>
@@ -257,7 +263,7 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
                 {(members ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
                     {preferredName(m)}
-                    {user && m.id === user.id ? ' (you)' : ''}
+                    {user && m.id === user.id ? t('common:ownership.youSuffix') : ''}
                   </option>
                 ))}
               </select>
@@ -265,7 +271,7 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="description">Description (optional)</Label>
+            <Label htmlFor="description">{t('common:fields.description')}</Label>
             <Input
               id="description"
               value={form.description}
@@ -277,16 +283,18 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Creating…' : 'Create'}
+              {mutation.isPending
+                ? t('common:actions.creating')
+                : t('common:actions.create')}
             </Button>
           </DialogFooter>
         </form>
@@ -295,11 +303,11 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownMsg: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownMsg
 }

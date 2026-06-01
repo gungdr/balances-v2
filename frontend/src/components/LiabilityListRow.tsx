@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -25,6 +26,7 @@ type Props = {
 }
 
 export function LiabilityListRow({ item, ownerLabel, onSelect }: Props) {
+  const { t } = useTranslation(['liabilities', 'common'])
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const deleteMutation = useDeleteLiability()
@@ -69,7 +71,7 @@ export function LiabilityListRow({ item, ownerLabel, onSelect }: Props) {
               </div>
             </>
           ) : (
-            <span className="text-muted-foreground">—</span>
+            <span className="text-muted-foreground">{'—'}</span>
           )}
         </TableCell>
         <TableCell className="text-right">
@@ -78,7 +80,7 @@ export function LiabilityListRow({ item, ownerLabel, onSelect }: Props) {
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label="Liability actions"
+                aria-label={t('liabilities:rowActions')}
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreHorizontal className="size-4" />
@@ -86,13 +88,13 @@ export function LiabilityListRow({ item, ownerLabel, onSelect }: Props) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                Edit
+                {t('common:actions.edit')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setDeleteOpen(true)}
                 variant="destructive"
               >
-                Delete
+                {t('common:delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -109,9 +111,11 @@ export function LiabilityListRow({ item, ownerLabel, onSelect }: Props) {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this liability?"
-        description={`${item.liability.display_name} will be hidden from lists and reports. This can be undone via the database, not yet via the UI.`}
-        confirmLabel="Delete"
+        title={t('liabilities:deleteTitle')}
+        description={t('liabilities:deleteRowDescription', {
+          name: item.liability.display_name,
+        })}
+        confirmLabel={t('common:delete')}
         destructive
         pending={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}

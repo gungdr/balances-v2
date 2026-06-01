@@ -85,6 +85,20 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     "−X% depreciation" / "penyusutan X%") so ID reads with verb forms, not a stray
     glyph. ID copy from the glossary: Properti, Kendaraan, Rumah/Apartemen/Tanah/
     Komersial, Mobil/Motor, Apresiasi/Penyusutan.
+  - Liabilities + Receivables extraction (issue #9): both position groups end-to-end
+    (5 components each: `*Screen` / `*Detail` / `*ListRow` / `Create*Dialog` /
+    `Edit*Dialog`). Liabilities namespace carries the personal/institutional subtype
+    enum + per-subtype screen titles/descriptions (`liabilities.screens.personal.*`
+    + `.institutional.*`) so one screen renders either tab. `liabilities.json` also
+    owns the loan-detail row keys (principal / interest-rate / term / period
+    label+value), with the per-month term using i18next's `_one`/`_other` plural
+    suffix. Receivables namespace owns the `detailSubtitleWithDue` /
+    `rowDueSuffix` interpolation keys so the due-date snippet localises. **No new
+    shared dialog keys** — the four shared dialogs from #7 drove both groups
+    unchanged. ID copy from the glossary: Liabilitas Pribadi / Institusional,
+    Piutang, Pihak lawan (counterparty), Pokok (principal), Suku bunga (interest
+    rate), Tenor (term, common Indonesian finance loanword), Jatuh tempo (maturity
+    / due date).
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

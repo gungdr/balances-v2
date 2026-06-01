@@ -954,6 +954,44 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
   - **No `data-testid` changes**, no public-API changes; `lib/revaluation.ts` untouched.
   - Lint 987 → 827 (160 property + vehicle warnings cleared). Build green, vitest 13/13
     (127/127). Playwright pending final commit.
+- **Liabilities + Receivables i18n extraction (M6, frontend-only — issue #9).** Fifth
+  extraction slice; second to apply the #7 template to two groups in one PR. 10
+  components touched (5 liability + 5 receivable: `*Screen` / `*Detail` / `*ListRow`
+  / `Create*Dialog` / `Edit*Dialog`). ~146 string sites moved into `liabilities.*` /
+  `receivables.*`. **No new shared dialog keys** — the four shared dialogs from #7
+  drove both groups without modification, validating the template for a second
+  round.
+  - **Subtype-aware screen** (`LiabilitiesScreen`). One component renders both the
+    Personal and Institutional tabs — the previous `COPY = {personal, institutional}`
+    inline literal table moved into `liabilities.screens.{personal,institutional}.
+    {title,description}`. The empty-state copy ("No personal liabilities yet" /
+    "Belum ada liabilitas pribadi") interpolates a lowercased subtype label resolved
+    via `liabilities.subtypes.{personal,institutional}` so the same key drives both
+    tabs.
+  - **Detail-row pluralisation.** `liabilities.termValue` uses i18next's
+    `_one`/`_other` plural suffix for "{{count}} month(s)" (EN diverges by count, ID
+    stays "{{count}} bulan" for both forms but uses the same key shape so the
+    callsite is uniform). Per-row value strings (`interestRateValue: "{{rate}}%
+    /yr"`, `periodValue: "{{start}} → {{end}}"`) take the locale-divergent suffix /
+    glue character, keeping `formatDate` / `toFixed` on the call site.
+  - **Due-date snippet localisation** (Receivables). The "· due {date}" / "· jatuh
+    tempo {date}" snippet appears in both the list row's secondary line and the
+    detail page's subtitle. Catalog provides `rowDueSuffix` (concatenable suffix for
+    the list row, where the counterparty stays unwrapped JSX) and
+    `detailSubtitleWithDue` (full sentence with both fields interpolated, for the
+    detail-page subtitle where the whole line goes through one `t()`). When no due
+    date exists the row drops the suffix and the detail page renders the
+    counterparty name directly — no empty interpolation surface.
+  - **ID copy from `docs/glossary-id.md`:** Liabilitas Pribadi / Institusional,
+    Piutang, Pihak lawan (Counterparty), Pokok (Principal), Suku bunga (Interest
+    rate), Bunga (Interest), Tenor (Term — common Indonesian finance loanword;
+    "Jangka waktu" would be the literal translation but reads stiff in a household
+    UI), Jatuh tempo (Maturity / due date), Saldo terutang (Outstanding balance).
+  - **No `data-testid` changes**; the E2E literals ("+ New liability", "New
+    liability", "Edit liability", "Counterparty", "Receivable actions", etc.) all
+    preserved in the EN catalog.
+  - Lint 827 → 681 (146 liability + receivable warnings cleared). Build green, vitest
+    13/13 (127/127). Playwright pending final commit.
 
 ## What M4.2 shipped
 

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -46,6 +47,7 @@ type Props = {
 const PAGE_SIZE = 12
 
 export function ReceivableDetail({ receivableId, onBack }: Props) {
+  const { t } = useTranslation(['receivables', 'common', 'errors'])
   const { data: receivable, isPending, error } = useReceivable(receivableId)
   const { data: snapshots } = useReceivableSnapshots(receivableId)
   const deleteMutation = useDeleteReceivable()
@@ -76,12 +78,12 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
   }
 
   if (isPending) {
-    return <p className="text-sm text-muted-foreground">Loading…</p>
+    return <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
   }
   if (error) {
     return (
       <p className="text-sm text-destructive">
-        Failed to load: {(error as Error).message}
+        {t('errors:failedToLoad', { message: (error as Error).message })}
       </p>
     )
   }
@@ -102,16 +104,18 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
             onClick={onBack}
             className="-ml-2 mb-1"
           >
-            ← Back
+            {t('common:actions.back')}
           </Button>
           <h1 className="text-2xl font-semibold tracking-tight">
             {receivable.display_name}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {receivable.counterparty_name}
-            {receivable.due_date && (
-              <> · due {formatDate(receivable.due_date)}</>
-            )}
+            {receivable.due_date
+              ? t('receivables:detailSubtitleWithDue', {
+                  counterparty: receivable.counterparty_name,
+                  date: formatDate(receivable.due_date),
+                })
+              : receivable.counterparty_name}
           </p>
         </div>
         <div className="flex gap-2">
@@ -129,7 +133,7 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
             </>
           )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-            Edit
+            {t('common:actions.edit')}
           </Button>
           <TerminatePositionDialog
             group="receivables"
@@ -144,23 +148,24 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
             size="sm"
             onClick={() => setDeleteOpen(true)}
           >
-            Delete
+            {t('common:delete')}
           </Button>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Receivable Details</CardTitle>
+          <CardTitle>{t('receivables:detailsCardTitle')}</CardTitle>
           <CardDescription>
-            Ownership:{' '}
-            {ownershipLabel(
-              receivable.ownership_type,
-              receivable.sole_owner_user_id,
-              members,
-              currentUser,
-            )}{' '}
-            · Currency: {receivable.native_currency} · Status:{' '}
+            {t('receivables:detailsCardLine', {
+              ownership: ownershipLabel(
+                receivable.ownership_type,
+                receivable.sole_owner_user_id,
+                members,
+                currentUser,
+              ),
+              currency: receivable.native_currency,
+            })}{' '}
             <StatusBadge group="receivables" status={receivable.status} />
           </CardDescription>
         </CardHeader>
@@ -174,9 +179,11 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
       {snapshots && snapshots.length >= 2 && (
         <Card>
           <CardHeader>
-            <CardTitle>Outstanding Balance Over Time</CardTitle>
+            <CardTitle>{t('receivables:chartTitle')}</CardTitle>
             <CardDescription>
-              Monthly balance progression in {receivable.native_currency}.
+              {t('receivables:chartDescription', {
+                currency: receivable.native_currency,
+              })}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -190,25 +197,24 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Snapshots</CardTitle>
+          <CardTitle>{t('receivables:snapshotsTitle')}</CardTitle>
           <CardDescription>
-            Monthly outstanding-balance readings (manual entry).
+            {t('receivables:snapshotsDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {!snapshots || snapshots.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
-              No snapshots yet. Click "New snapshot" to record this month's
-              outstanding balance.
+              {t('receivables:snapshotsEmpty')}
             </p>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Month</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Notes</TableHead>
+                    <TableHead>{t('common:tableHeaders.month')}</TableHead>
+                    <TableHead>{t('common:tableHeaders.amount')}</TableHead>
+                    <TableHead>{t('common:tableHeaders.notes')}</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -246,9 +252,9 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this receivable?"
-        description="Snapshots and history will be hidden. This can be undone via the database, not yet via the UI."
-        confirmLabel="Delete"
+        title={t('receivables:deleteTitle')}
+        description={t('receivables:deleteDetailDescription')}
+        confirmLabel={t('common:delete')}
         destructive
         pending={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}

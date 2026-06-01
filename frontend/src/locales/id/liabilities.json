@@ -1,3 +1,70 @@
 {
-  "_scaffold": "liabilities"
+  "subtypes": {
+    "personal": "Pribadi",
+    "institutional": "Institusional"
+  },
+  "screens": {
+    "personal": {
+      "title": "Liabilitas Pribadi",
+      "description": "Utang informal — uang yang terutang kepada keluarga, teman, atau individu lain."
+    },
+    "institutional": {
+      "title": "Liabilitas Institusional",
+      "description": "Utang formal — KPR, pinjaman bank, saldo kartu kredit yang belum lunas."
+    }
+  },
+  "totalOwed": "Total terutang",
+  "noun": "liabilitas",
+  "nounPlural": "liabilitas",
+  "emptyTitle": "Belum ada liabilitas {{subtype}}",
+  "emptyBody": "Buat liabilitas {{subtype}} pertama untuk mulai melacak saldo akhir bulan.",
+  "rowActions": "Aksi liabilitas",
+  "deleteTitle": "Hapus liabilitas ini?",
+  "deleteRowDescription": "{{name}} akan disembunyikan dari daftar dan laporan. Bisa dipulihkan via database, belum via UI.",
+  "deleteDetailDescription": "Snapshot dan riwayat akan disembunyikan. Bisa dipulihkan via database, belum via UI.",
+  "sortLatestBalance": "Saldo terkini",
+  "createTrigger": "+ Liabilitas baru",
+  "createTitle": "Liabilitas baru",
+  "createDescription": "Lacak utang rumah tangga Anda. Liabilitas pribadi bersifat informal (keluarga, teman); institusional bersifat formal (KPR, pinjaman bank, saldo kartu kredit).",
+  "editTitle": "Ubah liabilitas",
+  "editDescription": "Subtipe dan mata uang tidak bisa diubah — buat liabilitas baru jika perlu diubah. Kepemilikan bisa diubah.",
+  "detailSubtitle": "{{subtype}} · {{counterparty}}",
+  "detailsCardTitle": "Detail Liabilitas",
+  "detailsCardLine": "Kepemilikan: {{ownership}} · Mata uang: {{currency}} · Status:",
+  "principalLabel": "Pokok:",
+  "interestRateLabel": "Suku bunga:",
+  "interestRateValue": "{{rate}}% /thn",
+  "termLabel": "Tenor:",
+  "termValue_one": "{{count}} bulan",
+  "termValue_other": "{{count}} bulan",
+  "periodLabel": "Periode:",
+  "periodValue": "{{start}} → {{end}}",
+  "periodMissing": "—",
+  "chartTitle": "Saldo Terutang dari Waktu ke Waktu",
+  "chartDescription": "Perkembangan saldo bulanan dalam {{currency}}.",
+  "snapshotsTitle": "Snapshot",
+  "snapshotsDescription": "Bacaan saldo terutang bulanan (input manual).",
+  "snapshotsEmpty": "Belum ada snapshot. Klik \"Snapshot baru\" untuk mencatat saldo terutang bulan ini.",
+  "fields": {
+    "subtype": "Subtipe",
+    "counterparty": "Pihak lawan",
+    "principal": "Pokok (opsional)",
+    "principalEdit": "Pokok (opsional)",
+    "interestRate": "Suku bunga (% per tahun, opsional)",
+    "interestRateEdit": "Suku bunga (% per tahun, opsional)",
+    "term": "Tenor (bulan, ops.)",
+    "termEdit": "Tenor (bulan)",
+    "startDate": "Mulai (opsional)",
+    "startDateEdit": "Mulai",
+    "maturityDate": "Jatuh tempo (opsional)",
+    "maturityDateEdit": "Jatuh tempo"
+  },
+  "placeholders": {
+    "displayName": "BCA KPR",
+    "currency": "IDR",
+    "counterparty": "Bank BCA / John Doe",
+    "principal": "1500000000",
+    "interestRate": "0.08 = 8% /thn",
+    "term": "180"
+  }
 }

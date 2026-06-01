@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -28,6 +29,7 @@ const empty = {
 }
 
 export function CreateReceivableDialog() {
+  const { t } = useTranslation(['receivables', 'common'])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(empty)
   const { data: user } = useSession()
@@ -63,19 +65,18 @@ export function CreateReceivableDialog() {
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
-        <Button>+ New receivable</Button>
+        <Button>{t('receivables:createTrigger')}</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New receivable</DialogTitle>
+          <DialogTitle>{t('receivables:createTitle')}</DialogTitle>
           <DialogDescription>
-            Track money owed to your household — loans you've made, deposits
-            you're due back, refunds in transit.
+            {t('receivables:createDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid gap-2">
-            <Label htmlFor="display_name">Display name</Label>
+            <Label htmlFor="display_name">{t('common:fields.displayName')}</Label>
             <Input
               id="display_name"
               required
@@ -83,12 +84,14 @@ export function CreateReceivableDialog() {
               onChange={(e) =>
                 setForm({ ...form, display_name: e.target.value })
               }
-              placeholder="Loan to brother"
+              placeholder={t('receivables:placeholders.displayName')}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="counterparty_name">Counterparty</Label>
+            <Label htmlFor="counterparty_name">
+              {t('receivables:fields.counterparty')}
+            </Label>
             <Input
               id="counterparty_name"
               required
@@ -96,13 +99,13 @@ export function CreateReceivableDialog() {
               onChange={(e) =>
                 setForm({ ...form, counterparty_name: e.target.value })
               }
-              placeholder="John Doe"
+              placeholder={t('receivables:placeholders.counterparty')}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="native_currency">Currency</Label>
+              <Label htmlFor="native_currency">{t('common:fields.currency')}</Label>
               <Input
                 id="native_currency"
                 required
@@ -113,12 +116,12 @@ export function CreateReceivableDialog() {
                     native_currency: e.target.value.toUpperCase(),
                   })
                 }
-                placeholder="IDR"
+                placeholder={t('receivables:placeholders.currency')}
                 maxLength={3}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="due_date">Due date (optional)</Label>
+              <Label htmlFor="due_date">{t('receivables:fields.dueDate')}</Label>
               <Input
                 id="due_date"
                 type="date"
@@ -131,7 +134,7 @@ export function CreateReceivableDialog() {
           </div>
 
           <div className="grid gap-2">
-            <Label>Ownership</Label>
+            <Label>{t('common:fields.ownership')}</Label>
             <div className="flex gap-4 text-sm">
               <label className="flex items-center gap-2">
                 <input
@@ -141,7 +144,7 @@ export function CreateReceivableDialog() {
                   checked={form.ownership_type === 'joint'}
                   onChange={() => setForm({ ...form, ownership_type: 'joint' })}
                 />
-                Joint
+                {t('common:ownership.joint')}
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -151,12 +154,12 @@ export function CreateReceivableDialog() {
                   checked={form.ownership_type === 'sole'}
                   onChange={() => setForm({ ...form, ownership_type: 'sole' })}
                 />
-                Sole owner
+                {t('common:ownership.soleOwner')}
               </label>
             </div>
             {form.ownership_type === 'sole' && (
               <select
-                aria-label="Sole owner"
+                aria-label={t('common:ownership.soleOwner')}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                 value={effectiveSoleOwnerID ?? ''}
                 onChange={(e) =>
@@ -166,7 +169,7 @@ export function CreateReceivableDialog() {
                 {(members ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
                     {preferredName(m)}
-                    {user && m.id === user.id ? ' (you)' : ''}
+                    {user && m.id === user.id ? t('common:ownership.youSuffix') : ''}
                   </option>
                 ))}
               </select>
@@ -174,7 +177,7 @@ export function CreateReceivableDialog() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="description">Description (optional)</Label>
+            <Label htmlFor="description">{t('common:fields.description')}</Label>
             <Input
               id="description"
               value={form.description}
@@ -186,16 +189,18 @@ export function CreateReceivableDialog() {
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Creating…' : 'Create'}
+              {mutation.isPending
+                ? t('common:actions.creating')
+                : t('common:actions.create')}
             </Button>
           </DialogFooter>
         </form>
@@ -204,11 +209,11 @@ export function CreateReceivableDialog() {
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownMsg: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownMsg
 }

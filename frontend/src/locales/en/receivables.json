@@ -1,3 +1,37 @@
 {
-  "_scaffold": "receivables"
+  "listTitle": "Receivables",
+  "listSubtitle": "Money owed to your household — loans, deposits in transit, outstanding refunds.",
+  "totalOutstanding": "Total outstanding",
+  "noun": "receivable",
+  "nounPlural": "receivables",
+  "emptyTitle": "No receivables yet",
+  "emptyBody": "Create your first receivable to start tracking month-end balances owed to you.",
+  "rowActions": "Receivable actions",
+  "deleteTitle": "Delete this receivable?",
+  "deleteRowDescription": "{{name}} will be hidden from lists and reports. This can be undone via the database, not yet via the UI.",
+  "deleteDetailDescription": "Snapshots and history will be hidden. This can be undone via the database, not yet via the UI.",
+  "sortLatestBalance": "Latest balance",
+  "createTrigger": "+ New receivable",
+  "createTitle": "New receivable",
+  "createDescription": "Track money owed to your household — loans you've made, deposits you're due back, refunds in transit.",
+  "editTitle": "Edit receivable",
+  "editDescription": "Currency is not editable — create a new receivable if it needs to change. Ownership is editable.",
+  "detailSubtitleWithDue": "{{counterparty}} · due {{date}}",
+  "rowDueSuffix": " · due {{date}}",
+  "detailsCardTitle": "Receivable Details",
+  "detailsCardLine": "Ownership: {{ownership}} · Currency: {{currency}} · Status:",
+  "chartTitle": "Outstanding Balance Over Time",
+  "chartDescription": "Monthly balance progression in {{currency}}.",
+  "snapshotsTitle": "Snapshots",
+  "snapshotsDescription": "Monthly outstanding-balance readings (manual entry).",
+  "snapshotsEmpty": "No snapshots yet. Click \"New snapshot\" to record this month's outstanding balance.",
+  "fields": {
+    "counterparty": "Counterparty",
+    "dueDate": "Due date (optional)"
+  },
+  "placeholders": {
+    "displayName": "Loan to brother",
+    "currency": "IDR",
+    "counterparty": "John Doe"
+  }
 }

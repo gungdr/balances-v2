@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -46,6 +47,7 @@ type Props = {
 const PAGE_SIZE = 12
 
 export function LiabilityDetail({ liabilityId, onBack }: Props) {
+  const { t } = useTranslation(['liabilities', 'common', 'errors'])
   const { data: liability, isPending, error } = useLiability(liabilityId)
   const { data: snapshots } = useLiabilitySnapshots(liabilityId)
   const deleteMutation = useDeleteLiability()
@@ -76,12 +78,12 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
   }
 
   if (isPending) {
-    return <p className="text-sm text-muted-foreground">Loading…</p>
+    return <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
   }
   if (error) {
     return (
       <p className="text-sm text-destructive">
-        Failed to load: {(error as Error).message}
+        {t('errors:failedToLoad', { message: (error as Error).message })}
       </p>
     )
   }
@@ -100,6 +102,9 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
     liability.term_months !== null ||
     liability.description
 
+  const subtypeLabel = t(`liabilities:subtypes.${liability.subtype}`)
+  const periodMissing = t('liabilities:periodMissing')
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -110,13 +115,16 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
             onClick={onBack}
             className="-ml-2 mb-1"
           >
-            ← Back
+            {t('common:actions.back')}
           </Button>
           <h1 className="text-2xl font-semibold tracking-tight">
             {liability.display_name}
           </h1>
-          <p className="text-sm text-muted-foreground capitalize">
-            {liability.subtype} · {liability.counterparty_name}
+          <p className="text-sm text-muted-foreground">
+            {t('liabilities:detailSubtitle', {
+              subtype: subtypeLabel,
+              counterparty: liability.counterparty_name,
+            })}
           </p>
         </div>
         <div className="flex gap-2">
@@ -134,7 +142,7 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
             </>
           )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-            Edit
+            {t('common:actions.edit')}
           </Button>
           <TerminatePositionDialog
             group="liabilities"
@@ -149,23 +157,24 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
             size="sm"
             onClick={() => setDeleteOpen(true)}
           >
-            Delete
+            {t('common:delete')}
           </Button>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Liability Details</CardTitle>
+          <CardTitle>{t('liabilities:detailsCardTitle')}</CardTitle>
           <CardDescription>
-            Ownership:{' '}
-            {ownershipLabel(
-              liability.ownership_type,
-              liability.sole_owner_user_id,
-              members,
-              currentUser,
-            )}{' '}
-            · Currency: {liability.native_currency} · Status:{' '}
+            {t('liabilities:detailsCardLine', {
+              ownership: ownershipLabel(
+                liability.ownership_type,
+                liability.sole_owner_user_id,
+                members,
+                currentUser,
+              ),
+              currency: liability.native_currency,
+            })}{' '}
             <StatusBadge group="liabilities" status={liability.status} />
           </CardDescription>
         </CardHeader>
@@ -173,30 +182,43 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
           <CardContent className="text-sm space-y-1">
             {liability.principal && (
               <p>
-                <span className="text-muted-foreground">Principal:</span>{' '}
+                <span className="text-muted-foreground">
+                  {t('liabilities:principalLabel')}
+                </span>{' '}
                 {formatCurrency(liability.principal, liability.native_currency)}
               </p>
             )}
             {liability.interest_rate && (
               <p>
-                <span className="text-muted-foreground">Interest rate:</span>{' '}
-                {Number(liability.interest_rate).toFixed(2)}% /yr
+                <span className="text-muted-foreground">
+                  {t('liabilities:interestRateLabel')}
+                </span>{' '}
+                {t('liabilities:interestRateValue', {
+                  rate: Number(liability.interest_rate).toFixed(2),
+                })}
               </p>
             )}
             {liability.term_months !== null && (
               <p>
-                <span className="text-muted-foreground">Term:</span>{' '}
-                {liability.term_months} months
+                <span className="text-muted-foreground">
+                  {t('liabilities:termLabel')}
+                </span>{' '}
+                {t('liabilities:termValue', { count: liability.term_months })}
               </p>
             )}
             {(liability.start_date || liability.maturity_date) && (
               <p>
-                <span className="text-muted-foreground">Period:</span>{' '}
-                {liability.start_date ? formatDate(liability.start_date) : '—'}
-                {' → '}
-                {liability.maturity_date
-                  ? formatDate(liability.maturity_date)
-                  : '—'}
+                <span className="text-muted-foreground">
+                  {t('liabilities:periodLabel')}
+                </span>{' '}
+                {t('liabilities:periodValue', {
+                  start: liability.start_date
+                    ? formatDate(liability.start_date)
+                    : periodMissing,
+                  end: liability.maturity_date
+                    ? formatDate(liability.maturity_date)
+                    : periodMissing,
+                })}
               </p>
             )}
             {liability.description && <p className="pt-1">{liability.description}</p>}
@@ -207,9 +229,11 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
       {snapshots && snapshots.length >= 2 && (
         <Card>
           <CardHeader>
-            <CardTitle>Outstanding Balance Over Time</CardTitle>
+            <CardTitle>{t('liabilities:chartTitle')}</CardTitle>
             <CardDescription>
-              Monthly balance progression in {liability.native_currency}.
+              {t('liabilities:chartDescription', {
+                currency: liability.native_currency,
+              })}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -223,25 +247,24 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Snapshots</CardTitle>
+          <CardTitle>{t('liabilities:snapshotsTitle')}</CardTitle>
           <CardDescription>
-            Monthly outstanding-balance readings (manual entry).
+            {t('liabilities:snapshotsDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {!snapshots || snapshots.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
-              No snapshots yet. Click "New snapshot" to record this month's
-              outstanding balance.
+              {t('liabilities:snapshotsEmpty')}
             </p>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Month</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Notes</TableHead>
+                    <TableHead>{t('common:tableHeaders.month')}</TableHead>
+                    <TableHead>{t('common:tableHeaders.amount')}</TableHead>
+                    <TableHead>{t('common:tableHeaders.notes')}</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -279,9 +302,9 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this liability?"
-        description="Snapshots and history will be hidden. This can be undone via the database, not yet via the UI."
-        confirmLabel="Delete"
+        title={t('liabilities:deleteTitle')}
+        description={t('liabilities:deleteDetailDescription')}
+        confirmLabel={t('common:delete')}
         destructive
         pending={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}
