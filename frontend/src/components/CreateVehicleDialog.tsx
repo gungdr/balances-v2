@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -32,6 +33,7 @@ const empty = {
 }
 
 export function CreateVehicleDialog() {
+  const { t } = useTranslation(['assets', 'common'])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(empty)
   const { data: user } = useSession()
@@ -71,19 +73,18 @@ export function CreateVehicleDialog() {
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
-        <Button>+ New vehicle</Button>
+        <Button>{t('assets:vehicle.createTrigger')}</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New vehicle</DialogTitle>
+          <DialogTitle>{t('assets:vehicle.createTitle')}</DialogTitle>
           <DialogDescription>
-            Track a vehicle in your household. You'll record monthly value
-            snapshots manually; a depreciation rate helper UI will arrive later.
+            {t('assets:vehicle.createDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid gap-2">
-            <Label htmlFor="v_display_name">Display name</Label>
+            <Label htmlFor="v_display_name">{t('common:fields.displayName')}</Label>
             <Input
               id="v_display_name"
               required
@@ -91,13 +92,13 @@ export function CreateVehicleDialog() {
               onChange={(e) =>
                 setForm({ ...form, display_name: e.target.value })
               }
-              placeholder="Honda HR-V"
+              placeholder={t('assets:vehicle.placeholders.displayName')}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="v_type">Type</Label>
+              <Label htmlFor="v_type">{t('assets:vehicle.fields.type')}</Label>
               <select
                 id="v_type"
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -109,13 +110,15 @@ export function CreateVehicleDialog() {
                   })
                 }
               >
-                <option value="car">Car</option>
-                <option value="motorcycle">Motorcycle</option>
-                <option value="other">Other</option>
+                <option value="car">{t('assets:vehicle.vehicleTypes.car')}</option>
+                <option value="motorcycle">
+                  {t('assets:vehicle.vehicleTypes.motorcycle')}
+                </option>
+                <option value="other">{t('assets:vehicle.vehicleTypes.other')}</option>
               </select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="v_native_currency">Currency</Label>
+              <Label htmlFor="v_native_currency">{t('common:fields.currency')}</Label>
               <Input
                 id="v_native_currency"
                 required
@@ -126,7 +129,7 @@ export function CreateVehicleDialog() {
                     native_currency: e.target.value.toUpperCase(),
                   })
                 }
-                placeholder="IDR"
+                placeholder={t('assets:vehicle.placeholders.currency')}
                 maxLength={3}
               />
             </div>
@@ -134,38 +137,40 @@ export function CreateVehicleDialog() {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="v_make">Make (optional)</Label>
+              <Label htmlFor="v_make">{t('assets:vehicle.fields.make')}</Label>
               <Input
                 id="v_make"
                 value={form.make}
                 onChange={(e) => setForm({ ...form, make: e.target.value })}
-                placeholder="Honda"
+                placeholder={t('assets:vehicle.placeholders.make')}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="v_model">Model (optional)</Label>
+              <Label htmlFor="v_model">{t('assets:vehicle.fields.model')}</Label>
               <Input
                 id="v_model"
                 value={form.model}
                 onChange={(e) => setForm({ ...form, model: e.target.value })}
-                placeholder="HR-V"
+                placeholder={t('assets:vehicle.placeholders.model')}
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="v_year">Year (optional)</Label>
+              <Label htmlFor="v_year">{t('assets:vehicle.fields.year')}</Label>
               <Input
                 id="v_year"
                 type="number"
                 value={form.year}
                 onChange={(e) => setForm({ ...form, year: e.target.value })}
-                placeholder="2022"
+                placeholder={t('assets:vehicle.placeholders.year')}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="v_plate">Plate number (optional)</Label>
+              <Label htmlFor="v_plate">
+                {t('assets:vehicle.fields.plateNumber')}
+              </Label>
               <Input
                 id="v_plate"
                 value={form.plate_number}
@@ -178,7 +183,7 @@ export function CreateVehicleDialog() {
 
           <div className="grid gap-2">
             <Label htmlFor="v_depr">
-              Annual depreciation rate (%, optional)
+              {t('assets:vehicle.fields.depreciationRate')}
             </Label>
             <Input
               id="v_depr"
@@ -190,12 +195,12 @@ export function CreateVehicleDialog() {
                   annual_depreciation_rate: e.target.value,
                 })
               }
-              placeholder="0.15 = 15% per year"
+              placeholder={t('assets:vehicle.placeholders.depreciationRate')}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label>Ownership</Label>
+            <Label>{t('common:fields.ownership')}</Label>
             <div className="flex gap-4 text-sm">
               <label className="flex items-center gap-2">
                 <input
@@ -205,7 +210,7 @@ export function CreateVehicleDialog() {
                   checked={form.ownership_type === 'joint'}
                   onChange={() => setForm({ ...form, ownership_type: 'joint' })}
                 />
-                Joint
+                {t('common:ownership.joint')}
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -215,12 +220,12 @@ export function CreateVehicleDialog() {
                   checked={form.ownership_type === 'sole'}
                   onChange={() => setForm({ ...form, ownership_type: 'sole' })}
                 />
-                Sole owner
+                {t('common:ownership.soleOwner')}
               </label>
             </div>
             {form.ownership_type === 'sole' && (
               <select
-                aria-label="Sole owner"
+                aria-label={t('common:ownership.soleOwner')}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                 value={effectiveSoleOwnerID ?? ''}
                 onChange={(e) =>
@@ -230,7 +235,7 @@ export function CreateVehicleDialog() {
                 {(members ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
                     {preferredName(m)}
-                    {user && m.id === user.id ? ' (you)' : ''}
+                    {user && m.id === user.id ? t('common:ownership.youSuffix') : ''}
                   </option>
                 ))}
               </select>
@@ -238,7 +243,7 @@ export function CreateVehicleDialog() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="v_description">Description (optional)</Label>
+            <Label htmlFor="v_description">{t('common:fields.description')}</Label>
             <Input
               id="v_description"
               value={form.description}
@@ -250,16 +255,18 @@ export function CreateVehicleDialog() {
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Creating…' : 'Create'}
+              {mutation.isPending
+                ? t('common:actions.creating')
+                : t('common:actions.create')}
             </Button>
           </DialogFooter>
         </form>
@@ -268,11 +275,11 @@ export function CreateVehicleDialog() {
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownMsg: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownMsg
 }

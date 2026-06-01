@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -31,6 +32,7 @@ const empty = {
 }
 
 export function CreatePropertyDialog() {
+  const { t } = useTranslation(['assets', 'common'])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(empty)
   const { data: user } = useSession()
@@ -69,20 +71,18 @@ export function CreatePropertyDialog() {
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
-        <Button>+ New property</Button>
+        <Button>{t('assets:property.createTrigger')}</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New property</DialogTitle>
+          <DialogTitle>{t('assets:property.createTitle')}</DialogTitle>
           <DialogDescription>
-            Track a property in your household. You'll record monthly value
-            snapshots manually; an amortization rate helper UI will arrive
-            later.
+            {t('assets:property.createDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid gap-2">
-            <Label htmlFor="display_name">Display name</Label>
+            <Label htmlFor="display_name">{t('common:fields.displayName')}</Label>
             <Input
               id="display_name"
               required
@@ -90,13 +90,13 @@ export function CreatePropertyDialog() {
               onChange={(e) =>
                 setForm({ ...form, display_name: e.target.value })
               }
-              placeholder="House in Bandung"
+              placeholder={t('assets:property.placeholders.displayName')}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="property_type">Type</Label>
+              <Label htmlFor="property_type">{t('assets:property.fields.type')}</Label>
               <select
                 id="property_type"
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -108,14 +108,14 @@ export function CreatePropertyDialog() {
                   })
                 }
               >
-                <option value="house">House</option>
-                <option value="apartment">Apartment</option>
-                <option value="land">Land</option>
-                <option value="commercial">Commercial</option>
+                <option value="house">{t('assets:property.propertyTypes.house')}</option>
+                <option value="apartment">{t('assets:property.propertyTypes.apartment')}</option>
+                <option value="land">{t('assets:property.propertyTypes.land')}</option>
+                <option value="commercial">{t('assets:property.propertyTypes.commercial')}</option>
               </select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="native_currency">Currency</Label>
+              <Label htmlFor="native_currency">{t('common:fields.currency')}</Label>
               <Input
                 id="native_currency"
                 required
@@ -126,14 +126,14 @@ export function CreatePropertyDialog() {
                     native_currency: e.target.value.toUpperCase(),
                   })
                 }
-                placeholder="IDR"
+                placeholder={t('assets:property.placeholders.currency')}
                 maxLength={3}
               />
             </div>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="address">Address (optional)</Label>
+            <Label htmlFor="address">{t('assets:property.fields.address')}</Label>
             <Input
               id="address"
               value={form.address}
@@ -143,7 +143,9 @@ export function CreatePropertyDialog() {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="acquisition_date">Acquisition date (optional)</Label>
+              <Label htmlFor="acquisition_date">
+                {t('assets:property.fields.acquisitionDate')}
+              </Label>
               <Input
                 id="acquisition_date"
                 type="date"
@@ -154,7 +156,9 @@ export function CreatePropertyDialog() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="acquisition_cost">Acquisition cost (optional)</Label>
+              <Label htmlFor="acquisition_cost">
+                {t('assets:property.fields.acquisitionCost')}
+              </Label>
               <Input
                 id="acquisition_cost"
                 inputMode="decimal"
@@ -162,14 +166,14 @@ export function CreatePropertyDialog() {
                 onChange={(e) =>
                   setForm({ ...form, acquisition_cost: e.target.value })
                 }
-                placeholder="1500000000"
+                placeholder={t('assets:property.placeholders.acquisitionCost')}
               />
             </div>
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="annual_appreciation_rate">
-              Annual appreciation rate (% /yr, optional)
+              {t('assets:property.fields.appreciationRate')}
             </Label>
             <Input
               id="annual_appreciation_rate"
@@ -181,12 +185,12 @@ export function CreatePropertyDialog() {
                   annual_appreciation_rate: e.target.value,
                 })
               }
-              placeholder="e.g. 3.5 — negative if losing value"
+              placeholder={t('assets:property.placeholders.appreciationRate')}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label>Ownership</Label>
+            <Label>{t('common:fields.ownership')}</Label>
             <div className="flex gap-4 text-sm">
               <label className="flex items-center gap-2">
                 <input
@@ -196,7 +200,7 @@ export function CreatePropertyDialog() {
                   checked={form.ownership_type === 'joint'}
                   onChange={() => setForm({ ...form, ownership_type: 'joint' })}
                 />
-                Joint
+                {t('common:ownership.joint')}
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -206,12 +210,12 @@ export function CreatePropertyDialog() {
                   checked={form.ownership_type === 'sole'}
                   onChange={() => setForm({ ...form, ownership_type: 'sole' })}
                 />
-                Sole owner
+                {t('common:ownership.soleOwner')}
               </label>
             </div>
             {form.ownership_type === 'sole' && (
               <select
-                aria-label="Sole owner"
+                aria-label={t('common:ownership.soleOwner')}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                 value={effectiveSoleOwnerID ?? ''}
                 onChange={(e) =>
@@ -221,7 +225,7 @@ export function CreatePropertyDialog() {
                 {(members ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
                     {preferredName(m)}
-                    {user && m.id === user.id ? ' (you)' : ''}
+                    {user && m.id === user.id ? t('common:ownership.youSuffix') : ''}
                   </option>
                 ))}
               </select>
@@ -229,7 +233,7 @@ export function CreatePropertyDialog() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="description">Description (optional)</Label>
+            <Label htmlFor="description">{t('common:fields.description')}</Label>
             <Input
               id="description"
               value={form.description}
@@ -241,16 +245,18 @@ export function CreatePropertyDialog() {
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Creating…' : 'Create'}
+              {mutation.isPending
+                ? t('common:actions.creating')
+                : t('common:actions.create')}
             </Button>
           </DialogFooter>
         </form>
@@ -259,11 +265,11 @@ export function CreatePropertyDialog() {
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownMsg: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownMsg
 }

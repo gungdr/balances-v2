@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { SortableHeader } from '@/components/SortableHeader'
@@ -34,10 +35,14 @@ type Row = {
 const tiebreakByName = (a: Row, b: Row) => a.name.localeCompare(b.name)
 
 export function PropertiesScreen({ onSelect }: Props) {
+  const { t } = useTranslation(['assets', 'common', 'errors'])
   const { data, isPending, error } = useProperties()
   const { data: members } = useHouseholdMembers()
   const { data: currentUser } = useSession()
   const [showInactive, setShowInactive] = useState(false)
+
+  const noun = t('assets:property.noun')
+  const nounPlural = t('assets:property.nounPlural')
 
   const rows = useMemo<Row[]>(
     () =>
@@ -89,9 +94,11 @@ export function PropertiesScreen({ onSelect }: Props) {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Properties</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t('assets:property.listTitle')}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Track monthly valuations across the household's properties.
+            {t('assets:property.listSubtitle')}
           </p>
         </div>
         <CreatePropertyDialog />
@@ -100,27 +107,27 @@ export function PropertiesScreen({ onSelect }: Props) {
       <ListHeadline
         totals={totals}
         count={count}
-        label="Total value"
-        noun="property"
-        nounPlural="properties"
+        label={t('assets:property.totalValue')}
+        noun={noun}
+        nounPlural={nounPlural}
         testId="properties-total"
       />
 
-      {isPending && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {isPending && (
+        <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
+      )}
 
       {error && (
         <p className="text-sm text-destructive">
-          Failed to load: {(error as Error).message}
+          {t('errors:failedToLoad', { message: (error as Error).message })}
         </p>
       )}
 
       {data && data.length === 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>No properties yet</CardTitle>
-            <CardDescription>
-              Create your first property to start tracking month-end valuations.
-            </CardDescription>
+            <CardTitle>{t('assets:property.emptyTitle')}</CardTitle>
+            <CardDescription>{t('assets:property.emptyBody')}</CardDescription>
           </CardHeader>
           <CardContent>
             <CreatePropertyDialog />
@@ -133,7 +140,7 @@ export function PropertiesScreen({ onSelect }: Props) {
           {terminatedCount > 0 && (
             <ShowInactiveToggle
               count={terminatedCount}
-              nounPlural="properties"
+              nounPlural={nounPlural}
               checked={showInactive}
               onChange={setShowInactive}
             />
@@ -141,10 +148,11 @@ export function PropertiesScreen({ onSelect }: Props) {
 
           {visibleRows.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No active properties. {terminatedCount} inactive
-              {terminatedCount === 1 ? ' property' : ' properties'} hidden — tick
-              "Show inactive properties" to{' '}
-              {terminatedCount === 1 ? 'see it' : 'see them'}.
+              {t('common:list.noActive', {
+                count: terminatedCount,
+                noun,
+                nounPlural,
+              })}
             </p>
           ) : (
             <Card>
@@ -153,28 +161,28 @@ export function PropertiesScreen({ onSelect }: Props) {
                   <TableHeader>
                     <TableRow>
                       <SortableHeader
-                        label="Name"
+                        label={t('common:tableHeaders.name')}
                         testId="sort-name"
                         active={sortKey === 'name'}
                         dir={sortDir}
                         onSort={() => toggle('name')}
                       />
                       <SortableHeader
-                        label="Ownership"
+                        label={t('common:tableHeaders.ownership')}
                         testId="sort-ownership"
                         active={sortKey === 'ownership'}
                         dir={sortDir}
                         onSort={() => toggle('ownership')}
                       />
                       <SortableHeader
-                        label="Status"
+                        label={t('common:tableHeaders.status')}
                         testId="sort-status"
                         active={sortKey === 'status'}
                         dir={sortDir}
                         onSort={() => toggle('status')}
                       />
                       <SortableHeader
-                        label="Latest valuation"
+                        label={t('assets:property.sortLatestValuation')}
                         testId="sort-value"
                         align="right"
                         active={sortKey === 'value'}

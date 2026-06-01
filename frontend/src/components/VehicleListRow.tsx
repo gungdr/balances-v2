@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -25,6 +26,7 @@ type Props = {
 }
 
 export function VehicleListRow({ item, ownerLabel, onSelect }: Props) {
+  const { t } = useTranslation(['assets', 'common'])
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const deleteMutation = useDeleteVehicle()
@@ -38,11 +40,15 @@ export function VehicleListRow({ item, ownerLabel, onSelect }: Props) {
     })
   }
 
+  // vehicle_type is a closed enum (car/motorcycle/other) so it translates
+  // against the vehicleTypes sub-namespace; make/model/year/plate stay
+  // free-form user text.
+  const typeLabel = t(`assets:vehicle.vehicleTypes.${item.details.vehicle_type}`)
   const makeModel = [item.details.make, item.details.model]
     .filter(Boolean)
     .join(' ')
   const secondary = [
-    item.details.vehicle_type,
+    typeLabel,
     makeModel,
     item.details.year ? String(item.details.year) : null,
     item.details.plate_number,
@@ -60,7 +66,7 @@ export function VehicleListRow({ item, ownerLabel, onSelect }: Props) {
           <div className={cn('font-medium', terminated && 'font-normal')}>
             {item.asset.display_name}
           </div>
-          <div className="text-xs text-muted-foreground capitalize">
+          <div className="text-xs text-muted-foreground">
             {secondary || '—'}
           </div>
         </TableCell>
@@ -82,7 +88,7 @@ export function VehicleListRow({ item, ownerLabel, onSelect }: Props) {
               </div>
             </>
           ) : (
-            <span className="text-muted-foreground">—</span>
+            <span className="text-muted-foreground">{'—'}</span>
           )}
         </TableCell>
         <TableCell className="text-right">
@@ -91,7 +97,7 @@ export function VehicleListRow({ item, ownerLabel, onSelect }: Props) {
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label="Vehicle actions"
+                aria-label={t('assets:vehicle.rowActions')}
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreHorizontal className="size-4" />
@@ -99,13 +105,13 @@ export function VehicleListRow({ item, ownerLabel, onSelect }: Props) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                Edit
+                {t('common:actions.edit')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setDeleteOpen(true)}
                 variant="destructive"
               >
-                Delete
+                {t('common:delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -122,9 +128,11 @@ export function VehicleListRow({ item, ownerLabel, onSelect }: Props) {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this vehicle?"
-        description={`${item.asset.display_name} will be hidden from lists and reports. This can be undone via the database, not yet via the UI.`}
-        confirmLabel="Delete"
+        title={t('assets:vehicle.deleteTitle')}
+        description={t('assets:vehicle.deleteRowDescription', {
+          name: item.asset.display_name,
+        })}
+        confirmLabel={t('common:delete')}
         destructive
         pending={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}

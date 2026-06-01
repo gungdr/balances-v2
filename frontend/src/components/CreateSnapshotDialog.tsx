@@ -136,19 +136,24 @@ export function CreateSnapshotDialog<TResult>({
             {(() => {
               const s = suggest?.(form.year_month)
               if (!s) return null
-              // Real minus sign (−, U+2212) for negative rates so the glyph
-              // lines up with the surrounding typography; "+" for positive.
-              const sign = s.annualRatePct > 0 ? '+' : '−'
+              // Sign-aware copy: positive rate reads as "appreciation" (real
+              // "+" prefix in EN, "apresiasi" verb in ID); negative rate
+              // reads as "depreciation" (real minus "−" U+2212 in EN,
+              // "penyusutan" verb in ID). Two keys keep the verb-form
+              // localisable rather than dropping a raw glyph into ID copy.
               const magnitude = Math.abs(s.annualRatePct)
+              const hintKey =
+                s.annualRatePct > 0
+                  ? 'snapshot.revaluationHintAppreciate'
+                  : 'snapshot.revaluationHintDepreciate'
               return (
                 <div
                   className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
                   data-testid="revaluation-hint"
                 >
                   <span>
-                    {t('snapshot.revaluationHint', {
+                    {t(hintKey, {
                       amount: formatCurrency(s.amount, currency),
-                      sign,
                       magnitude,
                       months: s.monthsElapsed,
                       anchor: formatYearMonth(

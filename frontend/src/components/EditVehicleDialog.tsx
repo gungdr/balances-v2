@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -24,6 +25,7 @@ type Props = {
 }
 
 export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
+  const { t } = useTranslation(['assets', 'common'])
   const mutation = useUpdateVehicle(vehicle.asset.id)
   const { data: user } = useSession()
   const { data: members } = useHouseholdMembers()
@@ -67,15 +69,14 @@ export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit vehicle</DialogTitle>
+          <DialogTitle>{t('assets:vehicle.editTitle')}</DialogTitle>
           <DialogDescription>
-            Update the vehicle's details or ownership. Currency is not
-            editable yet.
+            {t('assets:vehicle.editDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid gap-2">
-            <Label htmlFor="ev_display_name">Display name</Label>
+            <Label htmlFor="ev_display_name">{t('common:fields.displayName')}</Label>
             <Input
               id="ev_display_name"
               required
@@ -87,7 +88,7 @@ export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="ev_type">Type</Label>
+            <Label htmlFor="ev_type">{t('assets:vehicle.fields.type')}</Label>
             <select
               id="ev_type"
               className="h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -99,15 +100,17 @@ export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
                 })
               }
             >
-              <option value="car">Car</option>
-              <option value="motorcycle">Motorcycle</option>
-              <option value="other">Other</option>
+              <option value="car">{t('assets:vehicle.vehicleTypes.car')}</option>
+              <option value="motorcycle">
+                {t('assets:vehicle.vehicleTypes.motorcycle')}
+              </option>
+              <option value="other">{t('assets:vehicle.vehicleTypes.other')}</option>
             </select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="ev_make">Make</Label>
+              <Label htmlFor="ev_make">{t('assets:vehicle.fields.makeEdit')}</Label>
               <Input
                 id="ev_make"
                 value={form.make}
@@ -115,7 +118,7 @@ export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="ev_model">Model</Label>
+              <Label htmlFor="ev_model">{t('assets:vehicle.fields.modelEdit')}</Label>
               <Input
                 id="ev_model"
                 value={form.model}
@@ -126,7 +129,7 @@ export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="ev_year">Year</Label>
+              <Label htmlFor="ev_year">{t('assets:vehicle.fields.yearEdit')}</Label>
               <Input
                 id="ev_year"
                 type="number"
@@ -135,7 +138,9 @@ export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="ev_plate">Plate number</Label>
+              <Label htmlFor="ev_plate">
+                {t('assets:vehicle.fields.plateNumberEdit')}
+              </Label>
               <Input
                 id="ev_plate"
                 value={form.plate_number}
@@ -147,7 +152,9 @@ export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="ev_depr">Annual depreciation rate (%)</Label>
+            <Label htmlFor="ev_depr">
+              {t('assets:vehicle.fields.depreciationRateEdit')}
+            </Label>
             <Input
               id="ev_depr"
               inputMode="decimal"
@@ -162,7 +169,7 @@ export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
           </div>
 
           <div className="grid gap-2">
-            <Label>Ownership</Label>
+            <Label>{t('common:fields.ownership')}</Label>
             <div className="flex gap-4 text-sm">
               <label className="flex items-center gap-2">
                 <input
@@ -172,7 +179,7 @@ export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
                   checked={form.ownership_type === 'joint'}
                   onChange={() => setForm({ ...form, ownership_type: 'joint' })}
                 />
-                Joint
+                {t('common:ownership.joint')}
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -182,12 +189,12 @@ export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
                   checked={form.ownership_type === 'sole'}
                   onChange={() => setForm({ ...form, ownership_type: 'sole' })}
                 />
-                Sole owner
+                {t('common:ownership.soleOwner')}
               </label>
             </div>
             {form.ownership_type === 'sole' && (
               <select
-                aria-label="Sole owner"
+                aria-label={t('common:ownership.soleOwner')}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                 value={effectiveSoleOwnerID ?? ''}
                 onChange={(e) =>
@@ -197,7 +204,7 @@ export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
                 {(members ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
                     {preferredName(m)}
-                    {user && m.id === user.id ? ' (you)' : ''}
+                    {user && m.id === user.id ? t('common:ownership.youSuffix') : ''}
                   </option>
                 ))}
               </select>
@@ -205,7 +212,7 @@ export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="ev_description">Description (optional)</Label>
+            <Label htmlFor="ev_description">{t('common:fields.description')}</Label>
             <Input
               id="ev_description"
               value={form.description}
@@ -217,7 +224,7 @@ export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
@@ -227,10 +234,12 @@ export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Saving…' : 'Save changes'}
+              {mutation.isPending
+                ? t('common:actions.saving')
+                : t('common:actions.saveChanges')}
             </Button>
           </DialogFooter>
         </form>
@@ -239,11 +248,11 @@ export function EditVehicleDialog({ open, onOpenChange, vehicle }: Props) {
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownMsg: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownMsg
 }

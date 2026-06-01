@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -24,6 +25,7 @@ type Props = {
 }
 
 export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
+  const { t } = useTranslation(['assets', 'common'])
   const mutation = useUpdateProperty(property.asset.id)
   const { data: user } = useSession()
   const { data: members } = useHouseholdMembers()
@@ -68,15 +70,14 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit property</DialogTitle>
+          <DialogTitle>{t('assets:property.editTitle')}</DialogTitle>
           <DialogDescription>
-            Update the property's details or ownership. Currency is not
-            editable yet.
+            {t('assets:property.editDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid gap-2">
-            <Label htmlFor="edit_p_display_name">Display name</Label>
+            <Label htmlFor="edit_p_display_name">{t('common:fields.displayName')}</Label>
             <Input
               id="edit_p_display_name"
               required
@@ -88,7 +89,7 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="edit_p_type">Type</Label>
+            <Label htmlFor="edit_p_type">{t('assets:property.fields.type')}</Label>
             <select
               id="edit_p_type"
               className="h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -100,15 +101,15 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
                 })
               }
             >
-              <option value="house">House</option>
-              <option value="apartment">Apartment</option>
-              <option value="land">Land</option>
-              <option value="commercial">Commercial</option>
+              <option value="house">{t('assets:property.propertyTypes.house')}</option>
+              <option value="apartment">{t('assets:property.propertyTypes.apartment')}</option>
+              <option value="land">{t('assets:property.propertyTypes.land')}</option>
+              <option value="commercial">{t('assets:property.propertyTypes.commercial')}</option>
             </select>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="edit_p_address">Address (optional)</Label>
+            <Label htmlFor="edit_p_address">{t('assets:property.fields.addressEdit')}</Label>
             <Input
               id="edit_p_address"
               value={form.address}
@@ -118,7 +119,9 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="edit_p_acq_date">Acquisition date</Label>
+              <Label htmlFor="edit_p_acq_date">
+                {t('assets:property.fields.acquisitionDateEdit')}
+              </Label>
               <Input
                 id="edit_p_acq_date"
                 type="date"
@@ -129,7 +132,9 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit_p_acq_cost">Acquisition cost</Label>
+              <Label htmlFor="edit_p_acq_cost">
+                {t('assets:property.fields.acquisitionCostEdit')}
+              </Label>
               <Input
                 id="edit_p_acq_cost"
                 inputMode="decimal"
@@ -143,7 +148,7 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
 
           <div className="grid gap-2">
             <Label htmlFor="edit_p_apprec">
-              Annual appreciation rate (% /yr)
+              {t('assets:property.fields.appreciationRateEdit')}
             </Label>
             <Input
               id="edit_p_apprec"
@@ -155,12 +160,12 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
                   annual_appreciation_rate: e.target.value,
                 })
               }
-              placeholder="e.g. 3.5 — negative if losing value"
+              placeholder={t('assets:property.placeholders.appreciationRate')}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label>Ownership</Label>
+            <Label>{t('common:fields.ownership')}</Label>
             <div className="flex gap-4 text-sm">
               <label className="flex items-center gap-2">
                 <input
@@ -170,7 +175,7 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
                   checked={form.ownership_type === 'joint'}
                   onChange={() => setForm({ ...form, ownership_type: 'joint' })}
                 />
-                Joint
+                {t('common:ownership.joint')}
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -180,12 +185,12 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
                   checked={form.ownership_type === 'sole'}
                   onChange={() => setForm({ ...form, ownership_type: 'sole' })}
                 />
-                Sole owner
+                {t('common:ownership.soleOwner')}
               </label>
             </div>
             {form.ownership_type === 'sole' && (
               <select
-                aria-label="Sole owner"
+                aria-label={t('common:ownership.soleOwner')}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                 value={effectiveSoleOwnerID ?? ''}
                 onChange={(e) =>
@@ -195,7 +200,7 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
                 {(members ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
                     {preferredName(m)}
-                    {user && m.id === user.id ? ' (you)' : ''}
+                    {user && m.id === user.id ? t('common:ownership.youSuffix') : ''}
                   </option>
                 ))}
               </select>
@@ -203,7 +208,7 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="edit_p_description">Description (optional)</Label>
+            <Label htmlFor="edit_p_description">{t('common:fields.description')}</Label>
             <Input
               id="edit_p_description"
               value={form.description}
@@ -215,7 +220,7 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
@@ -225,10 +230,12 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Saving…' : 'Save changes'}
+              {mutation.isPending
+                ? t('common:actions.saving')
+                : t('common:actions.saveChanges')}
             </Button>
           </DialogFooter>
         </form>
@@ -237,11 +244,11 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownMsg: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownMsg
 }

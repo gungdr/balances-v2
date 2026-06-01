@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -47,6 +48,7 @@ type Props = {
 const PAGE_SIZE = 12
 
 export function PropertyDetail({ assetId, onBack }: Props) {
+  const { t } = useTranslation(['assets', 'common', 'errors'])
   const { data: property, isPending, error } = useProperty(assetId)
   const { data: snapshots } = useSnapshots(assetId)
   const deleteMutation = useDeleteProperty()
@@ -77,12 +79,12 @@ export function PropertyDetail({ assetId, onBack }: Props) {
   }
 
   if (isPending) {
-    return <p className="text-sm text-muted-foreground">Loading…</p>
+    return <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
   }
   if (error) {
     return (
       <p className="text-sm text-destructive">
-        Failed to load: {(error as Error).message}
+        {t('errors:failedToLoad', { message: (error as Error).message })}
       </p>
     )
   }
@@ -99,6 +101,7 @@ export function PropertyDetail({ assetId, onBack }: Props) {
     (effectivePage - 1) * PAGE_SIZE,
     effectivePage * PAGE_SIZE,
   )
+  const typeLabel = t(`assets:property.propertyTypes.${details.property_type}`)
 
   return (
     <div className="space-y-6">
@@ -110,13 +113,13 @@ export function PropertyDetail({ assetId, onBack }: Props) {
             onClick={onBack}
             className="-ml-2 mb-1"
           >
-            ← Back
+            {t('common:actions.back')}
           </Button>
           <h1 className="text-2xl font-semibold tracking-tight">
             {asset.display_name}
           </h1>
-          <p className="text-sm text-muted-foreground capitalize">
-            {details.property_type}
+          <p className="text-sm text-muted-foreground">
+            {typeLabel}
             {details.address && ` · ${details.address}`}
           </p>
         </div>
@@ -142,7 +145,7 @@ export function PropertyDetail({ assetId, onBack }: Props) {
             </>
           )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-            Edit
+            {t('common:actions.edit')}
           </Button>
           <TerminatePositionDialog
             group="assets"
@@ -157,28 +160,39 @@ export function PropertyDetail({ assetId, onBack }: Props) {
             size="sm"
             onClick={() => setDeleteOpen(true)}
           >
-            Delete
+            {t('common:delete')}
           </Button>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Property Details</CardTitle>
+          <CardTitle>{t('assets:property.detailsCardTitle')}</CardTitle>
           <CardDescription>
-            Ownership: {ownerLabel} · Currency: {asset.native_currency} ·
-            Status: <StatusBadge group="assets" status={asset.status} />
+            {t('assets:property.detailsCardLine', {
+              ownership: ownerLabel,
+              currency: asset.native_currency,
+            })}{' '}
+            <StatusBadge group="assets" status={asset.status} />
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm space-y-1">
           {details.acquisition_date && (
             <p>
-              <span className="text-muted-foreground">Acquired:</span>{' '}
-              {formatDate(details.acquisition_date)}
-              {details.acquisition_cost && (
+              {details.acquisition_cost ? (
+                t('assets:property.acquiredForLine', {
+                  date: formatDate(details.acquisition_date),
+                  cost: formatCurrency(
+                    details.acquisition_cost,
+                    asset.native_currency,
+                  ),
+                })
+              ) : (
                 <>
-                  {' '}for{' '}
-                  {formatCurrency(details.acquisition_cost, asset.native_currency)}
+                  <span className="text-muted-foreground">
+                    {t('assets:property.acquiredLine')}
+                  </span>{' '}
+                  {formatDate(details.acquisition_date)}
                 </>
               )}
             </p>
@@ -186,9 +200,11 @@ export function PropertyDetail({ assetId, onBack }: Props) {
           {details.annual_appreciation_rate && (
             <p>
               <span className="text-muted-foreground">
-                Appreciation rate:
+                {t('assets:property.appreciationRateLabel')}
               </span>{' '}
-              {formatSignedPercent(details.annual_appreciation_rate)} /yr
+              {t('assets:property.appreciationRateValue', {
+                value: formatSignedPercent(details.annual_appreciation_rate),
+              })}
             </p>
           )}
           {asset.description && (
@@ -200,9 +216,11 @@ export function PropertyDetail({ assetId, onBack }: Props) {
       {snapshots && snapshots.length >= 2 && (
         <Card>
           <CardHeader>
-            <CardTitle>Valuation Over Time</CardTitle>
+            <CardTitle>{t('assets:property.chartTitle')}</CardTitle>
             <CardDescription>
-              Monthly valuation progression in {asset.native_currency}.
+              {t('assets:property.chartDescription', {
+                currency: asset.native_currency,
+              })}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -216,25 +234,24 @@ export function PropertyDetail({ assetId, onBack }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Snapshots</CardTitle>
+          <CardTitle>{t('assets:property.snapshotsTitle')}</CardTitle>
           <CardDescription>
-            Monthly valuation readings (manual entry).
+            {t('assets:property.snapshotsDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {!snapshots || snapshots.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
-              No snapshots yet. Click "New snapshot" to record this month's
-              valuation.
+              {t('assets:property.snapshotsEmpty')}
             </p>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Month</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Notes</TableHead>
+                    <TableHead>{t('common:tableHeaders.month')}</TableHead>
+                    <TableHead>{t('common:tableHeaders.amount')}</TableHead>
+                    <TableHead>{t('common:tableHeaders.notes')}</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -272,9 +289,9 @@ export function PropertyDetail({ assetId, onBack }: Props) {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this property?"
-        description="Snapshots and history will be hidden. This can be undone via the database, not yet via the UI."
-        confirmLabel="Delete"
+        title={t('assets:property.deleteTitle')}
+        description={t('assets:property.deleteDetailDescription')}
+        confirmLabel={t('common:delete')}
         destructive
         pending={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}

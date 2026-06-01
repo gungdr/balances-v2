@@ -119,7 +119,8 @@
     "rowActions": "Snapshot actions",
     "deleteTitle": "Delete this snapshot?",
     "deleteDescription": "The {{month}} reading will be hidden from reports. This can be undone via the database, not yet via the UI.",
-    "revaluationHint": "💡 Suggested {{amount}} — based on {{sign}}{{magnitude}}% /yr × {{months}} mo from {{anchor}}.",
+    "revaluationHintAppreciate": "💡 Suggested {{amount}} — based on +{{magnitude}}% appreciation /yr × {{months}} mo from {{anchor}}.",
+    "revaluationHintDepreciate": "💡 Suggested {{amount}} — based on −{{magnitude}}% depreciation /yr × {{months}} mo from {{anchor}}.",
     "revaluationApply": "Apply",
     "descriptionPlaceholder": "from BCA statement",
     "amountPlaceholder": "e.g. 12500000"

@@ -119,7 +119,8 @@
     "rowActions": "Aksi snapshot",
     "deleteTitle": "Hapus snapshot ini?",
     "deleteDescription": "Bacaan {{month}} akan disembunyikan dari laporan. Bisa dipulihkan via database, belum via UI.",
-    "revaluationHint": "💡 Saran {{amount}} — berdasarkan {{sign}}{{magnitude}}% /thn × {{months}} bln dari {{anchor}}.",
+    "revaluationHintAppreciate": "💡 Saran {{amount}} — berdasarkan apresiasi {{magnitude}}% /thn × {{months}} bln dari {{anchor}}.",
+    "revaluationHintDepreciate": "💡 Saran {{amount}} — berdasarkan penyusutan {{magnitude}}% /thn × {{months}} bln dari {{anchor}}.",
     "revaluationApply": "Terapkan",
     "descriptionPlaceholder": "dari laporan BCA",
     "amountPlaceholder": "mis. 12500000"

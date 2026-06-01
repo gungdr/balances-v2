@@ -72,6 +72,19 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     (`statusLabel` + new `statusOptions(group)`) and `lib/ownership.ts` (`ownershipLabel`)
     translate via the imported `i18n` instance with English `defaultValue` fallbacks so the
     node-env unit tests keep passing. Pattern doc lives at the top of `BankAccountsScreen.tsx`.
+  - Properties + Vehicles extraction (issue #8): both asset subtypes end-to-end (5
+    components each: `*Screen` / `*Detail` / `*ListRow` / `Create*Dialog` / `Edit*Dialog`)
+    plus the sign-aware revaluation hint in the shared `CreateSnapshotDialog`. Group-specific
+    copy lives under `assets.property.*` and `assets.vehicle.*` (closed enums
+    `propertyTypes` + `vehicleTypes`; per-form fields including the
+    `appreciationRate` / `depreciationRate` labels + placeholders;
+    `appreciationRateValue: "{{value}} /yr"` / `/thn` suffix key). Shared
+    snapshot/terminate/import dialogs reused from #7 with **no new shared keys**. The
+    revaluation hint split into `revaluationHintAppreciate` (positive rate → "+X%
+    appreciation" / "apresiasi X%") and `revaluationHintDepreciate` (negative rate →
+    "−X% depreciation" / "penyusutan X%") so ID reads with verb forms, not a stray
+    glyph. ID copy from the glossary: Properti, Kendaraan, Rumah/Apartemen/Tanah/
+    Komersial, Mobil/Motor, Apresiasi/Penyusutan.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

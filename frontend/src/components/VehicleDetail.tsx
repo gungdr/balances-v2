@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -46,6 +47,7 @@ type Props = {
 const PAGE_SIZE = 12
 
 export function VehicleDetail({ assetId, onBack }: Props) {
+  const { t } = useTranslation(['assets', 'common', 'errors'])
   const { data: vehicle, isPending, error } = useVehicle(assetId)
   const { data: snapshots } = useSnapshots(assetId)
   const deleteMutation = useDeleteVehicle()
@@ -76,12 +78,12 @@ export function VehicleDetail({ assetId, onBack }: Props) {
   }
 
   if (isPending) {
-    return <p className="text-sm text-muted-foreground">Loading…</p>
+    return <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
   }
   if (error) {
     return (
       <p className="text-sm text-destructive">
-        Failed to load: {(error as Error).message}
+        {t('errors:failedToLoad', { message: (error as Error).message })}
       </p>
     )
   }
@@ -98,9 +100,10 @@ export function VehicleDetail({ assetId, onBack }: Props) {
     (effectivePage - 1) * PAGE_SIZE,
     effectivePage * PAGE_SIZE,
   )
+  const typeLabel = t(`assets:vehicle.vehicleTypes.${details.vehicle_type}`)
   const makeModel = [details.make, details.model].filter(Boolean).join(' ')
   const subtitleParts = [
-    details.vehicle_type,
+    typeLabel,
     makeModel,
     details.year ? String(details.year) : null,
     details.plate_number,
@@ -116,12 +119,12 @@ export function VehicleDetail({ assetId, onBack }: Props) {
             onClick={onBack}
             className="-ml-2 mb-1"
           >
-            ← Back
+            {t('common:actions.back')}
           </Button>
           <h1 className="text-2xl font-semibold tracking-tight">
             {asset.display_name}
           </h1>
-          <p className="text-sm text-muted-foreground capitalize">
+          <p className="text-sm text-muted-foreground">
             {subtitleParts.join(' · ')}
           </p>
         </div>
@@ -151,7 +154,7 @@ export function VehicleDetail({ assetId, onBack }: Props) {
             </>
           )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-            Edit
+            {t('common:actions.edit')}
           </Button>
           <TerminatePositionDialog
             group="assets"
@@ -166,17 +169,19 @@ export function VehicleDetail({ assetId, onBack }: Props) {
             size="sm"
             onClick={() => setDeleteOpen(true)}
           >
-            Delete
+            {t('common:delete')}
           </Button>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Vehicle Details</CardTitle>
+          <CardTitle>{t('assets:vehicle.detailsCardTitle')}</CardTitle>
           <CardDescription>
-            Ownership: {ownerLabel}{' '}
-            · Currency: {asset.native_currency} · Status:{' '}
+            {t('assets:vehicle.detailsCardLine', {
+              ownership: ownerLabel,
+              currency: asset.native_currency,
+            })}{' '}
             <StatusBadge group="assets" status={asset.status} />
           </CardDescription>
         </CardHeader>
@@ -185,9 +190,11 @@ export function VehicleDetail({ assetId, onBack }: Props) {
             {details.annual_depreciation_rate && (
               <p>
                 <span className="text-muted-foreground">
-                  Depreciation rate:
+                  {t('assets:vehicle.depreciationRateLabel')}
                 </span>{' '}
-                {Number(details.annual_depreciation_rate).toFixed(2)}% /yr
+                {t('assets:vehicle.depreciationRateValue', {
+                  rate: Number(details.annual_depreciation_rate).toFixed(2),
+                })}
               </p>
             )}
             {asset.description && <p className="pt-1">{asset.description}</p>}
@@ -198,9 +205,11 @@ export function VehicleDetail({ assetId, onBack }: Props) {
       {snapshots && snapshots.length >= 2 && (
         <Card>
           <CardHeader>
-            <CardTitle>Valuation Over Time</CardTitle>
+            <CardTitle>{t('assets:vehicle.chartTitle')}</CardTitle>
             <CardDescription>
-              Monthly valuation progression in {asset.native_currency}.
+              {t('assets:vehicle.chartDescription', {
+                currency: asset.native_currency,
+              })}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -214,25 +223,24 @@ export function VehicleDetail({ assetId, onBack }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Snapshots</CardTitle>
+          <CardTitle>{t('assets:vehicle.snapshotsTitle')}</CardTitle>
           <CardDescription>
-            Monthly valuation readings (manual entry).
+            {t('assets:vehicle.snapshotsDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {!snapshots || snapshots.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
-              No snapshots yet. Click "New snapshot" to record this month's
-              valuation.
+              {t('assets:vehicle.snapshotsEmpty')}
             </p>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Month</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Notes</TableHead>
+                    <TableHead>{t('common:tableHeaders.month')}</TableHead>
+                    <TableHead>{t('common:tableHeaders.amount')}</TableHead>
+                    <TableHead>{t('common:tableHeaders.notes')}</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -270,9 +278,9 @@ export function VehicleDetail({ assetId, onBack }: Props) {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this vehicle?"
-        description="Snapshots and history will be hidden. This can be undone via the database, not yet via the UI."
-        confirmLabel="Delete"
+        title={t('assets:vehicle.deleteTitle')}
+        description={t('assets:vehicle.deleteDetailDescription')}
+        confirmLabel={t('common:delete')}
         destructive
         pending={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}

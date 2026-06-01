@@ -909,6 +909,51 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     `TerminatePositionDialog`.
   - Lint 1127 → 987 (140 bank-account + shared-dialog warnings cleared). Build green,
     vitest 13/13 (127/127).
+- **Properties + Vehicles i18n extraction (M6, frontend-only — issue #8).** Fourth
+  extraction slice; first to apply the #7 template to two groups in one PR. 10 components
+  touched (5 property + 5 vehicle: `*Screen` / `*Detail` / `*ListRow` / `Create*Dialog` /
+  `Edit*Dialog`) plus the sign-aware revaluation hint in the shared `CreateSnapshotDialog`.
+  ~160 string sites moved into `assets.property.*` / `assets.vehicle.*`. **No new shared
+  dialog keys** — the four shared dialogs from #7 (snapshot create/edit/row + terminate +
+  import) drove both groups without modification, validating the #7 template choices.
+  - **Sign-aware revaluation hint.** The shared `common.snapshot.revaluationHint` split
+    into `revaluationHintAppreciate` (positive rate; EN: "+X% appreciation /yr"; ID:
+    "apresiasi X% /thn") and `revaluationHintDepreciate` (negative rate; EN: "−X%
+    depreciation /yr" — real minus U+2212; ID: "penyusutan X% /thn"). The dialog picks
+    the key from the rate sign rather than threading a glyph through interpolation. This
+    closes the issue's "sign-aware copy translated, not just keys" criterion.
+  - **Closed-enum sub-namespaces.** Property `property_type` and vehicle `vehicle_type`
+    each get a sub-namespace (`assets.property.propertyTypes.{house,apartment,land,
+    commercial}`, `assets.vehicle.vehicleTypes.{car,motorcycle,other}`) translated via
+    `t(\`assets:<group>.\${type}.\${value}\`)` at the call site. The `capitalize` CSS
+    class on the secondary-info `<div>` in both `*ListRow` and `*Detail` dropped because
+    the translation now returns Title Case; addresses and make/model/year/plate stay free
+    text under the same line.
+  - **Edit/Create label divergence.** A handful of fields show slightly different copy
+    in Create vs Edit dialogs (Edit drops the "(optional)" suffix because the field
+    pre-fills with the existing value). Catalog mirrors that with `<field>` /
+    `<field>Edit` siblings (`address`/`addressEdit`, `acquisitionDate`/`Edit`,
+    `acquisitionCost`/`Edit`, `appreciationRate`/`Edit`, `make`/`Edit`, `model`/`Edit`,
+    `year`/`Edit`, `plateNumber`/`Edit`, `depreciationRate`/`Edit`). The pattern is
+    deliberate — preserves the existing EN UX and lets ID translators write each form
+    naturally rather than awkwardly parameterising "(optional)".
+  - **Property's acquired-for sentence** split into two keys: `acquiredLine` for the
+    date-only case (`Acquired: <date>`) and `acquiredForLine` for the date+cost case
+    (`Acquired: <date> for <cost>`). Picking by presence of the cost value at the call
+    site keeps both EN and ID readable; the alternative — appending " for X" inline —
+    embedded an English preposition that doesn't transliterate.
+  - **Per-group rate-value keys.** `assets.property.appreciationRateValue: "{{value}} /yr"`
+    (`/thn` in ID) and `assets.vehicle.depreciationRateValue: "{{rate}}% /yr"`. The unit
+    suffix is the locale-divergent bit; the value stays formatted at the call site
+    (`formatSignedPercent` for property's signed rate, `Number(...).toFixed(2)` for
+    vehicle's positive rate).
+  - **ID copy from `docs/glossary-id.md`:** Properti, Kendaraan, Rumah / Apartemen /
+    Tanah / Komersial, Mobil / Motor / Lainnya, Apresiasi / Penyusutan,
+    Valuasi (for "valuation"), Diakuisisi (for "acquired"), Laju (for "rate", chosen over
+    "Tingkat" for compactness in the table-context label).
+  - **No `data-testid` changes**, no public-API changes; `lib/revaluation.ts` untouched.
+  - Lint 987 → 827 (160 property + vehicle warnings cleared). Build green, vitest 13/13
+    (127/127). Playwright pending final commit.
 
 ## What M4.2 shipped
 
