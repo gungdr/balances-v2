@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import {
   Card,
   CardContent,
@@ -27,6 +29,7 @@ import type { Me } from '@/hooks/useSession'
 // slice 2; this slice is net worth only.
 
 export function DashboardScreen() {
+  const { t } = useTranslation(['dashboard', 'common'])
   const { data: reports, isPending, error } = useReports()
   const { data: members } = useHouseholdMembers()
   const { data: rates } = useFxRates()
@@ -37,12 +40,12 @@ export function DashboardScreen() {
   const [secondaryCurrency, setSecondaryCurrency] = useState('')
 
   if (isPending) {
-    return <p className="text-sm text-muted-foreground">Loading…</p>
+    return <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
   }
   if (error) {
     return (
       <p className="text-sm text-destructive">
-        Failed to load: {(error as Error).message}
+        {t('loadFailed', { message: (error as Error).message })}
       </p>
     )
   }
@@ -50,14 +53,10 @@ export function DashboardScreen() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>No net worth to show yet</CardTitle>
+          <CardTitle>{t('empty.title')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Record a snapshot on any position — a bank account balance, a
-            property value — and your net worth will appear here, tracked
-            month by month.
-          </p>
+          <p className="text-sm text-muted-foreground">{t('empty.body')}</p>
         </CardContent>
       </Card>
     )
@@ -103,7 +102,7 @@ export function DashboardScreen() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Net worth over time</CardTitle>
+          <CardTitle className="text-base">{t('chart.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <SnapshotChart
@@ -140,11 +139,12 @@ export function DashboardScreen() {
 // a primary action. Rebuild-month is the surgical fix; rebuild-all re-derives
 // every month (needed after an exchange-rate correction ripples across history).
 function RebuildFooter({ selected }: { selected: MonthlyReport }) {
+  const { t } = useTranslation('dashboard')
   const { rebuildAll, rebuildMonth } = useRebuildReports()
   const busy = rebuildAll.isPending || rebuildMonth.isPending
   return (
     <div className="flex flex-wrap items-center gap-2 border-t pt-4 text-xs text-muted-foreground">
-      <span>Numbers look off?</span>
+      <span>{t('rebuild.prompt')}</span>
       <button
         type="button"
         className="underline underline-offset-2 hover:text-foreground disabled:opacity-50"
@@ -152,20 +152,21 @@ function RebuildFooter({ selected }: { selected: MonthlyReport }) {
         onClick={() => rebuildMonth.mutate(selected.year_month)}
       >
         {rebuildMonth.isPending
-          ? 'Rebuilding…'
-          : `Rebuild ${formatYearMonth(selected.year_month)}`}
+          ? t('rebuild.rebuilding')
+          : t('rebuild.rebuildMonth', { when: formatYearMonth(selected.year_month) })}
       </button>
-      <span aria-hidden>·</span>
+      {/* Typographic separator glyph; locale-neutral. */}
+      <span aria-hidden>{'·'}</span>
       <button
         type="button"
         className="underline underline-offset-2 hover:text-foreground disabled:opacity-50"
         disabled={busy}
         onClick={() => rebuildAll.mutate()}
       >
-        {rebuildAll.isPending ? 'Rebuilding…' : 'Rebuild all months'}
+        {rebuildAll.isPending ? t('rebuild.rebuilding') : t('rebuild.rebuildAll')}
       </button>
       {(rebuildAll.isError || rebuildMonth.isError) && (
-        <span className="text-destructive">Rebuild failed — try again.</span>
+        <span className="text-destructive">{t('rebuild.failed')}</span>
       )}
     </div>
   )
@@ -186,20 +187,21 @@ function DashboardHeader({
   secondary: string
   onSecondaryChange: (currency: string) => void
 }) {
+  const { t } = useTranslation('dashboard')
   return (
     <div className="flex items-center justify-between gap-4">
-      <h1 className="text-2xl font-semibold tracking-tight">Net Worth</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
       <div className="flex items-center gap-2">
         {displayCurrencies.length > 0 && (
           <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            Also in
+            {t('secondary.label')}
             <select
               data-testid="dashboard-secondary-currency"
               className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
               value={secondary}
               onChange={(e) => onSecondaryChange(e.target.value)}
             >
-              <option value="">—</option>
+              <option value="">{t('secondary.none')}</option>
               {displayCurrencies.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -233,6 +235,7 @@ function HeadlineCard({
   secondary: string
   rates: FxRate[]
 }) {
+  const { t } = useTranslation('dashboard')
   const staleCount = selected.stale_positions.length
   return (
     <Card>
@@ -243,7 +246,10 @@ function HeadlineCard({
           </span>
           <Trend selected={selected} previous={previous} currency={currency} />
           {isProvisional && (
-            <span className="text-xs text-muted-foreground">· in progress</span>
+            <span className="text-xs text-muted-foreground">
+              {'· '}
+              {t('headline.inProgress')}
+            </span>
           )}
         </div>
         {secondary && (
@@ -251,9 +257,10 @@ function HeadlineCard({
         )}
         {staleCount > 0 && (
           <p className="text-sm text-amber-600">
-            ⚠ {staleCount} position{staleCount > 1 ? 's' : ''} carried forward —
-            record {formatYearMonth(selected.year_month)} snapshot
-            {staleCount > 1 ? 's' : ''} to keep this up to date.
+            {t('headline.stalePositions', {
+              count: staleCount,
+              when: formatYearMonth(selected.year_month),
+            })}
           </p>
         )}
         <MissingFxWarning selected={selected} />
@@ -263,15 +270,23 @@ function HeadlineCard({
 }
 
 function MissingFxWarning({ selected }: { selected: MonthlyReport }) {
+  const { t } = useTranslation('dashboard')
   if (selected.missing_fx.length === 0) return null
   const currencies = [...new Set(selected.missing_fx.map((m) => m.currency))]
   const count = selected.missing_fx.filter((m) => m.position_id !== null).length
+  const subject =
+    count > 0
+      ? t('missingFx.positions', { count })
+      : t('missingFx.someAmounts')
+  const addRate = t('missingFx.addRate', { count: currencies.length })
   return (
     <p className="text-sm text-destructive">
-      ⚠ Net worth excludes {count > 0 ? `${count} position${count > 1 ? 's' : ''}` : 'some amounts'} —
-      no {formatYearMonth(selected.year_month)} exchange rate for{' '}
-      {currencies.join(', ')}. Add{' '}
-      {currencies.length > 1 ? 'rates' : 'a rate'} in Settings.
+      {t('missingFx.line', {
+        subject,
+        when: formatYearMonth(selected.year_month),
+        currencies: currencies.join(', '),
+        addRate,
+      })}
     </p>
   )
 }
@@ -289,11 +304,12 @@ function SecondaryAmount({
   currency: string
   rates: FxRate[]
 }) {
+  const { t } = useTranslation('dashboard')
   const resolved = resolveDisplayRate(rates, currency, selected.year_month)
   if (!resolved) {
     return (
       <p data-testid="dashboard-secondary-amount" className="text-sm text-muted-foreground">
-        ≈ — · no {currency} rate yet — add one in Settings to convert.
+        {t('secondary.noRate', { currency })}
       </p>
     )
   }
@@ -302,11 +318,15 @@ function SecondaryAmount({
     resolved.rateMonth.slice(0, 7) !== selected.year_month.slice(0, 7)
   return (
     <p data-testid="dashboard-secondary-amount" className="text-sm text-muted-foreground tabular-nums">
-      ≈ {formatCurrency(String(amount), currency)}
+      {'≈ '}
+      {formatCurrency(String(amount), currency)}
       {carried && (
         <span className="ml-1 text-amber-600">
-          · {currency} rate carried forward from{' '}
-          {formatYearMonth(resolved.rateMonth)}
+          {'· '}
+          {t('secondary.carriedForward', {
+            currency,
+            from: formatYearMonth(resolved.rateMonth),
+          })}
         </span>
       )}
     </p>
@@ -322,9 +342,12 @@ function Trend({
   previous: MonthlyReport | null
   currency: string
 }) {
+  const { t } = useTranslation('dashboard')
   if (!previous) {
     return (
-      <span className="text-sm text-muted-foreground">first tracked month</span>
+      <span className="text-sm text-muted-foreground">
+        {t('headline.firstTrackedMonth')}
+      </span>
     )
   }
   // Display-only arithmetic at household scale (see lib/format.ts). The signed
@@ -338,7 +361,7 @@ function Trend({
       {up ? '▲' : '▼'} {formatCurrency(String(Math.abs(delta)), currency)}
       {pct !== null && ` (${up ? '+' : '−'}${Math.abs(pct).toFixed(1)}%)`}{' '}
       <span className="font-normal text-muted-foreground">
-        vs {formatYearMonth(previous.year_month)}
+        {t('headline.vs', { when: formatYearMonth(previous.year_month) })}
       </span>
     </span>
   )
@@ -351,23 +374,27 @@ function GroupBreakdown({
   selected: MonthlyReport
   currency: string
 }) {
+  const { t } = useTranslation('dashboard')
+  // labelKey indexes the `breakdown` group in the dashboard catalog so the row
+  // strings translate without scattering the array; structural shape stays
+  // the same as the original.
   const rows = [
-    { label: 'Assets', value: Number(selected.nw_assets), negative: false },
-    { label: 'Investments', value: Number(selected.nw_investments), negative: false },
-    { label: 'Receivables', value: Number(selected.nw_receivables), negative: false },
-    { label: 'Liabilities', value: Number(selected.nw_liabilities), negative: true },
+    { labelKey: 'breakdown.assets', value: Number(selected.nw_assets), negative: false },
+    { labelKey: 'breakdown.investments', value: Number(selected.nw_investments), negative: false },
+    { labelKey: 'breakdown.receivables', value: Number(selected.nw_receivables), negative: false },
+    { labelKey: 'breakdown.liabilities', value: Number(selected.nw_liabilities), negative: true },
   ]
   const max = Math.max(1, ...rows.map((r) => r.value))
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Where it&apos;s held</CardTitle>
+        <CardTitle className="text-base">{t('breakdown.title')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {rows.map((r) => (
-          <div key={r.label} className="grid grid-cols-[8rem_1fr] items-center gap-3">
-            <span className="text-sm text-muted-foreground">{r.label}</span>
+          <div key={r.labelKey} className="grid grid-cols-[8rem_1fr] items-center gap-3">
+            <span className="text-sm text-muted-foreground">{t(r.labelKey)}</span>
             <div className="flex items-center gap-3">
               <div className="h-2 flex-1 rounded-full bg-muted">
                 <div
@@ -398,20 +425,21 @@ function ByPerson({
   members: HouseholdMember[] | undefined
   me: Me | null | undefined
 }) {
+  const { t } = useTranslation('dashboard')
   const entries = Object.entries(selected.user_breakdowns).sort(
     ([, a], [, b]) => Number(b.nw) - Number(a.nw),
   )
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">By person</CardTitle>
+        <CardTitle className="text-base">{t('byPerson.title')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap gap-6">
           {entries.map(([key, bucket]) => (
             <div key={key}>
               <div className="text-sm text-muted-foreground">
-                {personLabel(key, members, me)}
+                {personLabel(t, key, members, me)}
               </div>
               <div className="text-lg font-medium tabular-nums">
                 {formatCurrency(bucket.nw, currency)}
@@ -433,12 +461,13 @@ function ExchangeRates({
   selected: MonthlyReport
   currency: string
 }) {
+  const { t } = useTranslation('dashboard')
   const entries = Object.entries(selected.fx_rates_used)
   if (entries.length === 0) return null
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Exchange rates this month</CardTitle>
+        <CardTitle className="text-base">{t('fxThisMonth.title')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
@@ -446,7 +475,11 @@ function ExchangeRates({
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([cur, rate]) => (
               <div key={cur} className="tabular-nums">
-                1 {cur} = {formatNumber(rate)} {currency}
+                {t('fxThisMonth.line', {
+                  base: cur,
+                  rate: formatNumber(rate),
+                  quote: currency,
+                })}
               </div>
             ))}
         </div>
@@ -466,18 +499,16 @@ function ThisMonth({
   selected: MonthlyReport
   currency: string
 }) {
+  const { t } = useTranslation('dashboard')
   const baseline = selected.derived_living_expenses === null
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">This month</CardTitle>
+        <CardTitle className="text-base">{t('thisMonth.title')}</CardTitle>
       </CardHeader>
       <CardContent>
         {baseline ? (
-          <p className="text-sm text-muted-foreground">
-            First tracked month — there&apos;s no earlier month to compare
-            against yet, so income and spending figures start the month after.
-          </p>
+          <p className="text-sm text-muted-foreground">{t('thisMonth.baseline')}</p>
         ) : (
           <IncomeStatement selected={selected} currency={currency} />
         )}
@@ -493,6 +524,7 @@ function IncomeStatement({
   selected: MonthlyReport
   currency: string
 }) {
+  const { t } = useTranslation('dashboard')
   // Display-only arithmetic at household scale (see lib/format.ts). Each line
   // is its signed contribution to net-worth change, so they sum to the total.
   const earned = Number(selected.earned_income_total ?? '0')
@@ -504,32 +536,32 @@ function IncomeStatement({
 
   return (
     <div className="space-y-2 text-sm">
-      <StatementRow label="Earned income" value={earned} currency={currency} />
-      <StatementRow label="Investment return" value={ret} currency={currency} />
+      <StatementRow label={t('statement.earned')} value={earned} currency={currency} />
+      <StatementRow label={t('statement.investmentReturn')} value={ret} currency={currency} />
       {avc !== 0 && (
         <StatementRow
-          label="Property & vehicle value change"
+          label={t('statement.assetValueChange')}
           value={avc}
           currency={currency}
           muted
-          hint="Non-cash — depreciation or revaluation of property and vehicles. No money changed hands."
+          hint={t('statement.assetValueChangeHint')}
         />
       )}
       <StatementRow
         // The residual: positive → spending (an outflow); negative → net worth
         // rose more than income + return explain (relabelled, shown as a gain).
-        label={expensePositive ? 'Living expenses (estimated)' : 'Unexplained increase'}
+        label={expensePositive ? t('statement.livingExpenses') : t('statement.unexplainedIncrease')}
         value={-exp}
         currency={currency}
         hint={
           expensePositive
-            ? "Estimated from the change in your net worth minus tracked income and investment return. This app doesn't track individual purchases."
-            : 'Your net worth rose more than tracked income and investment return explain — for example an untracked gift or a revaluation.'
+            ? t('statement.livingExpensesHint')
+            : t('statement.unexplainedIncreaseHint')
         }
       />
       <div className="border-t pt-2">
         <StatementRow
-          label="Net worth change"
+          label={t('statement.nwChange')}
           value={nwChange}
           currency={currency}
           bold
@@ -564,7 +596,7 @@ function StatementRow({
     <div className="flex items-center justify-between gap-4">
       <span className={muted ? 'text-muted-foreground' : ''} title={hint}>
         {label}
-        {hint && <span className="ml-1 cursor-help text-muted-foreground">ⓘ</span>}
+        {hint && <span className="ml-1 cursor-help text-muted-foreground">{'ⓘ'}</span>}
       </span>
       <span className={`tabular-nums ${bold ? 'font-semibold' : ''} ${amountClass}`}>
         {positive ? '+' : '−'}
@@ -576,14 +608,18 @@ function StatementRow({
 
 // personLabel resolves a user_breakdowns key to a display name: "joint" → the
 // Joint column; a user_id → that member's name with "(you)" for the current
-// user. Mirrors lib/ownership.ts but keyed by the breakdown's user_id.
+// user. Mirrors lib/ownership.ts but keyed by the breakdown's user_id. Takes
+// `t` so call sites stay hook-free.
 function personLabel(
+  t: TFunction,
   key: string,
   members: HouseholdMember[] | undefined,
   me: Me | null | undefined,
 ): string {
-  if (key === 'joint') return 'Joint'
+  if (key === 'joint') return t('byPerson.joint')
   const m = (members ?? []).find((x) => x.id === key)
-  if (!m) return 'Unknown'
-  return me && m.id === me.id ? `${preferredName(m)} (you)` : preferredName(m)
+  if (!m) return t('byPerson.unknown')
+  return me && m.id === me.id
+    ? `${preferredName(m)}${t('byPerson.youSuffix')}`
+    : preferredName(m)
 }

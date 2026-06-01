@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -17,20 +18,12 @@ import type { MonthlyReport } from '@/api/types'
 // with cells disabled for months without a report. Selecting a cell fires
 // onSelect with the exact ISO `year_month` of the matched report.
 
-const MONTH_LABELS = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-]
+// Month-label keys index into common.months.{jan…dec}. Order is fixed Jan→Dec
+// (calendar order), independent of locale.
+const MONTH_KEYS = [
+  'jan', 'feb', 'mar', 'apr', 'may', 'jun',
+  'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
+] as const
 
 // year_month is stored as "YYYY-MM-01T00:00:00Z" — UTC midnight. Use UTC
 // getters so local-timezone rollover never shifts the displayed month.
@@ -56,6 +49,7 @@ export function MonthPickerPopover({
   selected: MonthlyReport
   onSelect: (yearMonth: string) => void
 }) {
+  const { t } = useTranslation(['dashboard', 'common'])
   // ISO-by-key lookup so the cell click fires with the exact stored
   // year_month, not a re-synthesised one. Safer if the backend ever changes
   // the day/time component.
@@ -101,7 +95,7 @@ export function MonthPickerPopover({
             data-testid="month-picker-year-prev"
             disabled={viewYear <= minYear}
             onClick={() => setViewYear((y) => Math.max(minYear, y - 1))}
-            aria-label="Previous year"
+            aria-label={t('monthPicker.prevYear')}
           >
             <ChevronLeft className="size-4" />
           </Button>
@@ -117,13 +111,13 @@ export function MonthPickerPopover({
             data-testid="month-picker-year-next"
             disabled={viewYear >= maxYear}
             onClick={() => setViewYear((y) => Math.min(maxYear, y + 1))}
-            aria-label="Next year"
+            aria-label={t('monthPicker.nextYear')}
           >
             <ChevronRight className="size-4" />
           </Button>
         </div>
         <div className="grid grid-cols-4 gap-1">
-          {MONTH_LABELS.map((label, idx) => {
+          {MONTH_KEYS.map((monthKey, idx) => {
             const key = `${viewYear}-${String(idx + 1).padStart(2, '0')}`
             const iso = isoByKey.get(key)
             const disabled = !iso
@@ -146,7 +140,7 @@ export function MonthPickerPopover({
                   disabled && 'opacity-40',
                 )}
               >
-                {label}
+                {t(`common:months.${monthKey}`)}
               </Button>
             )
           })}

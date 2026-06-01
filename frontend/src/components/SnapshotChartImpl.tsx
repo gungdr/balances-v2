@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import {
   ChartContainer,
@@ -24,13 +25,6 @@ type Props = {
   currency: string
 }
 
-const chartConfig = {
-  amount: {
-    label: 'Amount',
-    color: 'var(--chart-1)',
-  },
-} satisfies ChartConfig
-
 function toChartData(snapshots: SnapshotLike[]) {
   return [...snapshots]
     .sort((a, b) => a.year_month.localeCompare(b.year_month))
@@ -41,7 +35,16 @@ function toChartData(snapshots: SnapshotLike[]) {
 }
 
 export default function SnapshotChartImpl({ snapshots, currency }: Props) {
+  const { t } = useTranslation('dashboard')
   const data = toChartData(snapshots)
+  // ChartConfig is built per-render so the legend label picks up the active
+  // locale. Cheap — single key, no per-row computation.
+  const chartConfig = {
+    amount: {
+      label: t('chart.amountLegend'),
+      color: 'var(--chart-1)',
+    },
+  } satisfies ChartConfig
 
   return (
     <ChartContainer config={chartConfig} className="h-64 w-full">

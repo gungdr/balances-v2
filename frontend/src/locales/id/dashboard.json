@@ -1,3 +1,76 @@
 {
-  "_scaffold": "dashboard"
+  "title": "Kekayaan Bersih",
+  "loadFailed": "Gagal memuat: {{message}}",
+  "empty": {
+    "title": "Belum ada kekayaan bersih untuk ditampilkan",
+    "body": "Catat snapshot di posisi mana pun — saldo rekening bank, nilai properti — dan kekayaan bersih Anda akan muncul di sini, dilacak per bulan."
+  },
+  "secondary": {
+    "label": "Juga dalam",
+    "none": "—",
+    "noRate": "≈ — · belum ada kurs {{currency}} — tambahkan di Pengaturan untuk mengonversi.",
+    "carriedForward": "Kurs {{currency}} dilanjutkan dari {{from}}"
+  },
+  "headline": {
+    "inProgress": "berjalan",
+    "firstTrackedMonth": "bulan pelacakan pertama",
+    "vs": "vs {{when}}",
+    "stalePositions_one": "⚠ {{count}} posisi dilanjutkan — catat snapshot {{when}} agar tetap terkini.",
+    "stalePositions_other": "⚠ {{count}} posisi dilanjutkan — catat snapshot {{when}} agar tetap terkini."
+  },
+  "missingFx": {
+    "positions_one": "{{count}} posisi",
+    "positions_other": "{{count}} posisi",
+    "someAmounts": "sebagian nominal",
+    "addRate_one": "kurs",
+    "addRate_other": "kurs",
+    "line": "⚠ Kekayaan bersih tidak menyertakan {{subject}} — tidak ada kurs {{when}} untuk {{currencies}}. Tambahkan {{addRate}} di Pengaturan."
+  },
+  "chart": {
+    "title": "Kekayaan bersih dari waktu ke waktu",
+    "amountLegend": "Nominal"
+  },
+  "breakdown": {
+    "title": "Di mana disimpan",
+    "assets": "Aset",
+    "investments": "Investasi",
+    "receivables": "Piutang",
+    "liabilities": "Liabilitas"
+  },
+  "byPerson": {
+    "title": "Per orang",
+    "joint": "Bersama",
+    "unknown": "Tidak diketahui",
+    "youSuffix": " (Anda)"
+  },
+  "fxThisMonth": {
+    "title": "Kurs bulan ini",
+    "line": "1 {{base}} = {{rate}} {{quote}}"
+  },
+  "thisMonth": {
+    "title": "Bulan ini",
+    "baseline": "Bulan pelacakan pertama — belum ada bulan sebelumnya untuk dibandingkan, jadi angka pemasukan dan pengeluaran mulai dari bulan berikutnya."
+  },
+  "statement": {
+    "earned": "Pemasukan",
+    "investmentReturn": "Hasil investasi",
+    "assetValueChange": "Perubahan nilai properti & kendaraan",
+    "assetValueChangeHint": "Non-tunai — penyusutan atau revaluasi properti dan kendaraan. Tidak ada uang yang berpindah tangan.",
+    "livingExpenses": "Pengeluaran (perkiraan)",
+    "livingExpensesHint": "Diperkirakan dari perubahan kekayaan bersih dikurangi pemasukan dan hasil investasi yang tercatat. Aplikasi ini tidak melacak pembelian individual.",
+    "unexplainedIncrease": "Kenaikan tak terjelaskan",
+    "unexplainedIncreaseHint": "Kekayaan bersih Anda naik melebihi pemasukan dan hasil investasi yang tercatat — misalnya hadiah tak tercatat atau revaluasi.",
+    "nwChange": "Perubahan kekayaan bersih"
+  },
+  "rebuild": {
+    "prompt": "Angka terlihat janggal?",
+    "rebuilding": "Membangun ulang…",
+    "rebuildMonth": "Bangun ulang {{when}}",
+    "rebuildAll": "Bangun ulang semua bulan",
+    "failed": "Gagal membangun ulang — coba lagi."
+  },
+  "monthPicker": {
+    "prevYear": "Tahun sebelumnya",
+    "nextYear": "Tahun berikutnya"
+  }
 }

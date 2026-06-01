@@ -836,6 +836,30 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     JSXAttribute) leaves expressions alone.
   - Lint 1213 → 1165 warnings (48 chrome-files cleared, scope files now clean). Build green,
     vitest 13/13 (127/127). Playwright run pending final commit.
+- **Dashboard i18n extraction (M6, frontend-only — issue #6).** Second extraction slice. Files:
+  `DashboardScreen` (~590 lines, 9 sub-components), `MonthPickerPopover`, and the shared
+  `SnapshotChartImpl` legend. New `dashboard` namespace populated EN+ID; short month names
+  added to `common.months.*` (Jan/Feb/…/Dec EN, Jan/Feb/Mar/Apr/Mei/Jun/Jul/Agu/Sep/Okt/Nov/Des
+  ID).
+  - **Pluralisation:** `dashboard.headline.stalePositions` and `dashboard.missingFx.positions`
+    /`addRate` use i18next's `_one`/`_other` suffixes so the count-bearing sentence reads
+    naturally in either locale. Indonesian's plural is unmarked so both forms are
+    intentionally identical there — the suffix shape is still required by i18next.
+  - **GroupBreakdown rows now carry `labelKey`**, not literal strings; mirrors the
+    `AppSidebar` NAV pattern.
+  - **`SnapshotChartImpl.chartConfig` moved inside the component** so the recharts legend label
+    picks up the active locale (it was a top-level constant). The shared chart stays a single
+    component — no per-group fork — per the HANDOFF convention.
+  - **`personLabel()` takes a `TFunction` argument** so it stays a plain function (no hook
+    inside an arbitrary helper) while still translating "Joint" / "Unknown" / "(you)".
+  - **Decorative glyphs left literal but wrapped:** `·`, `≈`, `ⓘ` are typographic tokens, not
+    translatable copy, so they sit in JSXExpressionContainers (`{'·'}`, `{'≈ '}`, `{'ⓘ'}`)
+    with a single explanatory comment. The ESLint rule's Literal-under-JSXAttribute /
+    JSXText-with-non-whitespace selectors leave expressions alone, matching the
+    code-token allowlist used in #5's FX placeholders.
+  - **No `data-testid` changes**, no public-API changes; `MonthPickerPopover.MONTH_LABELS`
+    became `MONTH_KEYS` (`jan`…`dec` indexing into `common.months`).
+  - Lint 1166 → 1127 (39 dashboard-files cleared). Build green, vitest 13/13 (127/127).
 
 ## What M4.2 shipped
 

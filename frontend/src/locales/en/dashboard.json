@@ -1,3 +1,76 @@
 {
-  "_scaffold": "dashboard"
+  "title": "Net Worth",
+  "loadFailed": "Failed to load: {{message}}",
+  "empty": {
+    "title": "No net worth to show yet",
+    "body": "Record a snapshot on any position — a bank account balance, a property value — and your net worth will appear here, tracked month by month."
+  },
+  "secondary": {
+    "label": "Also in",
+    "none": "—",
+    "noRate": "≈ — · no {{currency}} rate yet — add one in Settings to convert.",
+    "carriedForward": "{{currency}} rate carried forward from {{from}}"
+  },
+  "headline": {
+    "inProgress": "in progress",
+    "firstTrackedMonth": "first tracked month",
+    "vs": "vs {{when}}",
+    "stalePositions_one": "⚠ {{count}} position carried forward — record {{when}} snapshot to keep this up to date.",
+    "stalePositions_other": "⚠ {{count}} positions carried forward — record {{when}} snapshots to keep this up to date."
+  },
+  "missingFx": {
+    "positions_one": "{{count}} position",
+    "positions_other": "{{count}} positions",
+    "someAmounts": "some amounts",
+    "addRate_one": "a rate",
+    "addRate_other": "rates",
+    "line": "⚠ Net worth excludes {{subject}} — no {{when}} exchange rate for {{currencies}}. Add {{addRate}} in Settings."
+  },
+  "chart": {
+    "title": "Net worth over time",
+    "amountLegend": "Amount"
+  },
+  "breakdown": {
+    "title": "Where it's held",
+    "assets": "Assets",
+    "investments": "Investments",
+    "receivables": "Receivables",
+    "liabilities": "Liabilities"
+  },
+  "byPerson": {
+    "title": "By person",
+    "joint": "Joint",
+    "unknown": "Unknown",
+    "youSuffix": " (you)"
+  },
+  "fxThisMonth": {
+    "title": "Exchange rates this month",
+    "line": "1 {{base}} = {{rate}} {{quote}}"
+  },
+  "thisMonth": {
+    "title": "This month",
+    "baseline": "First tracked month — there's no earlier month to compare against yet, so income and spending figures start the month after."
+  },
+  "statement": {
+    "earned": "Earned income",
+    "investmentReturn": "Investment return",
+    "assetValueChange": "Property & vehicle value change",
+    "assetValueChangeHint": "Non-cash — depreciation or revaluation of property and vehicles. No money changed hands.",
+    "livingExpenses": "Living expenses (estimated)",
+    "livingExpensesHint": "Estimated from the change in your net worth minus tracked income and investment return. This app doesn't track individual purchases.",
+    "unexplainedIncrease": "Unexplained increase",
+    "unexplainedIncreaseHint": "Your net worth rose more than tracked income and investment return explain — for example an untracked gift or a revaluation.",
+    "nwChange": "Net worth change"
+  },
+  "rebuild": {
+    "prompt": "Numbers look off?",
+    "rebuilding": "Rebuilding…",
+    "rebuildMonth": "Rebuild {{when}}",
+    "rebuildAll": "Rebuild all months",
+    "failed": "Rebuild failed — try again."
+  },
+  "monthPicker": {
+    "prevYear": "Previous year",
+    "nextYear": "Next year"
+  }
 }

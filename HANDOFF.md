@@ -58,6 +58,11 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     through `t()`; `common`/`nav`/`settings` namespaces populated EN+ID. i18next swapped from
     `i18next-http-backend` to bundled-resource init (static JSON imports of every catalog) — see
     CHANGELOG for the language-tag-mismatch debug story behind the swap.
+  - Dashboard extraction (issue #6): `DashboardScreen` (incl. headline, breakdown, by-person,
+    FX-this-month, comprehensive-income panel, rebuild footer), `MonthPickerPopover`, and the
+    shared `SnapshotChartImpl` legend now translate; `dashboard` namespace populated EN+ID,
+    short month names added to `common.months.*`. i18next pluralisation (`_one`/`_other`) used
+    for stale-positions + missing-FX lines.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
