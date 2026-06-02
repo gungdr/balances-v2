@@ -135,6 +135,14 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     Berjalan / Suku Bunga / Tenor / Penempatan / Tanggal Jatuh Tempo,
     Risiko Rendah / Sedang / Tinggi, Dicairkan / Digulung ke baru
     (maturity dispositions).
+  - E2E locale pin (issue #12): the en-GB pin gets a single-source-of-truth
+    convention doc at `frontend/e2e/README.md`. The pin itself was already
+    in place via two layers (backend `seed-e2e` writes `locale='en-GB'`
+    on Alice + Bob; `global-setup.ts` pre-seeds
+    `localStorage['balances.locale']`); audit of every `getByText` on
+    translated copy confirms each string still resolves to the canonical
+    EN value. Spec writers exercise the ID UI by clicking the Settings
+    language dropdown, never by mutating the seed.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

@@ -1106,6 +1106,38 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     lint warnings cleared down to 13 pre-existing ones (em-dash placeholders + bare
     "·" separators that match patterns left in the bank-account / property template
     rows). Build green, vitest 13/13 (127/127); Playwright pending final commit.
+- **E2E locale pin convention (M6, e2e — issue #12).** Eighth i18n slice;
+  closes the suite-coverage side of ADR-0026 by writing down (and
+  re-verifying) the en-GB pin that all 16 Playwright specs already
+  depended on.
+  - **Pin already in place across two layers.** Backend `cmd/balances
+    seed-e2e` writes `Locale: "en-GB"` on the Alice + Bob user rows
+    (`/me` carries it through to `AppShell`, which would otherwise
+    reconcile against `navigator.language` on first login via
+    `useLocaleReconcile`). Frontend `e2e/global-setup.ts` pre-seeds
+    `localStorage['balances.locale'] = 'en-GB'` so the i18n
+    `LanguageDetector` resolves to English before the first paint with
+    no network race against `/me`. Both layers documented in
+    `global-setup.ts` already, formalised in this issue.
+  - **`frontend/e2e/README.md` added.** Single-source-of-truth doc for
+    the convention: the pin lives in two layers (above), spec writers
+    may `getByText('New bond position')` etc. because the EN copy is
+    guaranteed stable, the standing `data-testid` convention
+    (`feedback_e2e_test_ids`) still applies for picks/asserts that
+    would otherwise need brittle DOM traversal, and exercising the ID
+    UI in a spec means driving the Settings language dropdown — never
+    editing the seed.
+  - **Audit confirms no leaks.** Swept every `getByText` on translated
+    copy across the 16 specs (`'New bond position'`, `'Record monthly
+    snapshot'`, `'No snapshots yet.'`, `/match ledger total/`,
+    `'Exchange rates'`, `'No rates entered yet.'`, `'Rebuild failed —
+    try again.'`, etc.); each string maps to a canonical EN key in the
+    catalog and the pin guarantees it resolves to that value at
+    runtime. No specs needed migration.
+  - `make e2e` 16/16 green (24.7s) — auth + login + 14 write-flow
+    specs including the new investments-extraction targets
+    (`bond-snapshot`, `trade`, `dividend-fee`, `maturity`). No
+    `data-testid` changes; no source changes outside `e2e/README.md`.
 
 ## What M4.2 shipped
 
