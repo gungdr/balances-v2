@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 
+	"github.com/kerti/balances-v2/backend/internal/httperr"
 	"github.com/kerti/balances-v2/backend/internal/repo"
 )
 
@@ -45,16 +46,16 @@ type updateBondReq struct {
 func (h *Handlers) handleCreateBond(w http.ResponseWriter, r *http.Request) {
 	var req createBondReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
 	maturity, err := time.Parse("2006-01-02", req.MaturityDate)
 	if err != nil {
-		http.Error(w, "invalid maturity_date: expected YYYY-MM-DD", http.StatusBadRequest)
+		writeInvalidDate(w, "maturity_date")
 		return
 	}
 
@@ -74,7 +75,7 @@ func (h *Handlers) handleCreateBond(w http.ResponseWriter, r *http.Request) {
 		MaturityDate:    maturity,
 	})
 	if err != nil {
-		writeRepoError(w, "create bond", err)
+		httperr.WriteRepo(w, "create bond", err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, b)
@@ -83,7 +84,7 @@ func (h *Handlers) handleCreateBond(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleListBonds(w http.ResponseWriter, r *http.Request) {
 	list, err := h.repo.ListBonds(r.Context())
 	if err != nil {
-		writeRepoError(w, "list bonds", err)
+		httperr.WriteRepo(w, "list bonds", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, list)
@@ -92,12 +93,12 @@ func (h *Handlers) handleListBonds(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleGetBond(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	b, err := h.repo.GetBond(r.Context(), id)
 	if err != nil {
-		writeRepoError(w, "get bond", err)
+		httperr.WriteRepo(w, "get bond", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, b)
@@ -106,21 +107,21 @@ func (h *Handlers) handleGetBond(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleUpdateBond(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	var req updateBondReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
 	maturity, err := time.Parse("2006-01-02", req.MaturityDate)
 	if err != nil {
-		http.Error(w, "invalid maturity_date: expected YYYY-MM-DD", http.StatusBadRequest)
+		writeInvalidDate(w, "maturity_date")
 		return
 	}
 
@@ -139,7 +140,7 @@ func (h *Handlers) handleUpdateBond(w http.ResponseWriter, r *http.Request) {
 		MaturityDate:    maturity,
 	})
 	if err != nil {
-		writeRepoError(w, "update bond", err)
+		httperr.WriteRepo(w, "update bond", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, b)
@@ -148,11 +149,11 @@ func (h *Handlers) handleUpdateBond(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleDeleteBond(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	if err := h.repo.DeleteBond(r.Context(), id); err != nil {
-		writeRepoError(w, "delete bond", err)
+		httperr.WriteRepo(w, "delete bond", err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

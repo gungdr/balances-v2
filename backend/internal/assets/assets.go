@@ -8,8 +8,6 @@ package assets
 
 import (
 	"encoding/json"
-	"errors"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -18,6 +16,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/kerti/balances-v2/backend/internal/auth"
+	"github.com/kerti/balances-v2/backend/internal/httperr"
 	"github.com/kerti/balances-v2/backend/internal/repo"
 )
 
@@ -40,7 +39,7 @@ func WithNow(fn func() time.Time) Option {
 func New(r *repo.AssetRepo, opts ...Option) *Handlers {
 	h := &Handlers{
 		repo:     r,
-		validate: validator.New(validator.WithRequiredStructEnabled()),
+		validate: httperr.NewValidator(),
 		now:      time.Now,
 	}
 	for _, opt := range opts {
@@ -123,28 +122,17 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	}
 }
 
-// repoErrorStatus maps repo errors to appropriate HTTP statuses.
-// repo.ErrUnauthenticated is unreachable here — RequireAuth gates every
-// route in Mount, so the repo's currentUser() helper always finds a user.
-func repoErrorStatus(err error) int {
-	switch {
-	case errors.Is(err, repo.ErrNotFound):
-		return http.StatusNotFound
-	case errors.Is(err, repo.ErrInvalidLifecycle):
-		return http.StatusBadRequest
-	default:
-		return http.StatusInternalServerError
-	}
+// writeInvalidID is a small shim around httperr.Write so the "invalid UUID
+// path param" call sites read at one level of abstraction. The field arg
+// is the JSON-style name the FE will interpolate ("id", "snapshot_id").
+func writeInvalidID(w http.ResponseWriter, field string) {
+	httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidID, map[string]any{"field": field})
 }
 
-func writeRepoError(w http.ResponseWriter, op string, err error) {
-	status := repoErrorStatus(err)
-	if status == http.StatusInternalServerError {
-		slog.Error(op, "err", err)
-		http.Error(w, "internal error", status)
-		return
-	}
-	http.Error(w, err.Error(), status)
+// writeInvalidDate is the equivalent shim for a YYYY-MM-DD parse failure
+// on a date-typed body field.
+func writeInvalidDate(w http.ResponseWriter, field string) {
+	httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidDate, map[string]any{"field": field})
 }
 
 func parseIDParam(r *http.Request, name string) (uuid.UUID, error) {

@@ -9,9 +9,6 @@ package reports
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -19,6 +16,7 @@ import (
 
 	"github.com/kerti/balances-v2/backend/internal/auth"
 	"github.com/kerti/balances-v2/backend/internal/db"
+	"github.com/kerti/balances-v2/backend/internal/httperr"
 	"github.com/kerti/balances-v2/backend/internal/repo"
 	"github.com/shopspring/decimal"
 )
@@ -127,12 +125,12 @@ func toResponse(r db.MonthlyReport, currency string) reportResponse {
 func (h *Handlers) handleList(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.repo.ListReports(r.Context())
 	if err != nil {
-		writeRepoError(w, "list reports", err)
+		httperr.WriteRepo(w, "list reports", err)
 		return
 	}
 	currency, err := h.repo.ReportingCurrency(r.Context())
 	if err != nil {
-		writeRepoError(w, "reporting currency", err)
+		httperr.WriteRepo(w, "reporting currency", err)
 		return
 	}
 	out := make([]reportResponse, 0, len(rows))
@@ -143,19 +141,19 @@ func (h *Handlers) handleList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) handleGet(w http.ResponseWriter, r *http.Request) {
-	ym, err := parseYearMonth(chi.URLParam(r, "yearMonth"))
-	if err != nil {
-		http.Error(w, "invalid year_month: expected YYYY-MM", http.StatusBadRequest)
+	ym, ok := parseYearMonth(chi.URLParam(r, "yearMonth"))
+	if !ok {
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidYearMonth, nil)
 		return
 	}
 	row, err := h.repo.GetReport(r.Context(), ym)
 	if err != nil {
-		writeRepoError(w, "get report", err)
+		httperr.WriteRepo(w, "get report", err)
 		return
 	}
 	currency, err := h.repo.ReportingCurrency(r.Context())
 	if err != nil {
-		writeRepoError(w, "reporting currency", err)
+		httperr.WriteRepo(w, "reporting currency", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, toResponse(*row, currency))
@@ -166,7 +164,7 @@ func (h *Handlers) handleGet(w http.ResponseWriter, r *http.Request) {
 // data-driven watermark can't detect. Returns the freshly-rebuilt series.
 func (h *Handlers) handleRebuildAll(w http.ResponseWriter, r *http.Request) {
 	if err := h.repo.RebuildAll(r.Context()); err != nil {
-		writeRepoError(w, "rebuild all reports", err)
+		httperr.WriteRepo(w, "rebuild all reports", err)
 		return
 	}
 	h.handleList(w, r)
@@ -175,13 +173,13 @@ func (h *Handlers) handleRebuildAll(w http.ResponseWriter, r *http.Request) {
 // handleRebuildMonth forces regeneration of a single month (ADR-0006 per-month
 // rebuild — surgical fixes). 404 when the month is outside the reportable range.
 func (h *Handlers) handleRebuildMonth(w http.ResponseWriter, r *http.Request) {
-	ym, err := parseYearMonth(chi.URLParam(r, "yearMonth"))
-	if err != nil {
-		http.Error(w, "invalid year_month: expected YYYY-MM", http.StatusBadRequest)
+	ym, ok := parseYearMonth(chi.URLParam(r, "yearMonth"))
+	if !ok {
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidYearMonth, nil)
 		return
 	}
 	if err := h.repo.RebuildMonth(r.Context(), ym); err != nil {
-		writeRepoError(w, "rebuild month report", err)
+		httperr.WriteRepo(w, "rebuild month report", err)
 		return
 	}
 	h.handleGet(w, r)
@@ -196,14 +194,14 @@ func rawJSON(b []byte, fallback string) json.RawMessage {
 	return json.RawMessage(b)
 }
 
-func parseYearMonth(s string) (time.Time, error) {
+func parseYearMonth(s string) (time.Time, bool) {
 	if t, err := time.Parse("2006-01", s); err == nil {
-		return t, nil
+		return t, true
 	}
 	if t, err := time.Parse("2006-01-02", s); err == nil {
-		return t, nil
+		return t, true
 	}
-	return time.Time{}, fmt.Errorf("invalid year_month")
+	return time.Time{}, false
 }
 
 func writeJSON(w http.ResponseWriter, status int, body any) {
@@ -212,15 +210,4 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	if body != nil {
 		_ = json.NewEncoder(w).Encode(body)
 	}
-}
-
-// writeRepoError mirrors the convention in the other HTTP packages.
-// repo.ErrUnauthenticated is unreachable — RequireAuth gates every route.
-func writeRepoError(w http.ResponseWriter, op string, err error) {
-	if errors.Is(err, repo.ErrNotFound) {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	slog.Error(op, "err", err)
-	http.Error(w, "internal error", http.StatusInternalServerError)
 }

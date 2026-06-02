@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 
+	"github.com/kerti/balances-v2/backend/internal/httperr"
 	"github.com/kerti/balances-v2/backend/internal/repo"
 )
 
@@ -34,11 +35,11 @@ type updateGoldReq struct {
 func (h *Handlers) handleCreateGold(w http.ResponseWriter, r *http.Request) {
 	var req createGoldReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
 
@@ -53,7 +54,7 @@ func (h *Handlers) handleCreateGold(w http.ResponseWriter, r *http.Request) {
 		Purity:          *req.Purity,
 	})
 	if err != nil {
-		writeRepoError(w, "create gold", err)
+		httperr.WriteRepo(w, "create gold", err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, g)
@@ -62,7 +63,7 @@ func (h *Handlers) handleCreateGold(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleListGolds(w http.ResponseWriter, r *http.Request) {
 	list, err := h.repo.ListGolds(r.Context())
 	if err != nil {
-		writeRepoError(w, "list golds", err)
+		httperr.WriteRepo(w, "list golds", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, list)
@@ -71,12 +72,12 @@ func (h *Handlers) handleListGolds(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleGetGold(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	g, err := h.repo.GetGold(r.Context(), id)
 	if err != nil {
-		writeRepoError(w, "get gold", err)
+		httperr.WriteRepo(w, "get gold", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, g)
@@ -85,16 +86,16 @@ func (h *Handlers) handleGetGold(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleUpdateGold(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	var req updateGoldReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
 
@@ -108,7 +109,7 @@ func (h *Handlers) handleUpdateGold(w http.ResponseWriter, r *http.Request) {
 		Purity:          *req.Purity,
 	})
 	if err != nil {
-		writeRepoError(w, "update gold", err)
+		httperr.WriteRepo(w, "update gold", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, g)
@@ -117,11 +118,11 @@ func (h *Handlers) handleUpdateGold(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleDeleteGold(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	if err := h.repo.DeleteGold(r.Context(), id); err != nil {
-		writeRepoError(w, "delete gold", err)
+		httperr.WriteRepo(w, "delete gold", err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

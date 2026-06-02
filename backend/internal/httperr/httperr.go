@@ -19,7 +19,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 
-	"github.com/kerti/balances-v2/backend/internal/repo"
+	"github.com/kerti/balances-v2/backend/internal/errs"
 )
 
 // Envelope is the wire JSON shape for an HTTP error response. Code is the
@@ -47,21 +47,21 @@ func Write(w http.ResponseWriter, status int, code Code, args map[string]any) {
 // HANDOFF convention).
 func WriteRepo(w http.ResponseWriter, op string, err error) {
 	switch {
-	case errors.Is(err, repo.ErrNotFound):
+	case errors.Is(err, errs.ErrNotFound):
 		Write(w, http.StatusNotFound, CodeNotFound, nil)
-	case errors.Is(err, repo.ErrInvalidLifecycle):
+	case errors.Is(err, errs.ErrInvalidLifecycle):
 		Write(w, http.StatusBadRequest, CodeInvalidLifecycle, nil)
-	case errors.Is(err, repo.ErrInvalidSnapshotShape):
+	case errors.Is(err, errs.ErrInvalidSnapshotShape):
 		Write(w, http.StatusBadRequest, CodeInvalidSnapshotShape, nil)
-	case errors.Is(err, repo.ErrInvalidTransactionType):
+	case errors.Is(err, errs.ErrInvalidTransactionType):
 		Write(w, http.StatusBadRequest, CodeInvalidTransactionType, nil)
-	case errors.Is(err, repo.ErrInvalidTransactionShape):
+	case errors.Is(err, errs.ErrInvalidTransactionShape):
 		Write(w, http.StatusBadRequest, CodeInvalidTransactionShape, nil)
-	case errors.Is(err, repo.ErrFxRateExists):
+	case errors.Is(err, errs.ErrFxRateExists):
 		Write(w, http.StatusConflict, CodeFxRateExists, nil)
-	case errors.Is(err, repo.ErrForeignPositionsExist):
+	case errors.Is(err, errs.ErrForeignPositionsExist):
 		Write(w, http.StatusConflict, CodeForeignPositionsExist, nil)
-	case errors.Is(err, repo.ErrPositionNotActive):
+	case errors.Is(err, errs.ErrPositionNotActive):
 		Write(w, http.StatusConflict, CodePositionNotActive, nil)
 	default:
 		slog.Error(op, "err", err)

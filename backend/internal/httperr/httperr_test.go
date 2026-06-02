@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/kerti/balances-v2/backend/internal/repo"
+	"github.com/kerti/balances-v2/backend/internal/errs"
 )
 
 func TestWrite_envelope(t *testing.T) {
@@ -54,14 +54,14 @@ func TestWriteRepo_sentinelMapping(t *testing.T) {
 		status int
 		code   Code
 	}{
-		{"NotFound", repo.ErrNotFound, http.StatusNotFound, CodeNotFound},
-		{"InvalidLifecycle", repo.ErrInvalidLifecycle, http.StatusBadRequest, CodeInvalidLifecycle},
-		{"InvalidSnapshotShape", repo.ErrInvalidSnapshotShape, http.StatusBadRequest, CodeInvalidSnapshotShape},
-		{"InvalidTransactionType", repo.ErrInvalidTransactionType, http.StatusBadRequest, CodeInvalidTransactionType},
-		{"InvalidTransactionShape", repo.ErrInvalidTransactionShape, http.StatusBadRequest, CodeInvalidTransactionShape},
-		{"FxRateExists", repo.ErrFxRateExists, http.StatusConflict, CodeFxRateExists},
-		{"ForeignPositionsExist", repo.ErrForeignPositionsExist, http.StatusConflict, CodeForeignPositionsExist},
-		{"PositionNotActive", repo.ErrPositionNotActive, http.StatusConflict, CodePositionNotActive},
+		{"NotFound", errs.ErrNotFound, http.StatusNotFound, CodeNotFound},
+		{"InvalidLifecycle", errs.ErrInvalidLifecycle, http.StatusBadRequest, CodeInvalidLifecycle},
+		{"InvalidSnapshotShape", errs.ErrInvalidSnapshotShape, http.StatusBadRequest, CodeInvalidSnapshotShape},
+		{"InvalidTransactionType", errs.ErrInvalidTransactionType, http.StatusBadRequest, CodeInvalidTransactionType},
+		{"InvalidTransactionShape", errs.ErrInvalidTransactionShape, http.StatusBadRequest, CodeInvalidTransactionShape},
+		{"FxRateExists", errs.ErrFxRateExists, http.StatusConflict, CodeFxRateExists},
+		{"ForeignPositionsExist", errs.ErrForeignPositionsExist, http.StatusConflict, CodeForeignPositionsExist},
+		{"PositionNotActive", errs.ErrPositionNotActive, http.StatusConflict, CodePositionNotActive},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -83,9 +83,9 @@ func TestWriteRepo_sentinelMapping(t *testing.T) {
 
 func TestWriteRepo_wrappedSentinel(t *testing.T) {
 	// errors.Is must traverse wrapping — the repo layer often returns
-	// fmt.Errorf("...: %w", repo.ErrNotFound) and the mapping has to keep
+	// fmt.Errorf("...: %w", errs.ErrNotFound) and the mapping has to keep
 	// working through the wrap.
-	wrapped := fmt.Errorf("get receivable %s: %w", "id-here", repo.ErrNotFound)
+	wrapped := fmt.Errorf("get receivable %s: %w", "id-here", errs.ErrNotFound)
 
 	rec := httptest.NewRecorder()
 	WriteRepo(rec, "get receivable", wrapped)
@@ -125,7 +125,7 @@ func TestWriteRepo_unauthenticatedFallsThrough(t *testing.T) {
 	// must surface as 500 INTERNAL, not 401, so we don't paper over the
 	// misconfiguration.
 	rec := httptest.NewRecorder()
-	WriteRepo(rec, "op", repo.ErrUnauthenticated)
+	WriteRepo(rec, "op", errs.ErrUnauthenticated)
 
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("status: want 500, got %d", rec.Code)

@@ -7,6 +7,7 @@ import (
 
 	"github.com/shopspring/decimal"
 
+	"github.com/kerti/balances-v2/backend/internal/httperr"
 	"github.com/kerti/balances-v2/backend/internal/repo"
 )
 
@@ -23,38 +24,38 @@ type createSnapshotReq struct {
 func (h *Handlers) handleCreateSnapshot(w http.ResponseWriter, r *http.Request) {
 	assetID, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 
 	var req createSnapshotReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
 
 	ym, err := parseYearMonth(req.YearMonth)
 	if err != nil {
-		http.Error(w, "invalid year_month: expected YYYY-MM or YYYY-MM-DD", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidYearMonth, nil)
 		return
 	}
 	if isFutureYearMonth(ym, h.now()) {
-		http.Error(w, "year_month cannot be in the future", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeFutureYearMonth, nil)
 		return
 	}
 	var asOf *time.Time
 	if req.AsOfDate != nil && *req.AsOfDate != "" {
 		t, err := time.Parse("2006-01-02", *req.AsOfDate)
 		if err != nil {
-			http.Error(w, "invalid as_of_date: expected YYYY-MM-DD", http.StatusBadRequest)
+			writeInvalidDate(w, "as_of_date")
 			return
 		}
 		if isFutureDate(t, h.now()) {
-			http.Error(w, "as_of_date cannot be in the future", http.StatusBadRequest)
+			httperr.Write(w, http.StatusBadRequest, httperr.CodeSnapshotFutureDate, nil)
 			return
 		}
 		asOf = &t
@@ -69,7 +70,7 @@ func (h *Handlers) handleCreateSnapshot(w http.ResponseWriter, r *http.Request) 
 		Description: req.Description,
 	})
 	if err != nil {
-		writeRepoError(w, "create asset snapshot", err)
+		httperr.WriteRepo(w, "create asset snapshot", err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, snap)
@@ -78,12 +79,12 @@ func (h *Handlers) handleCreateSnapshot(w http.ResponseWriter, r *http.Request) 
 func (h *Handlers) handleListSnapshots(w http.ResponseWriter, r *http.Request) {
 	assetID, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	snaps, err := h.repo.ListAssetSnapshots(r.Context(), assetID)
 	if err != nil {
-		writeRepoError(w, "list asset snapshots", err)
+		httperr.WriteRepo(w, "list asset snapshots", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, snaps)
@@ -99,17 +100,17 @@ type updateSnapshotReq struct {
 func (h *Handlers) handleUpdateSnapshot(w http.ResponseWriter, r *http.Request) {
 	snapshotID, err := parseIDParam(r, "snapshotID")
 	if err != nil {
-		http.Error(w, "invalid snapshot id", http.StatusBadRequest)
+		writeInvalidID(w, "snapshot_id")
 		return
 	}
 
 	var req updateSnapshotReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
 
@@ -117,11 +118,11 @@ func (h *Handlers) handleUpdateSnapshot(w http.ResponseWriter, r *http.Request) 
 	if req.AsOfDate != nil && *req.AsOfDate != "" {
 		t, err := time.Parse("2006-01-02", *req.AsOfDate)
 		if err != nil {
-			http.Error(w, "invalid as_of_date: expected YYYY-MM-DD", http.StatusBadRequest)
+			writeInvalidDate(w, "as_of_date")
 			return
 		}
 		if isFutureDate(t, h.now()) {
-			http.Error(w, "as_of_date cannot be in the future", http.StatusBadRequest)
+			httperr.Write(w, http.StatusBadRequest, httperr.CodeSnapshotFutureDate, nil)
 			return
 		}
 		asOf = &t
@@ -135,7 +136,7 @@ func (h *Handlers) handleUpdateSnapshot(w http.ResponseWriter, r *http.Request) 
 		Description: req.Description,
 	})
 	if err != nil {
-		writeRepoError(w, "update asset snapshot", err)
+		httperr.WriteRepo(w, "update asset snapshot", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, snap)
@@ -144,11 +145,11 @@ func (h *Handlers) handleUpdateSnapshot(w http.ResponseWriter, r *http.Request) 
 func (h *Handlers) handleDeleteSnapshot(w http.ResponseWriter, r *http.Request) {
 	snapshotID, err := parseIDParam(r, "snapshotID")
 	if err != nil {
-		http.Error(w, "invalid snapshot id", http.StatusBadRequest)
+		writeInvalidID(w, "snapshot_id")
 		return
 	}
 	if err := h.repo.DeleteAssetSnapshot(r.Context(), snapshotID); err != nil {
-		writeRepoError(w, "delete asset snapshot", err)
+		httperr.WriteRepo(w, "delete asset snapshot", err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/kerti/balances-v2/backend/internal/httperr"
 	"github.com/kerti/balances-v2/backend/internal/repo"
 )
 
@@ -37,11 +38,11 @@ type updateBankAccountReq struct {
 func (h *Handlers) handleCreateBankAccount(w http.ResponseWriter, r *http.Request) {
 	var req createBankAccountReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
 
@@ -56,7 +57,7 @@ func (h *Handlers) handleCreateBankAccount(w http.ResponseWriter, r *http.Reques
 		AccountType:     req.AccountType,
 	})
 	if err != nil {
-		writeRepoError(w, "create bank account", err)
+		httperr.WriteRepo(w, "create bank account", err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, account)
@@ -65,7 +66,7 @@ func (h *Handlers) handleCreateBankAccount(w http.ResponseWriter, r *http.Reques
 func (h *Handlers) handleListBankAccounts(w http.ResponseWriter, r *http.Request) {
 	list, err := h.repo.ListBankAccounts(r.Context())
 	if err != nil {
-		writeRepoError(w, "list bank accounts", err)
+		httperr.WriteRepo(w, "list bank accounts", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, list)
@@ -74,12 +75,12 @@ func (h *Handlers) handleListBankAccounts(w http.ResponseWriter, r *http.Request
 func (h *Handlers) handleGetBankAccount(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	account, err := h.repo.GetBankAccount(r.Context(), id)
 	if err != nil {
-		writeRepoError(w, "get bank account", err)
+		httperr.WriteRepo(w, "get bank account", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, account)
@@ -88,16 +89,16 @@ func (h *Handlers) handleGetBankAccount(w http.ResponseWriter, r *http.Request) 
 func (h *Handlers) handleUpdateBankAccount(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	var req updateBankAccountReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
 
@@ -111,7 +112,7 @@ func (h *Handlers) handleUpdateBankAccount(w http.ResponseWriter, r *http.Reques
 		AccountType:     req.AccountType,
 	})
 	if err != nil {
-		writeRepoError(w, "update bank account", err)
+		httperr.WriteRepo(w, "update bank account", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, account)
@@ -120,11 +121,11 @@ func (h *Handlers) handleUpdateBankAccount(w http.ResponseWriter, r *http.Reques
 func (h *Handlers) handleDeleteBankAccount(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	if err := h.repo.DeleteBankAccount(r.Context(), id); err != nil {
-		writeRepoError(w, "delete bank account", err)
+		httperr.WriteRepo(w, "delete bank account", err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

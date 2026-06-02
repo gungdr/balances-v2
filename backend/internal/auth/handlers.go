@@ -18,6 +18,7 @@ import (
 
 	"github.com/kerti/balances-v2/backend/internal/db"
 	"github.com/kerti/balances-v2/backend/internal/email"
+	"github.com/kerti/balances-v2/backend/internal/httperr"
 )
 
 const (
@@ -63,7 +64,7 @@ func New(ctx context.Context, q *db.Queries, cfg Config) (*Handlers, error) {
 		q:            q,
 		googleOAuth:  g,
 		mailer:       cfg.Mailer,
-		validate:     validator.New(validator.WithRequiredStructEnabled()),
+		validate:     httperr.NewValidator(),
 		sessionTTL:   cfg.SessionTTL,
 		cookieSecure: cfg.CookieSecure,
 		frontendURL:  cfg.FrontendURL,
@@ -89,7 +90,7 @@ func (h *Handlers) handleStart(w http.ResponseWriter, r *http.Request) {
 	state, err := randomState()
 	if err != nil {
 		slog.Error("generate oauth state", "err", err)
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		httperr.Write(w, http.StatusInternalServerError, httperr.CodeInternal, nil)
 		return
 	}
 	http.SetCookie(w, &http.Cookie{
@@ -340,13 +341,13 @@ func meResponseFor(user db.User, hh db.Household) meResponse {
 func (h *Handlers) handleMe(w http.ResponseWriter, r *http.Request) {
 	user, ok := UserFromContext(r.Context())
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httperr.Write(w, http.StatusUnauthorized, httperr.CodeUnauthorized, nil)
 		return
 	}
 	hh, err := h.q.GetHouseholdByID(r.Context(), user.HouseholdID)
 	if err != nil {
 		slog.Error("get household for /me", "err", err)
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		httperr.Write(w, http.StatusInternalServerError, httperr.CodeInternal, nil)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -384,12 +385,12 @@ var supportedLocales = map[string]struct{}{
 func (h *Handlers) handleUpdateMe(w http.ResponseWriter, r *http.Request) {
 	user, ok := UserFromContext(r.Context())
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httperr.Write(w, http.StatusUnauthorized, httperr.CodeUnauthorized, nil)
 		return
 	}
 	var raw map[string]json.RawMessage
 	if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	updated := user
@@ -398,14 +399,23 @@ func (h *Handlers) handleUpdateMe(w http.ResponseWriter, r *http.Request) {
 		// *string unmarshals JSON null to nil; a plain string to a non-nil pointer.
 		var nickname *string
 		if err := json.Unmarshal(nicknameRaw, &nickname); err != nil {
-			http.Error(w, "invalid request: nickname must be a string or null", http.StatusBadRequest)
+			// Field-level type mismatch: surface as the same VALIDATION envelope
+			// the validator would emit for a regular struct decode, so the FE
+			// catalog only has to know one rendering path.
+			httperr.Write(w, http.StatusBadRequest, httperr.CodeValidation, map[string]any{
+				"field": "nickname",
+				"rule":  "type",
+			})
 			return
 		}
 		var stored *string
 		if nickname != nil {
 			if trimmed := strings.TrimSpace(*nickname); trimmed != "" {
 				if utf8.RuneCountInString(trimmed) > maxNicknameLen {
-					http.Error(w, "invalid request: nickname must be 32 characters or fewer", http.StatusBadRequest)
+					httperr.Write(w, http.StatusBadRequest, httperr.CodeValidation, map[string]any{
+						"field": "nickname",
+						"rule":  "max",
+					})
 					return
 				}
 				stored = &trimmed
@@ -417,7 +427,7 @@ func (h *Handlers) handleUpdateMe(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			slog.Error("update user nickname", "err", err)
-			http.Error(w, "internal error", http.StatusInternalServerError)
+			httperr.Write(w, http.StatusInternalServerError, httperr.CodeInternal, nil)
 			return
 		}
 		updated = next
@@ -426,11 +436,17 @@ func (h *Handlers) handleUpdateMe(w http.ResponseWriter, r *http.Request) {
 	if localeRaw, present := raw["locale"]; present {
 		var locale *string
 		if err := json.Unmarshal(localeRaw, &locale); err != nil || locale == nil {
-			http.Error(w, "invalid request: locale must be a non-null string", http.StatusBadRequest)
+			httperr.Write(w, http.StatusBadRequest, httperr.CodeValidation, map[string]any{
+				"field": "locale",
+				"rule":  "required",
+			})
 			return
 		}
 		if _, ok := supportedLocales[*locale]; !ok {
-			http.Error(w, "invalid request: unsupported locale", http.StatusBadRequest)
+			httperr.Write(w, http.StatusBadRequest, httperr.CodeValidation, map[string]any{
+				"field": "locale",
+				"rule":  "oneof",
+			})
 			return
 		}
 		next, err := h.q.UpdateUserLocale(r.Context(), db.UpdateUserLocaleParams{
@@ -439,7 +455,7 @@ func (h *Handlers) handleUpdateMe(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			slog.Error("update user locale", "err", err)
-			http.Error(w, "internal error", http.StatusInternalServerError)
+			httperr.Write(w, http.StatusInternalServerError, httperr.CodeInternal, nil)
 			return
 		}
 		updated = next
@@ -448,7 +464,7 @@ func (h *Handlers) handleUpdateMe(w http.ResponseWriter, r *http.Request) {
 	hh, err := h.q.GetHouseholdByID(r.Context(), updated.HouseholdID)
 	if err != nil {
 		slog.Error("get household for update me", "err", err)
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		httperr.Write(w, http.StatusInternalServerError, httperr.CodeInternal, nil)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -467,13 +483,13 @@ type householdMember struct {
 func (h *Handlers) handleListHouseholdMembers(w http.ResponseWriter, r *http.Request) {
 	user, ok := UserFromContext(r.Context())
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httperr.Write(w, http.StatusUnauthorized, httperr.CodeUnauthorized, nil)
 		return
 	}
 	rows, err := h.q.ListUsersByHousehold(r.Context(), user.HouseholdID)
 	if err != nil {
 		slog.Error("list household members", "err", err)
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		httperr.Write(w, http.StatusInternalServerError, httperr.CodeInternal, nil)
 		return
 	}
 	out := make([]householdMember, 0, len(rows))
@@ -508,16 +524,19 @@ type updateHouseholdSettingsReq struct {
 func (h *Handlers) handleUpdateHouseholdSettings(w http.ResponseWriter, r *http.Request) {
 	user, ok := UserFromContext(r.Context())
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httperr.Write(w, http.StatusUnauthorized, httperr.CodeUnauthorized, nil)
 		return
 	}
 	var req updateHouseholdSettingsReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if len(req.ReportingCurrency) != 3 {
-		http.Error(w, "invalid request: reporting_currency must be a 3-letter code", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeValidation, map[string]any{
+			"field": "reporting_currency",
+			"rule":  "len",
+		})
 		return
 	}
 	if !req.MultiCurrencyEnabled {
@@ -527,11 +546,11 @@ func (h *Handlers) handleUpdateHouseholdSettings(w http.ResponseWriter, r *http.
 		})
 		if err != nil {
 			slog.Error("count foreign positions", "err", err)
-			http.Error(w, "internal error", http.StatusInternalServerError)
+			httperr.Write(w, http.StatusInternalServerError, httperr.CodeInternal, nil)
 			return
 		}
 		if n > 0 {
-			http.Error(w, "cannot disable multi-currency while foreign-currency positions exist", http.StatusConflict)
+			httperr.Write(w, http.StatusConflict, httperr.CodeForeignPositionsExist, nil)
 			return
 		}
 	}
@@ -543,7 +562,7 @@ func (h *Handlers) handleUpdateHouseholdSettings(w http.ResponseWriter, r *http.
 	})
 	if err != nil {
 		slog.Error("update household settings", "err", err)
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		httperr.Write(w, http.StatusInternalServerError, httperr.CodeInternal, nil)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

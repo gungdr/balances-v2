@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/kerti/balances-v2/backend/internal/db"
+	"github.com/kerti/balances-v2/backend/internal/httperr"
 )
 
 type contextKey int
@@ -111,7 +112,7 @@ func (h *Handlers) SessionMiddleware(next http.Handler) http.Handler {
 func RequireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if _, ok := UserFromContext(r.Context()); !ok {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			httperr.Write(w, http.StatusUnauthorized, httperr.CodeUnauthorized, nil)
 			return
 		}
 		next.ServeHTTP(w, r)

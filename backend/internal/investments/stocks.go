@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/kerti/balances-v2/backend/internal/httperr"
 	"github.com/kerti/balances-v2/backend/internal/repo"
 )
 
@@ -33,11 +34,11 @@ type updateStockReq struct {
 func (h *Handlers) handleCreateStock(w http.ResponseWriter, r *http.Request) {
 	var req createStockReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
 
@@ -52,7 +53,7 @@ func (h *Handlers) handleCreateStock(w http.ResponseWriter, r *http.Request) {
 		Exchange:        req.Exchange,
 	})
 	if err != nil {
-		writeRepoError(w, "create stock", err)
+		httperr.WriteRepo(w, "create stock", err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, stock)
@@ -61,7 +62,7 @@ func (h *Handlers) handleCreateStock(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleListStocks(w http.ResponseWriter, r *http.Request) {
 	list, err := h.repo.ListStocks(r.Context())
 	if err != nil {
-		writeRepoError(w, "list stocks", err)
+		httperr.WriteRepo(w, "list stocks", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, list)
@@ -70,12 +71,12 @@ func (h *Handlers) handleListStocks(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleGetStock(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	stock, err := h.repo.GetStock(r.Context(), id)
 	if err != nil {
-		writeRepoError(w, "get stock", err)
+		httperr.WriteRepo(w, "get stock", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, stock)
@@ -84,16 +85,16 @@ func (h *Handlers) handleGetStock(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleUpdateStock(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	var req updateStockReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
 
@@ -107,7 +108,7 @@ func (h *Handlers) handleUpdateStock(w http.ResponseWriter, r *http.Request) {
 		Exchange:        req.Exchange,
 	})
 	if err != nil {
-		writeRepoError(w, "update stock", err)
+		httperr.WriteRepo(w, "update stock", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, stock)
@@ -116,11 +117,11 @@ func (h *Handlers) handleUpdateStock(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleDeleteStock(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	if err := h.repo.DeleteStock(r.Context(), id); err != nil {
-		writeRepoError(w, "delete stock", err)
+		httperr.WriteRepo(w, "delete stock", err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

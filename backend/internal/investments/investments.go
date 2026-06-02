@@ -9,8 +9,6 @@ package investments
 
 import (
 	"encoding/json"
-	"errors"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -19,6 +17,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/kerti/balances-v2/backend/internal/auth"
+	"github.com/kerti/balances-v2/backend/internal/httperr"
 	"github.com/kerti/balances-v2/backend/internal/repo"
 )
 
@@ -42,7 +41,7 @@ func WithNow(fn func() time.Time) Option {
 func New(r *repo.InvestmentRepo, opts ...Option) *Handlers {
 	h := &Handlers{
 		repo:     r,
-		validate: validator.New(validator.WithRequiredStructEnabled()),
+		validate: httperr.NewValidator(),
 		now:      time.Now,
 	}
 	for _, opt := range opts {
@@ -151,36 +150,15 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	}
 }
 
-// repoErrorStatus maps repo errors to HTTP statuses. ErrInvalidSnapshotShape,
-// ErrInvalidTransactionType, and ErrInvalidTransactionShape are client-side
-// mistakes (wrong value-column combo, or wrong type for the subtype) so they
-// map to 400 rather than 500. repo.ErrUnauthenticated is unreachable —
-// RequireAuth gates every route in Mount, so the repo's currentUser() helper
-// always finds a user.
-func repoErrorStatus(err error) int {
-	switch {
-	case errors.Is(err, repo.ErrNotFound):
-		return http.StatusNotFound
-	case errors.Is(err, repo.ErrInvalidSnapshotShape),
-		errors.Is(err, repo.ErrInvalidTransactionType),
-		errors.Is(err, repo.ErrInvalidTransactionShape),
-		errors.Is(err, repo.ErrInvalidLifecycle):
-		return http.StatusBadRequest
-	case errors.Is(err, repo.ErrPositionNotActive):
-		return http.StatusConflict
-	default:
-		return http.StatusInternalServerError
-	}
+// writeInvalidID / writeInvalidDate are small shims around httperr.Write so
+// the "invalid path-param" and "unparseable date body field" call sites
+// stay at one level of abstraction.
+func writeInvalidID(w http.ResponseWriter, field string) {
+	httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidID, map[string]any{"field": field})
 }
 
-func writeRepoError(w http.ResponseWriter, op string, err error) {
-	status := repoErrorStatus(err)
-	if status == http.StatusInternalServerError {
-		slog.Error(op, "err", err)
-		http.Error(w, "internal error", status)
-		return
-	}
-	http.Error(w, err.Error(), status)
+func writeInvalidDate(w http.ResponseWriter, field string) {
+	httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidDate, map[string]any{"field": field})
 }
 
 func parseIDParam(r *http.Request, name string) (uuid.UUID, error) {

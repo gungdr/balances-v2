@@ -1194,6 +1194,73 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     unchanged; the redirect path is exempt per ADR-0027) so no test
     file in the receivables sweep needed editing — full backend suite
     + new httperr unit tests green, `golangci-lint run` 0 issues.
+- **Backend httperr sweep across the remaining 6 packages (M6, backend —
+  issue #13, slice 3).** Brings every HTTP-reachable error response in
+  `internal/{assets,liabilities,investments,income,fxrates,reports,auth}`
+  onto the ADR-0027 envelope. Receivables (the slice-2 template) was
+  already converted; this slice generalises the pattern. The OAuth
+  callback redirects (`internal/auth/handlers.go:handleCallback`) and
+  the mock OIDC subcommand stay on their existing redirect/dev-only
+  paths per ADR-0027's explicit exceptions.
+  - **`internal/errs` leaf package added.** Earlier slice 2 had
+    `httperr` import `internal/repo` for the sentinel switch; once
+    `internal/auth` also imported `httperr`, the cycle (auth →
+    httperr → repo → auth, because repo imports auth for
+    `UserFromContext`) appeared. Fix: move the sentinel vars to a
+    dependency-free leaf package `internal/errs`, and have
+    `internal/repo/errors.go` re-export them via aliases
+    (`var ErrNotFound = errs.ErrNotFound`) so every existing
+    `repo.ErrFoo` call site keeps compiling. `httperr.WriteRepo`
+    switches against `errs.Err*` directly. Documented in
+    `internal/errs/errs.go`'s package doc + the repo/errors.go
+    comment so the next contributor knows why the alias layer
+    exists.
+  - **Assets package (6 files).** `assets.go` loses
+    `repoErrorStatus`/`writeRepoError`, gains the
+    `writeInvalidID(w, field)` + `writeInvalidDate(w, field)`
+    shims; subtype files (bank_accounts, properties, vehicles) and
+    shared files (snapshots, lifecycle, import) sweep onto the
+    envelope. `parseOptionalDate(s, field) (*time.Time, error)` →
+    `(s *string) (*time.Time, bool)` mirroring the receivables
+    refactor; the field name is named at the write site.
+  - **Liabilities, Investments, Income, Fxrates, Reports
+    packages.** Same pattern. Investments was the largest sweep (10
+    files: 5 subtypes + snapshots + transactions + lifecycle +
+    import + investments.go) — the package-local `parseOptionalDate`
+    that returned a typed `errBadAsOfDate` sentinel got the same
+    `(*time.Time, bool)` simplification with the field named at the
+    write site. Income's manual `!IsPositive()` check on amount
+    emits `VALIDATION` with `{field: "amount", rule: "gt"}` —
+    matches what the validator's `gt` tag would emit if
+    decimal.Decimal supported tag-based comparison. Fxrates' similar
+    rate check uses the dedicated `INVALID_RATE` code instead
+    because the FE catalog already has a tighter wording for that
+    one. Reports has only the `INVALID_YEAR_MONTH` inline case
+    (path-param parse).
+  - **Auth package (non-callback).** `handleStart` /
+    `handleMe` / `handleUpdateMe` / `handleListHouseholdMembers` /
+    `handleUpdateHouseholdSettings` / `handleCreateInvitation` /
+    `SessionMiddleware.RequireAuth` all swap. New
+    `CodeUnauthorized` (401) covers the real client-facing
+    middleware 401 — distinct from repo's unreachable
+    `ErrUnauthenticated`. `handleUpdateMe` had four bespoke
+    validation paths (`nickname` type/length, `locale`
+    presence/oneof) that don't go through `validator.Struct`; each
+    surfaces as `VALIDATION` with the appropriate
+    `{field, rule}` args so the FE catalog only needs one
+    rendering path. `handleUpdateHouseholdSettings`' "disable
+    multi-currency while foreign positions exist" 409 reuses the
+    existing `FOREIGN_POSITIONS_EXIST` sentinel code (sentinel was
+    declared for the repo path; the inline check now emits the
+    same code for symmetry on the wire).
+  - **Tests + lint clean.** Full backend suite green (18 packages,
+    including 8 httperr unit tests added in slice 2). `golangci-lint
+    run` 0 issues. No `*_test.go` file in the sweep needed editing
+    (status-only asserts everywhere; the two body-content asserts
+    flagged in slice 2 stay valid).
+  - Slice 4 (FE swap — one `errorMessage(err, t)` helper replacing
+    ~50 local `formatError` clones + `errors.json` populated EN+ID)
+    closes out issue #13.
 
 ## What M4.2 shipped
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/kerti/balances-v2/backend/internal/httperr"
 	"github.com/kerti/balances-v2/backend/internal/repo"
 )
 
@@ -33,11 +34,11 @@ type updateMutualFundReq struct {
 func (h *Handlers) handleCreateMutualFund(w http.ResponseWriter, r *http.Request) {
 	var req createMutualFundReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
 
@@ -52,7 +53,7 @@ func (h *Handlers) handleCreateMutualFund(w http.ResponseWriter, r *http.Request
 		FundManager:     req.FundManager,
 	})
 	if err != nil {
-		writeRepoError(w, "create mutual fund", err)
+		httperr.WriteRepo(w, "create mutual fund", err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, mf)
@@ -61,7 +62,7 @@ func (h *Handlers) handleCreateMutualFund(w http.ResponseWriter, r *http.Request
 func (h *Handlers) handleListMutualFunds(w http.ResponseWriter, r *http.Request) {
 	list, err := h.repo.ListMutualFunds(r.Context())
 	if err != nil {
-		writeRepoError(w, "list mutual funds", err)
+		httperr.WriteRepo(w, "list mutual funds", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, list)
@@ -70,12 +71,12 @@ func (h *Handlers) handleListMutualFunds(w http.ResponseWriter, r *http.Request)
 func (h *Handlers) handleGetMutualFund(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	mf, err := h.repo.GetMutualFund(r.Context(), id)
 	if err != nil {
-		writeRepoError(w, "get mutual fund", err)
+		httperr.WriteRepo(w, "get mutual fund", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, mf)
@@ -84,16 +85,16 @@ func (h *Handlers) handleGetMutualFund(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleUpdateMutualFund(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	var req updateMutualFundReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
 
@@ -107,7 +108,7 @@ func (h *Handlers) handleUpdateMutualFund(w http.ResponseWriter, r *http.Request
 		FundManager:     req.FundManager,
 	})
 	if err != nil {
-		writeRepoError(w, "update mutual fund", err)
+		httperr.WriteRepo(w, "update mutual fund", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, mf)
@@ -116,11 +117,11 @@ func (h *Handlers) handleUpdateMutualFund(w http.ResponseWriter, r *http.Request
 func (h *Handlers) handleDeleteMutualFund(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	if err := h.repo.DeleteMutualFund(r.Context(), id); err != nil {
-		writeRepoError(w, "delete mutual fund", err)
+		httperr.WriteRepo(w, "delete mutual fund", err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

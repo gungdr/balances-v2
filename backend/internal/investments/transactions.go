@@ -7,6 +7,7 @@ import (
 
 	"github.com/shopspring/decimal"
 
+	"github.com/kerti/balances-v2/backend/internal/httperr"
 	"github.com/kerti/balances-v2/backend/internal/repo"
 )
 
@@ -47,27 +48,27 @@ type updateTransactionReq struct {
 func (h *Handlers) handleCreateTransaction(w http.ResponseWriter, r *http.Request) {
 	investmentID, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 
 	var req createTransactionReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
 
 	txnDate, err := time.Parse("2006-01-02", req.TransactionDate)
 	if err != nil {
-		http.Error(w, "invalid transaction_date: expected YYYY-MM-DD", http.StatusBadRequest)
+		writeInvalidDate(w, "transaction_date")
 		return
 	}
 	if isFutureDate(txnDate, h.now()) {
-		http.Error(w, "transaction_date cannot be in the future", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeTransactionFutureDate, nil)
 		return
 	}
 
@@ -86,7 +87,7 @@ func (h *Handlers) handleCreateTransaction(w http.ResponseWriter, r *http.Reques
 		InterestDisposition:  req.InterestDisposition,
 	})
 	if err != nil {
-		writeRepoError(w, "create investment transaction", err)
+		httperr.WriteRepo(w, "create investment transaction", err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, txn)
@@ -95,12 +96,12 @@ func (h *Handlers) handleCreateTransaction(w http.ResponseWriter, r *http.Reques
 func (h *Handlers) handleListTransactions(w http.ResponseWriter, r *http.Request) {
 	investmentID, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	txns, err := h.repo.ListInvestmentTransactions(r.Context(), investmentID)
 	if err != nil {
-		writeRepoError(w, "list investment transactions", err)
+		httperr.WriteRepo(w, "list investment transactions", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, txns)
@@ -109,27 +110,27 @@ func (h *Handlers) handleListTransactions(w http.ResponseWriter, r *http.Request
 func (h *Handlers) handleUpdateTransaction(w http.ResponseWriter, r *http.Request) {
 	transactionID, err := parseIDParam(r, "transactionID")
 	if err != nil {
-		http.Error(w, "invalid transaction id", http.StatusBadRequest)
+		writeInvalidID(w, "transaction_id")
 		return
 	}
 
 	var req updateTransactionReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
 
 	txnDate, err := time.Parse("2006-01-02", req.TransactionDate)
 	if err != nil {
-		http.Error(w, "invalid transaction_date: expected YYYY-MM-DD", http.StatusBadRequest)
+		writeInvalidDate(w, "transaction_date")
 		return
 	}
 	if isFutureDate(txnDate, h.now()) {
-		http.Error(w, "transaction_date cannot be in the future", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeTransactionFutureDate, nil)
 		return
 	}
 
@@ -147,7 +148,7 @@ func (h *Handlers) handleUpdateTransaction(w http.ResponseWriter, r *http.Reques
 		InterestDisposition:  req.InterestDisposition,
 	})
 	if err != nil {
-		writeRepoError(w, "update investment transaction", err)
+		httperr.WriteRepo(w, "update investment transaction", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, txn)
@@ -156,11 +157,11 @@ func (h *Handlers) handleUpdateTransaction(w http.ResponseWriter, r *http.Reques
 func (h *Handlers) handleDeleteTransaction(w http.ResponseWriter, r *http.Request) {
 	transactionID, err := parseIDParam(r, "transactionID")
 	if err != nil {
-		http.Error(w, "invalid transaction id", http.StatusBadRequest)
+		writeInvalidID(w, "transaction_id")
 		return
 	}
 	if err := h.repo.DeleteInvestmentTransaction(r.Context(), transactionID); err != nil {
-		writeRepoError(w, "delete investment transaction", err)
+		httperr.WriteRepo(w, "delete investment transaction", err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

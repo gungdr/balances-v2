@@ -6,9 +6,6 @@ package income
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -18,6 +15,7 @@ import (
 	"github.com/shopspring/decimal"
 
 	"github.com/kerti/balances-v2/backend/internal/auth"
+	"github.com/kerti/balances-v2/backend/internal/httperr"
 	"github.com/kerti/balances-v2/backend/internal/repo"
 )
 
@@ -29,7 +27,7 @@ type Handlers struct {
 func New(r *repo.IncomeRepo) *Handlers {
 	return &Handlers{
 		repo:     r,
-		validate: validator.New(validator.WithRequiredStructEnabled()),
+		validate: httperr.NewValidator(),
 	}
 }
 
@@ -78,20 +76,20 @@ type updateReq struct {
 func (h *Handlers) handleCreate(w http.ResponseWriter, r *http.Request) {
 	var req createReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
-	date, err := parseDate(req.Date, "date")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	date, ok := parseDate(req.Date)
+	if !ok {
+		writeInvalidDate(w, "date")
 		return
 	}
 	if !req.Amount.IsPositive() {
-		http.Error(w, "invalid request: amount must be > 0", http.StatusBadRequest)
+		writeAmountMustBePositive(w)
 		return
 	}
 
@@ -106,7 +104,7 @@ func (h *Handlers) handleCreate(w http.ResponseWriter, r *http.Request) {
 		Regularity:      req.Regularity,
 	})
 	if err != nil {
-		writeRepoError(w, "create income", err)
+		httperr.WriteRepo(w, "create income", err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, row)
@@ -115,7 +113,7 @@ func (h *Handlers) handleCreate(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleList(w http.ResponseWriter, r *http.Request) {
 	list, err := h.repo.ListIncome(r.Context())
 	if err != nil {
-		writeRepoError(w, "list income", err)
+		httperr.WriteRepo(w, "list income", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, list)
@@ -124,12 +122,12 @@ func (h *Handlers) handleList(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleGet(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	row, err := h.repo.GetIncome(r.Context(), id)
 	if err != nil {
-		writeRepoError(w, "get income", err)
+		httperr.WriteRepo(w, "get income", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, row)
@@ -138,25 +136,25 @@ func (h *Handlers) handleGet(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	var req updateReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
-	date, err := parseDate(req.Date, "date")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	date, ok := parseDate(req.Date)
+	if !ok {
+		writeInvalidDate(w, "date")
 		return
 	}
 	if !req.Amount.IsPositive() {
-		http.Error(w, "invalid request: amount must be > 0", http.StatusBadRequest)
+		writeAmountMustBePositive(w)
 		return
 	}
 
@@ -171,7 +169,7 @@ func (h *Handlers) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		Regularity:      req.Regularity,
 	})
 	if err != nil {
-		writeRepoError(w, "update income", err)
+		httperr.WriteRepo(w, "update income", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, row)
@@ -180,11 +178,11 @@ func (h *Handlers) handleUpdate(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleDelete(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	if err := h.repo.DeleteIncome(r.Context(), id); err != nil {
-		writeRepoError(w, "delete income", err)
+		httperr.WriteRepo(w, "delete income", err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -200,33 +198,35 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	}
 }
 
-// writeRepoError mirrors the convention in the position-group HTTP packages.
-// repo.ErrUnauthenticated is unreachable here — RequireAuth gates every
-// route in Mount, so the repo's currentUser() always finds a user.
-func writeRepoError(w http.ResponseWriter, op string, err error) {
-	var status int
-	switch {
-	case errors.Is(err, repo.ErrNotFound):
-		status = http.StatusNotFound
-	default:
-		status = http.StatusInternalServerError
-	}
-	if status == http.StatusInternalServerError {
-		slog.Error(op, "err", err)
-		http.Error(w, "internal error", status)
-		return
-	}
-	http.Error(w, err.Error(), status)
+// writeInvalidID / writeInvalidDate are small shims around httperr.Write so
+// the "invalid path-param" and "unparseable date body field" call sites
+// stay at one level of abstraction. writeAmountMustBePositive emits a
+// VALIDATION envelope mirroring the validator's `gt` tag — the inline
+// `IsPositive()` check is logically the same rule the validator would
+// fire if decimal.Decimal supported tag-based comparison.
+func writeInvalidID(w http.ResponseWriter, field string) {
+	httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidID, map[string]any{"field": field})
+}
+
+func writeInvalidDate(w http.ResponseWriter, field string) {
+	httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidDate, map[string]any{"field": field})
+}
+
+func writeAmountMustBePositive(w http.ResponseWriter) {
+	httperr.Write(w, http.StatusBadRequest, httperr.CodeValidation, map[string]any{
+		"field": "amount",
+		"rule":  "gt",
+	})
 }
 
 func parseIDParam(r *http.Request, name string) (uuid.UUID, error) {
 	return uuid.Parse(chi.URLParam(r, name))
 }
 
-func parseDate(s, field string) (time.Time, error) {
+func parseDate(s string) (time.Time, bool) {
 	t, err := time.Parse("2006-01-02", s)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("invalid %s: expected YYYY-MM-DD", field)
+		return time.Time{}, false
 	}
-	return t, nil
+	return t, true
 }

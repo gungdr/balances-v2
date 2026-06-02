@@ -16,6 +16,7 @@ import (
 
 	"github.com/kerti/balances-v2/backend/internal/db"
 	"github.com/kerti/balances-v2/backend/internal/email"
+	"github.com/kerti/balances-v2/backend/internal/httperr"
 )
 
 type createInvitationReq struct {
@@ -33,36 +34,36 @@ func (h *Handlers) handleCreateInvitation(w http.ResponseWriter, r *http.Request
 	ctx := r.Context()
 	inviter, ok := UserFromContext(ctx)
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		httperr.Write(w, http.StatusUnauthorized, httperr.CodeUnauthorized, nil)
 		return
 	}
 
 	var req createInvitationReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	req.Email = strings.TrimSpace(strings.ToLower(req.Email))
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
 	if req.Email == strings.ToLower(inviter.Email) {
-		http.Error(w, "cannot invite yourself", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeCannotInviteSelf, nil)
 		return
 	}
 
 	household, err := h.q.GetHouseholdByID(ctx, inviter.HouseholdID)
 	if err != nil {
 		slog.Error("lookup household", "err", err)
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		httperr.Write(w, http.StatusInternalServerError, httperr.CodeInternal, nil)
 		return
 	}
 
 	token, err := randomInvitationToken()
 	if err != nil {
 		slog.Error("generate invitation token", "err", err)
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		httperr.Write(w, http.StatusInternalServerError, httperr.CodeInternal, nil)
 		return
 	}
 
@@ -77,7 +78,7 @@ func (h *Handlers) handleCreateInvitation(w http.ResponseWriter, r *http.Request
 	})
 	if err != nil {
 		slog.Error("create invitation", "err", err)
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		httperr.Write(w, http.StatusInternalServerError, httperr.CodeInternal, nil)
 		return
 	}
 

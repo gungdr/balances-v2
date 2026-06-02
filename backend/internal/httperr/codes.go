@@ -104,4 +104,10 @@ const (
 	// CodeCannotInviteSelf is a 400 for the auth-invitations self-invite
 	// rejection.
 	CodeCannotInviteSelf Code = "CANNOT_INVITE_SELF"
+
+	// CodeUnauthorized is the 401 emitted by the session middleware when the
+	// request has no valid session cookie. Distinct from the repo's
+	// unreachable ErrUnauthenticated — this one is the real, client-facing
+	// gate before the repo ever runs.
+	CodeUnauthorized Code = "UNAUTHORIZED"
 )

@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 
+	"github.com/kerti/balances-v2/backend/internal/httperr"
 	"github.com/kerti/balances-v2/backend/internal/repo"
 )
 
@@ -44,11 +45,11 @@ type updateVehicleReq struct {
 func (h *Handlers) handleCreateVehicle(w http.ResponseWriter, r *http.Request) {
 	var req createVehicleReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
 	vehicle, err := h.repo.CreateVehicle(r.Context(), repo.CreateVehicleParams{
@@ -65,7 +66,7 @@ func (h *Handlers) handleCreateVehicle(w http.ResponseWriter, r *http.Request) {
 		AnnualDepreciationRate: req.AnnualDepreciationRate,
 	})
 	if err != nil {
-		writeRepoError(w, "create vehicle", err)
+		httperr.WriteRepo(w, "create vehicle", err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, vehicle)
@@ -74,7 +75,7 @@ func (h *Handlers) handleCreateVehicle(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleListVehicles(w http.ResponseWriter, r *http.Request) {
 	list, err := h.repo.ListVehicles(r.Context())
 	if err != nil {
-		writeRepoError(w, "list vehicles", err)
+		httperr.WriteRepo(w, "list vehicles", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, list)
@@ -83,12 +84,12 @@ func (h *Handlers) handleListVehicles(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleGetVehicle(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	vehicle, err := h.repo.GetVehicle(r.Context(), id)
 	if err != nil {
-		writeRepoError(w, "get vehicle", err)
+		httperr.WriteRepo(w, "get vehicle", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, vehicle)
@@ -97,16 +98,16 @@ func (h *Handlers) handleGetVehicle(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleUpdateVehicle(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	var req updateVehicleReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
 
@@ -123,7 +124,7 @@ func (h *Handlers) handleUpdateVehicle(w http.ResponseWriter, r *http.Request) {
 		AnnualDepreciationRate: req.AnnualDepreciationRate,
 	})
 	if err != nil {
-		writeRepoError(w, "update vehicle", err)
+		httperr.WriteRepo(w, "update vehicle", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, vehicle)
@@ -132,11 +133,11 @@ func (h *Handlers) handleUpdateVehicle(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleDeleteVehicle(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	if err := h.repo.DeleteVehicle(r.Context(), id); err != nil {
-		writeRepoError(w, "delete vehicle", err)
+		httperr.WriteRepo(w, "delete vehicle", err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
