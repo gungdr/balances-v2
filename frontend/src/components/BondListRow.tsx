@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,24 +25,8 @@ type Props = {
   onSelect: (id: string) => void
 }
 
-function bondTypeLabel(t: BondListItem['details']['bond_type']): string {
-  return t === 'govt_primary' ? 'Govt primary' : 'Secondary'
-}
-
-function frequencyLabel(f: CouponFrequency): string {
-  switch (f) {
-    case 'monthly':
-      return 'monthly'
-    case 'quarterly':
-      return 'quarterly'
-    case 'semi_annual':
-      return 'semi-annual'
-    case 'annual':
-      return 'annual'
-  }
-}
-
 export function BondListRow({ item, onSelect }: Props) {
+  const { t } = useTranslation(['investments', 'common'])
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const deleteMutation = useDeleteBond()
@@ -56,6 +41,18 @@ export function BondListRow({ item, onSelect }: Props) {
 
   const mInfo = maturityInfo(item.details.maturity_date)
   const couponPct = Number(item.details.coupon_rate).toFixed(2)
+  const bondType = t(
+    item.details.bond_type === 'govt_primary'
+      ? 'investments:bond.bondType.govt_primary_short'
+      : 'investments:bond.bondType.secondary_market_short',
+  )
+  const frequencyShortKey: Record<CouponFrequency, string> = {
+    monthly: 'investments:bond.couponFrequency.monthly_short',
+    quarterly: 'investments:bond.couponFrequency.quarterly_short',
+    semi_annual: 'investments:bond.couponFrequency.semi_annual_short',
+    annual: 'investments:bond.couponFrequency.annual_short',
+  }
+  const frequency = t(frequencyShortKey[item.details.coupon_frequency])
 
   return (
     <>
@@ -83,8 +80,12 @@ export function BondListRow({ item, onSelect }: Props) {
             <div className="text-sm text-muted-foreground">—</div>
           )}
           <div className="text-xs text-muted-foreground">
-            {bondTypeLabel(item.details.bond_type)} · {item.details.issuer} ·{' '}
-            {couponPct}% {frequencyLabel(item.details.coupon_frequency)}
+            {t('investments:bond.rowMeta', {
+              type: bondType,
+              issuer: item.details.issuer,
+              rate: couponPct,
+              frequency,
+            })}
           </div>
           <div className={`text-xs ${maturityClass(mInfo.state)}`}>
             {mInfo.label}
@@ -116,7 +117,7 @@ export function BondListRow({ item, onSelect }: Props) {
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label="Bond actions"
+                aria-label={t('investments:bond.rowActions')}
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreHorizontal className="size-4" />
@@ -127,13 +128,13 @@ export function BondListRow({ item, onSelect }: Props) {
               onClick={(e) => e.stopPropagation()}
             >
               <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                Edit
+                {t('common:actions.edit')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setDeleteOpen(true)}
                 variant="destructive"
               >
-                Delete
+                {t('common:delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -150,9 +151,11 @@ export function BondListRow({ item, onSelect }: Props) {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this bond position?"
-        description={`${item.investment.display_name} will be hidden from lists and reports. This can be undone via the database, not yet via the UI.`}
-        confirmLabel="Delete"
+        title={t('investments:bond.deleteTitle')}
+        description={t('investments:bond.deleteRowDescription', {
+          name: item.investment.display_name,
+        })}
+        confirmLabel={t('common:delete')}
         destructive
         pending={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}

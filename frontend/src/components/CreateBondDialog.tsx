@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -39,6 +40,7 @@ function emptyForm() {
 }
 
 export function CreateBondDialog() {
+  const { t } = useTranslation(['investments', 'common'])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const { data: user } = useSession()
@@ -81,21 +83,21 @@ export function CreateBondDialog() {
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
-        <Button>+ New bond</Button>
+        <Button>{t('investments:bond.createTrigger')}</Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>New bond position</DialogTitle>
+          <DialogTitle>{t('investments:bond.createTitle')}</DialogTitle>
           <DialogDescription>
-            Track a fixed-income instrument by face value, coupon, and
-            maturity. Monthly snapshots record the dirty total value and the
-            accrued-interest component.
+            {t('investments:bond.createDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-3">
             <div className="grid gap-2">
-              <Label htmlFor="bond_display_name">Display name</Label>
+              <Label htmlFor="bond_display_name">
+                {t('common:fields.displayName')}
+              </Label>
               <Input
                 id="bond_display_name"
                 required
@@ -103,24 +105,28 @@ export function CreateBondDialog() {
                 onChange={(e) =>
                   setForm({ ...form, display_name: e.target.value })
                 }
-                placeholder="ORI024 — Indonesian govt retail bond"
+                placeholder={t('investments:bond.placeholders.displayName')}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
-                <Label htmlFor="bond_series_code">Series code (optional)</Label>
+                <Label htmlFor="bond_series_code">
+                  {t('investments:bond.fields.seriesCode')}
+                </Label>
                 <Input
                   id="bond_series_code"
                   value={form.series_code}
                   onChange={(e) =>
                     setForm({ ...form, series_code: e.target.value })
                   }
-                  placeholder="ORI024"
+                  placeholder={t('investments:bond.placeholders.seriesCode')}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="bond_issuer">Issuer</Label>
+                <Label htmlFor="bond_issuer">
+                  {t('investments:bond.fields.issuer')}
+                </Label>
                 <Input
                   id="bond_issuer"
                   required
@@ -128,13 +134,15 @@ export function CreateBondDialog() {
                   onChange={(e) =>
                     setForm({ ...form, issuer: e.target.value })
                   }
-                  placeholder="Republik Indonesia"
+                  placeholder={t('investments:bond.placeholders.issuer')}
                 />
               </div>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="bond_description">Description (optional)</Label>
+              <Label htmlFor="bond_description">
+                {t('common:fields.description')}
+              </Label>
               <Input
                 id="bond_description"
                 value={form.description}
@@ -148,7 +156,9 @@ export function CreateBondDialog() {
           <div className="space-y-3 border-t pt-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
-                <Label htmlFor="bond_type">Bond type</Label>
+                <Label htmlFor="bond_type">
+                  {t('investments:bond.fields.bondType')}
+                </Label>
                 <select
                   id="bond_type"
                   className="h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -157,12 +167,18 @@ export function CreateBondDialog() {
                     setForm({ ...form, bond_type: e.target.value as BondType })
                   }
                 >
-                  <option value="govt_primary">Government primary</option>
-                  <option value="secondary_market">Secondary market</option>
+                  <option value="govt_primary">
+                    {t('investments:bond.bondType.govt_primary')}
+                  </option>
+                  <option value="secondary_market">
+                    {t('investments:bond.bondType.secondary_market')}
+                  </option>
                 </select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="bond_currency">Currency</Label>
+                <Label htmlFor="bond_currency">
+                  {t('common:fields.currency')}
+                </Label>
                 <Input
                   id="bond_currency"
                   required
@@ -173,14 +189,16 @@ export function CreateBondDialog() {
                       native_currency: e.target.value.toUpperCase(),
                     })
                   }
-                  placeholder="IDR"
+                  placeholder={t('investments:bond.placeholders.currency')}
                   maxLength={3}
                 />
               </div>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="bond_face_value">Face value</Label>
+              <Label htmlFor="bond_face_value">
+                {t('investments:bond.fields.faceValue')}
+              </Label>
               <Input
                 id="bond_face_value"
                 required
@@ -189,7 +207,7 @@ export function CreateBondDialog() {
                 onChange={(e) =>
                   setForm({ ...form, face_value: e.target.value })
                 }
-                placeholder="e.g. 50000000 for 50 lots of IDR 1,000,000 each"
+                placeholder={t('investments:bond.placeholders.faceValue')}
               />
             </div>
           </div>
@@ -197,7 +215,9 @@ export function CreateBondDialog() {
           <div className="space-y-3 border-t pt-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
-                <Label htmlFor="bond_coupon_rate">Coupon rate (% per year)</Label>
+                <Label htmlFor="bond_coupon_rate">
+                  {t('investments:bond.fields.couponRate')}
+                </Label>
                 <Input
                   id="bond_coupon_rate"
                   required
@@ -206,11 +226,13 @@ export function CreateBondDialog() {
                   onChange={(e) =>
                     setForm({ ...form, coupon_rate: e.target.value })
                   }
-                  placeholder="6.25"
+                  placeholder={t('investments:bond.placeholders.couponRate')}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="bond_coupon_frequency">Coupon frequency</Label>
+                <Label htmlFor="bond_coupon_frequency">
+                  {t('investments:bond.fields.couponFrequency')}
+                </Label>
                 <select
                   id="bond_coupon_frequency"
                   className="h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -222,16 +244,26 @@ export function CreateBondDialog() {
                     })
                   }
                 >
-                  <option value="monthly">Monthly</option>
-                  <option value="quarterly">Quarterly</option>
-                  <option value="semi_annual">Semi-annual</option>
-                  <option value="annual">Annual</option>
+                  <option value="monthly">
+                    {t('investments:bond.couponFrequency.monthly')}
+                  </option>
+                  <option value="quarterly">
+                    {t('investments:bond.couponFrequency.quarterly')}
+                  </option>
+                  <option value="semi_annual">
+                    {t('investments:bond.couponFrequency.semi_annual')}
+                  </option>
+                  <option value="annual">
+                    {t('investments:bond.couponFrequency.annual')}
+                  </option>
                 </select>
               </div>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="bond_maturity">Maturity date</Label>
+              <Label htmlFor="bond_maturity">
+                {t('investments:bond.fields.maturityDate')}
+              </Label>
               <Input
                 id="bond_maturity"
                 required
@@ -246,7 +278,7 @@ export function CreateBondDialog() {
 
           <div className="space-y-3 border-t pt-4">
             <div className="grid gap-2">
-              <Label>Ownership</Label>
+              <Label>{t('common:fields.ownership')}</Label>
               <div className="flex gap-4 text-sm">
                 <label className="flex items-center gap-2">
                   <input
@@ -258,7 +290,7 @@ export function CreateBondDialog() {
                       setForm({ ...form, ownership_type: 'joint' })
                     }
                   />
-                  Joint
+                  {t('investments:ownership.joint')}
                 </label>
                 <label className="flex items-center gap-2">
                   <input
@@ -270,12 +302,12 @@ export function CreateBondDialog() {
                       setForm({ ...form, ownership_type: 'sole' })
                     }
                   />
-                  Sole owner
+                  {t('investments:ownership.soleOwner')}
                 </label>
               </div>
               {form.ownership_type === 'sole' && (
                 <select
-                  aria-label="Sole owner"
+                  aria-label={t('investments:ownership.soleOwnerAria')}
                   className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                   value={effectiveSoleOwnerID ?? ''}
                   onChange={(e) =>
@@ -285,7 +317,7 @@ export function CreateBondDialog() {
                   {(members ?? []).map((m) => (
                     <option key={m.id} value={m.id}>
                       {preferredName(m)}
-                      {user && m.id === user.id ? ' (you)' : ''}
+                      {user && m.id === user.id ? t('common:ownership.youSuffix') : ''}
                     </option>
                   ))}
                 </select>
@@ -301,16 +333,18 @@ export function CreateBondDialog() {
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Creating…' : 'Create'}
+              {mutation.isPending
+                ? t('common:actions.creating')
+                : t('common:actions.create')}
             </Button>
           </DialogFooter>
         </form>
@@ -319,11 +353,11 @@ export function CreateBondDialog() {
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownLabel: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownLabel
 }

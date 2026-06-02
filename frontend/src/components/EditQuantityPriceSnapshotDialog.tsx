@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
@@ -61,6 +62,7 @@ export function EditQuantityPriceSnapshotDialog<TResult>({
   snapshot,
   mutation,
 }: Props<TResult>) {
+  const { t } = useTranslation(['investments', 'common'])
   const [form, setForm] = useState({
     quantity: snapshot.quantity ?? '',
     price_per_unit: snapshot.price_per_unit ?? '',
@@ -94,16 +96,17 @@ export function EditQuantityPriceSnapshotDialog<TResult>({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit snapshot</DialogTitle>
+          <DialogTitle>{t('investments:quantityPriceSnapshot.editTitle')}</DialogTitle>
           <DialogDescription>
-            Update the quantity, price, statement date, or description. To
-            change the month, delete and re-create.
+            {t('investments:quantityPriceSnapshot.editDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="edit_inv_quantity">Quantity</Label>
+              <Label htmlFor="edit_inv_quantity">
+                {t('investments:quantityPriceSnapshot.quantityLabel')}
+              </Label>
               <Input
                 id="edit_inv_quantity"
                 required
@@ -114,7 +117,9 @@ export function EditQuantityPriceSnapshotDialog<TResult>({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit_inv_price_per_unit">
-                Price per unit ({snapshot.currency})
+                {t('investments:quantityPriceSnapshot.pricePerUnitLabel', {
+                  currency: snapshot.currency,
+                })}
               </Label>
               <Input
                 id="edit_inv_price_per_unit"
@@ -129,7 +134,9 @@ export function EditQuantityPriceSnapshotDialog<TResult>({
           </div>
 
           <div className="rounded-md bg-muted px-3 py-2 text-sm">
-            <span className="text-muted-foreground">Total value:</span>{' '}
+            <span className="text-muted-foreground">
+              {t('investments:quantityPriceSnapshot.totalValueLabel')}
+            </span>{' '}
             <span className="font-medium">
               {derivedAmount !== null
                 ? formatCurrency(derivedAmount, snapshot.currency)
@@ -139,7 +146,7 @@ export function EditQuantityPriceSnapshotDialog<TResult>({
 
           <div className="grid gap-2">
             <Label htmlFor="edit_inv_as_of_date">
-              Statement date (optional)
+              {t('common:fields.statementDate')}
             </Label>
             <Input
               id="edit_inv_as_of_date"
@@ -154,7 +161,7 @@ export function EditQuantityPriceSnapshotDialog<TResult>({
 
           <div className="grid gap-2">
             <Label htmlFor="edit_inv_snap_description">
-              Description (optional)
+              {t('common:fields.description')}
             </Label>
             <Input
               id="edit_inv_snap_description"
@@ -167,7 +174,7 @@ export function EditQuantityPriceSnapshotDialog<TResult>({
 
           {mutation.isError && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
@@ -177,13 +184,15 @@ export function EditQuantityPriceSnapshotDialog<TResult>({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button
               type="submit"
               disabled={mutation.isPending || derivedAmount === null}
             >
-              {mutation.isPending ? 'Saving…' : 'Save changes'}
+              {mutation.isPending
+                ? t('common:actions.saving')
+                : t('common:actions.saveChanges')}
             </Button>
           </DialogFooter>
         </form>
@@ -192,11 +201,11 @@ export function EditQuantityPriceSnapshotDialog<TResult>({
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownLabel: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownLabel
 }

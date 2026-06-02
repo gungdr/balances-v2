@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -49,7 +50,6 @@ import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { maturityClass, maturityInfo } from '@/lib/maturity'
 import { ownershipLabel } from '@/lib/ownership'
-import type { CouponFrequency } from '@/api/types'
 
 type Props = {
   investmentId: string
@@ -58,20 +58,8 @@ type Props = {
 
 const PAGE_SIZE = 12
 
-function frequencyLabel(f: CouponFrequency): string {
-  switch (f) {
-    case 'monthly':
-      return 'Monthly'
-    case 'quarterly':
-      return 'Quarterly'
-    case 'semi_annual':
-      return 'Semi-annual'
-    case 'annual':
-      return 'Annual'
-  }
-}
-
 export function BondDetail({ investmentId, onBack }: Props) {
+  const { t } = useTranslation(['investments', 'common', 'errors'])
   const { data: bond, isPending, error } = useBond(investmentId)
   const { data: snapshots } = useInvestmentSnapshots(investmentId)
   const { data: transactions } = useInvestmentTransactions(investmentId)
@@ -116,6 +104,7 @@ export function BondDetail({ investmentId, onBack }: Props) {
     Math.ceil((transactions?.length ?? 0) / PAGE_SIZE),
   )
   const effectiveTxnPage = Math.min(txnPage, totalTxnPages)
+  const quantityUnit = t('investments:bond.quantityUnit')
 
   function handleConfirmDelete() {
     deleteMutation.mutate(investmentId, {
@@ -127,12 +116,12 @@ export function BondDetail({ investmentId, onBack }: Props) {
   }
 
   if (isPending) {
-    return <p className="text-sm text-muted-foreground">Loading…</p>
+    return <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
   }
   if (error) {
     return (
       <p className="text-sm text-destructive">
-        Failed to load: {(error as Error).message}
+        {t('errors:failedToLoad', { message: (error as Error).message })}
       </p>
     )
   }
@@ -151,11 +140,17 @@ export function BondDetail({ investmentId, onBack }: Props) {
   // gated off entirely by isActiveStatus below.
   const mInfo = maturityInfo(bond.details.maturity_date)
   const couponPct = Number(bond.details.coupon_rate).toFixed(2)
+  const bondTypeLabel = t(
+    bond.details.bond_type === 'govt_primary'
+      ? 'investments:bond.bondType.govt_primary'
+      : 'investments:bond.bondType.secondary_market',
+  )
+  const frequencyLabel = t(
+    `investments:bond.couponFrequency.${bond.details.coupon_frequency}`,
+  )
   const subtitleBits = [
     bond.details.series_code,
-    bond.details.bond_type === 'govt_primary'
-      ? 'Government primary'
-      : 'Secondary market',
+    bondTypeLabel,
     bond.details.issuer,
   ].filter(Boolean)
 
@@ -169,7 +164,7 @@ export function BondDetail({ investmentId, onBack }: Props) {
             onClick={onBack}
             className="-ml-2 mb-1"
           >
-            ← Back
+            {t('common:actions.back')}
           </Button>
           <h1 className="text-2xl font-semibold tracking-tight">
             {bond.investment.display_name}
@@ -193,7 +188,7 @@ export function BondDetail({ investmentId, onBack }: Props) {
             </>
           )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-            Edit
+            {t('common:actions.edit')}
           </Button>
           <TerminatePositionDialog
             group="investments"
@@ -208,40 +203,50 @@ export function BondDetail({ investmentId, onBack }: Props) {
             size="sm"
             onClick={() => setDeleteOpen(true)}
           >
-            Delete
+            {t('common:delete')}
           </Button>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Bond Details</CardTitle>
+          <CardTitle>{t('investments:bond.detailsCardTitle')}</CardTitle>
           <CardDescription>
-            Ownership:{' '}
-            {ownershipLabel(
-              bond.investment.ownership_type,
-              bond.investment.sole_owner_user_id,
-              members,
-              currentUser,
-            )}{' '}
-            · Currency: {bond.investment.native_currency} · Status:{' '}
+            {t('investments:bond.detailsCardLine', {
+              ownership: ownershipLabel(
+                bond.investment.ownership_type,
+                bond.investment.sole_owner_user_id,
+                members,
+                currentUser,
+              ),
+              currency: bond.investment.native_currency,
+            })}{' '}
             <StatusBadge group="investments" status={bond.investment.status} />
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm space-y-1">
           <p>
-            <span className="text-muted-foreground">Face value:</span>{' '}
+            <span className="text-muted-foreground">
+              {t('investments:bond.faceValueLabel')}
+            </span>{' '}
             {formatCurrency(
               bond.details.face_value,
               bond.investment.native_currency,
             )}
           </p>
           <p>
-            <span className="text-muted-foreground">Coupon:</span> {couponPct}%
-            /yr · {frequencyLabel(bond.details.coupon_frequency)}
+            <span className="text-muted-foreground">
+              {t('investments:bond.couponLabel')}
+            </span>{' '}
+            {t('investments:bond.couponValue', {
+              rate: couponPct,
+              frequency: frequencyLabel,
+            })}
           </p>
           <p>
-            <span className="text-muted-foreground">Maturity:</span>{' '}
+            <span className="text-muted-foreground">
+              {t('investments:bond.maturityLabel')}
+            </span>{' '}
             {formatDate(bond.details.maturity_date)}{' '}
             <span className={maturityClass(mInfo.state)}>
               ({mInfo.label})
@@ -256,10 +261,11 @@ export function BondDetail({ investmentId, onBack }: Props) {
       {snapshots && snapshots.length >= 2 && (
         <Card>
           <CardHeader>
-            <CardTitle>Position Value Over Time</CardTitle>
+            <CardTitle>{t('investments:snapshotsCard.chartTitle')}</CardTitle>
             <CardDescription>
-              Monthly total value progression in{' '}
-              {bond.investment.native_currency}.
+              {t('investments:snapshotsCard.chartDescriptionTotal', {
+                currency: bond.investment.native_currency,
+              })}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -273,30 +279,26 @@ export function BondDetail({ investmentId, onBack }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Snapshots</CardTitle>
+          <CardTitle>{t('investments:snapshotsCard.title')}</CardTitle>
           <CardDescription>
-            Monthly total value and accrued-interest breakdown.
+            {t('investments:bond.snapshotsDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {!snapshots || snapshots.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
-              No snapshots yet. Click "New snapshot" to record this month's
-              reading. For held-to-maturity bonds (Indonesian govt-primary
-              where coupons pay out to your bank account), a single initial
-              snapshot at face value is enough — snapshot carry-forward
-              handles every subsequent month until maturity.
+              {t('investments:bond.snapshotsEmpty')}
             </p>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Month</TableHead>
-                    <TableHead>Principal</TableHead>
-                    <TableHead>Accrued</TableHead>
-                    <TableHead>Total value</TableHead>
-                    <TableHead>Notes</TableHead>
+                    <TableHead>{t('investments:snapshotsCard.monthHeader')}</TableHead>
+                    <TableHead>{t('investments:snapshotsCard.principalHeader')}</TableHead>
+                    <TableHead>{t('investments:snapshotsCard.accruedHeader')}</TableHead>
+                    <TableHead>{t('investments:snapshotsCard.totalValueHeader')}</TableHead>
+                    <TableHead>{t('investments:snapshotsCard.notesHeader')}</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -329,11 +331,9 @@ export function BondDetail({ investmentId, onBack }: Props) {
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <CardTitle>Transactions</CardTitle>
+              <CardTitle>{t('investments:transactions.cardTitle')}</CardTitle>
               <CardDescription>
-                Buys / sells (secondary market), coupons, fees, and the
-                terminal maturity event. For Indonesian govt-primary retail
-                bonds, log each coupon as received.
+                {t('investments:bond.transactionsDescription')}
               </CardDescription>
             </div>
             {isActiveStatus(bond.investment.status) && (
@@ -341,13 +341,13 @@ export function BondDetail({ investmentId, onBack }: Props) {
                 <CreateTradeTransactionDialog
                   currency={bond.investment.native_currency}
                   txnType="buy"
-                  quantityUnit="lot"
+                  quantityUnit={quantityUnit}
                   mutation={createTransactionMutation}
                 />
                 <CreateTradeTransactionDialog
                   currency={bond.investment.native_currency}
                   txnType="sell"
-                  quantityUnit="lot"
+                  quantityUnit={quantityUnit}
                   mutation={createTransactionMutation}
                 />
                 <CreateCashIncomeTransactionDialog
@@ -357,7 +357,7 @@ export function BondDetail({ investmentId, onBack }: Props) {
                 />
                 <CreateFeeTransactionDialog
                   currency={bond.investment.native_currency}
-                  quantityUnit="lot"
+                  quantityUnit={quantityUnit}
                   mutation={createTransactionMutation}
                 />
                 <CreateMaturityTransactionDialog
@@ -371,27 +371,26 @@ export function BondDetail({ investmentId, onBack }: Props) {
         <CardContent className="p-0">
           {!transactions || transactions.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
-              No transactions yet. Record a Buy or Coupon to start the
-              ledger.
+              {t('investments:bond.transactionsEmpty')}
             </p>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Cash impact</TableHead>
-                    <TableHead>Notes</TableHead>
+                    <TableHead>{t('investments:transactions.dateHeader')}</TableHead>
+                    <TableHead>{t('investments:transactions.typeHeader')}</TableHead>
+                    <TableHead>{t('investments:transactions.cashImpactHeader')}</TableHead>
+                    <TableHead>{t('investments:transactions.notesHeader')}</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pageTransactions.map((t) => (
+                  {pageTransactions.map((tx) => (
                     <TransactionRow
-                      key={t.id}
-                      transaction={t}
-                      quantityUnit="lot"
+                      key={tx.id}
+                      transaction={tx}
+                      quantityUnit={quantityUnit}
                       updateMutation={updateTransactionMutation}
                       deleteMutation={deleteTransactionMutation}
                     />
@@ -421,9 +420,9 @@ export function BondDetail({ investmentId, onBack }: Props) {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this bond position?"
-        description="Snapshots and history will be hidden. This can be undone via the database, not yet via the UI."
-        confirmLabel="Delete"
+        title={t('investments:bond.deleteTitle')}
+        description={t('investments:bond.deleteDetailDescription')}
+        confirmLabel={t('common:delete')}
         destructive
         pending={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}

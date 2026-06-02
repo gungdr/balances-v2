@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
@@ -56,6 +57,7 @@ export function CreateAccruedInterestSnapshotDialog<TResult>({
   currency,
   mutation,
 }: Props<TResult>) {
+  const { t } = useTranslation(['investments', 'common'])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
 
@@ -87,20 +89,23 @@ export function CreateAccruedInterestSnapshotDialog<TResult>({
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
-        <Button size="sm">+ New snapshot</Button>
+        <Button size="sm">
+          {t('investments:accruedInterestSnapshot.trigger')}
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Record monthly snapshot</DialogTitle>
+          <DialogTitle>
+            {t('investments:accruedInterestSnapshot.createTitle')}
+          </DialogTitle>
           <DialogDescription>
-            Enter the month-end total value and the accrued interest
-            component ({currency}). Total already includes accrued.
+            {t('investments:accruedInterestSnapshot.createDescription', { currency })}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="ai_year_month">Month</Label>
+              <Label htmlFor="ai_year_month">{t('common:fields.month')}</Label>
               <Input
                 id="ai_year_month"
                 type="month"
@@ -113,7 +118,9 @@ export function CreateAccruedInterestSnapshotDialog<TResult>({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="ai_as_of_date">Statement date (optional)</Label>
+              <Label htmlFor="ai_as_of_date">
+                {t('common:fields.statementDate')}
+              </Label>
               <Input
                 id="ai_as_of_date"
                 type="date"
@@ -128,18 +135,22 @@ export function CreateAccruedInterestSnapshotDialog<TResult>({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="ai_amount">Total value ({currency})</Label>
+              <Label htmlFor="ai_amount">
+                {t('investments:accruedInterestSnapshot.totalValueLabel', { currency })}
+              </Label>
               <Input
                 id="ai_amount"
                 required
                 inputMode="decimal"
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                placeholder="50250000"
+                placeholder={t('investments:accruedInterestSnapshot.totalValuePlaceholder')}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="ai_accrued">Accrued ({currency})</Label>
+              <Label htmlFor="ai_accrued">
+                {t('investments:accruedInterestSnapshot.accruedLabel', { currency })}
+              </Label>
               <Input
                 id="ai_accrued"
                 required
@@ -148,13 +159,15 @@ export function CreateAccruedInterestSnapshotDialog<TResult>({
                 onChange={(e) =>
                   setForm({ ...form, accrued_interest: e.target.value })
                 }
-                placeholder="250000"
+                placeholder={t('investments:accruedInterestSnapshot.accruedPlaceholder')}
               />
             </div>
           </div>
 
           <div className="rounded-md bg-muted px-3 py-2 text-sm">
-            <span className="text-muted-foreground">Of which principal:</span>{' '}
+            <span className="text-muted-foreground">
+              {t('investments:accruedInterestSnapshot.ofWhichPrincipalLabel')}
+            </span>{' '}
             <span className="font-medium">
               {derivedPrincipal !== null
                 ? formatCurrency(derivedPrincipal, currency)
@@ -163,36 +176,37 @@ export function CreateAccruedInterestSnapshotDialog<TResult>({
           </div>
 
           <p className="text-xs text-muted-foreground">
-            Leave accrued at 0 if your bond pays coupons directly to your
-            bank account each period (Indonesian govt-primary retail:
-            ORI/SBR/SR/ST). Override for secondary-market bonds and time
-            deposits where interest accrues inside the instrument.
+            {t('investments:accruedInterestSnapshot.accruedHint')}
           </p>
 
           <div className="grid gap-2">
-            <Label htmlFor="ai_description">Description (optional)</Label>
+            <Label htmlFor="ai_description">
+              {t('common:fields.description')}
+            </Label>
             <Input
               id="ai_description"
               value={form.description}
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
               }
-              placeholder="from bank statement"
+              placeholder={t('investments:accruedInterestSnapshot.descriptionPlaceholder')}
             />
           </div>
 
           {mutation.isError && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Saving…' : 'Save snapshot'}
+              {mutation.isPending
+                ? t('common:actions.saving')
+                : t('investments:accruedInterestSnapshot.save')}
             </Button>
           </DialogFooter>
         </form>
@@ -201,11 +215,11 @@ export function CreateAccruedInterestSnapshotDialog<TResult>({
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownLabel: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownLabel
 }

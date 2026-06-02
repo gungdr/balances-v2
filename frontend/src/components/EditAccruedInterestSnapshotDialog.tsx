@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
@@ -56,6 +57,7 @@ export function EditAccruedInterestSnapshotDialog<TResult>({
   snapshot,
   mutation,
 }: Props<TResult>) {
+  const { t } = useTranslation(['investments', 'common'])
   const [form, setForm] = useState({
     amount: snapshot.amount,
     accrued_interest: snapshot.accrued_interest ?? '',
@@ -88,17 +90,18 @@ export function EditAccruedInterestSnapshotDialog<TResult>({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit snapshot</DialogTitle>
+          <DialogTitle>{t('investments:accruedInterestSnapshot.editTitle')}</DialogTitle>
           <DialogDescription>
-            Update the total value, accrued, statement date, or description.
-            To change the month, delete and re-create.
+            {t('investments:accruedInterestSnapshot.editDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
               <Label htmlFor="edit_ai_amount">
-                Total value ({snapshot.currency})
+                {t('investments:accruedInterestSnapshot.totalValueLabel', {
+                  currency: snapshot.currency,
+                })}
               </Label>
               <Input
                 id="edit_ai_amount"
@@ -110,7 +113,9 @@ export function EditAccruedInterestSnapshotDialog<TResult>({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit_ai_accrued">
-                Accrued ({snapshot.currency})
+                {t('investments:accruedInterestSnapshot.accruedLabel', {
+                  currency: snapshot.currency,
+                })}
               </Label>
               <Input
                 id="edit_ai_accrued"
@@ -125,7 +130,9 @@ export function EditAccruedInterestSnapshotDialog<TResult>({
           </div>
 
           <div className="rounded-md bg-muted px-3 py-2 text-sm">
-            <span className="text-muted-foreground">Of which principal:</span>{' '}
+            <span className="text-muted-foreground">
+              {t('investments:accruedInterestSnapshot.ofWhichPrincipalLabel')}
+            </span>{' '}
             <span className="font-medium">
               {derivedPrincipal !== null
                 ? formatCurrency(derivedPrincipal, snapshot.currency)
@@ -135,7 +142,7 @@ export function EditAccruedInterestSnapshotDialog<TResult>({
 
           <div className="grid gap-2">
             <Label htmlFor="edit_ai_as_of_date">
-              Statement date (optional)
+              {t('common:fields.statementDate')}
             </Label>
             <Input
               id="edit_ai_as_of_date"
@@ -150,7 +157,7 @@ export function EditAccruedInterestSnapshotDialog<TResult>({
 
           <div className="grid gap-2">
             <Label htmlFor="edit_ai_description">
-              Description (optional)
+              {t('common:fields.description')}
             </Label>
             <Input
               id="edit_ai_description"
@@ -163,7 +170,7 @@ export function EditAccruedInterestSnapshotDialog<TResult>({
 
           {mutation.isError && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
@@ -173,10 +180,12 @@ export function EditAccruedInterestSnapshotDialog<TResult>({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Saving…' : 'Save changes'}
+              {mutation.isPending
+                ? t('common:actions.saving')
+                : t('common:actions.saveChanges')}
             </Button>
           </DialogFooter>
         </form>
@@ -185,11 +194,11 @@ export function EditAccruedInterestSnapshotDialog<TResult>({
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownLabel: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownLabel
 }

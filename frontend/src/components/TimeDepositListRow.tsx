@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -25,6 +26,7 @@ type Props = {
 }
 
 export function TimeDepositListRow({ item, onSelect }: Props) {
+  const { t } = useTranslation(['investments', 'common'])
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const deleteMutation = useDeleteTimeDeposit()
@@ -62,7 +64,10 @@ export function TimeDepositListRow({ item, onSelect }: Props) {
         <TableCell>
           <div className="text-sm">{item.details.bank_name}</div>
           <div className="text-xs text-muted-foreground">
-            {ratePct}% · {item.details.term_months}mo
+            {t('investments:timeDeposit.rowMeta', {
+              rate: ratePct,
+              months: item.details.term_months,
+            })}
           </div>
           <div className={`text-xs ${maturityClass(mInfo.state)}`}>
             {mInfo.label}
@@ -94,7 +99,7 @@ export function TimeDepositListRow({ item, onSelect }: Props) {
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label="Time deposit actions"
+                aria-label={t('investments:timeDeposit.rowActions')}
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreHorizontal className="size-4" />
@@ -105,13 +110,13 @@ export function TimeDepositListRow({ item, onSelect }: Props) {
               onClick={(e) => e.stopPropagation()}
             >
               <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                Edit
+                {t('common:actions.edit')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setDeleteOpen(true)}
                 variant="destructive"
               >
-                Delete
+                {t('common:delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -128,9 +133,11 @@ export function TimeDepositListRow({ item, onSelect }: Props) {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this time deposit?"
-        description={`${item.investment.display_name} will be hidden from lists and reports. This can be undone via the database, not yet via the UI.`}
-        confirmLabel="Delete"
+        title={t('investments:timeDeposit.deleteTitle')}
+        description={t('investments:timeDeposit.deleteRowDescription', {
+          name: item.investment.display_name,
+        })}
+        confirmLabel={t('common:delete')}
         destructive
         pending={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}

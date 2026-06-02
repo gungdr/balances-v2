@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
@@ -50,6 +51,7 @@ export function EditTradeTransactionDialog<TResult>({
   quantityUnit,
   mutation,
 }: Props<TResult>) {
+  const { t } = useTranslation(['investments', 'common'])
   const [form, setForm] = useState({
     transaction_date: transaction.transaction_date.slice(0, 10),
     quantity: transaction.quantity ?? '',
@@ -58,7 +60,7 @@ export function EditTradeTransactionDialog<TResult>({
   })
 
   const derivedAmount = deriveAmount(form.quantity, form.price_per_unit)
-  const verb = transaction.transaction_type === 'buy' ? 'Buy' : 'Sell'
+  const isBuy = transaction.transaction_type === 'buy'
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -87,14 +89,18 @@ export function EditTradeTransactionDialog<TResult>({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit {verb}</DialogTitle>
+          <DialogTitle>
+            {t(isBuy ? 'investments:trade.editBuyTitle' : 'investments:trade.editSellTitle')}
+          </DialogTitle>
           <DialogDescription>
-            Adjust the trade date, quantity, price, or description.
+            {t('investments:trade.editDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid gap-2">
-            <Label htmlFor="edit_trade_date">Trade date</Label>
+            <Label htmlFor="edit_trade_date">
+              {t('investments:trade.tradeDateLabel')}
+            </Label>
             <Input
               id="edit_trade_date"
               type="date"
@@ -110,7 +116,7 @@ export function EditTradeTransactionDialog<TResult>({
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
               <Label htmlFor="edit_trade_quantity">
-                Quantity ({quantityUnit})
+                {t('investments:trade.quantityLabel', { unit: quantityUnit })}
               </Label>
               <Input
                 id="edit_trade_quantity"
@@ -122,7 +128,7 @@ export function EditTradeTransactionDialog<TResult>({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit_trade_price">
-                Price per unit ({transaction.currency})
+                {t('investments:trade.pricePerUnitLabel', { currency: transaction.currency })}
               </Label>
               <Input
                 id="edit_trade_price"
@@ -138,7 +144,7 @@ export function EditTradeTransactionDialog<TResult>({
 
           <div className="rounded-md bg-muted px-3 py-2 text-sm">
             <span className="text-muted-foreground">
-              {transaction.transaction_type === 'buy' ? 'Cash out:' : 'Cash in:'}
+              {t(isBuy ? 'investments:trade.cashOutLabel' : 'investments:trade.cashInLabel')}
             </span>{' '}
             <span className="font-medium">
               {derivedAmount !== null
@@ -149,7 +155,7 @@ export function EditTradeTransactionDialog<TResult>({
 
           <div className="grid gap-2">
             <Label htmlFor="edit_trade_description">
-              Description (optional)
+              {t('common:fields.description')}
             </Label>
             <Input
               id="edit_trade_description"
@@ -162,7 +168,7 @@ export function EditTradeTransactionDialog<TResult>({
 
           {mutation.isError && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
@@ -172,13 +178,15 @@ export function EditTradeTransactionDialog<TResult>({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button
               type="submit"
               disabled={mutation.isPending || derivedAmount === null}
             >
-              {mutation.isPending ? 'Saving…' : 'Save changes'}
+              {mutation.isPending
+                ? t('common:actions.saving')
+                : t('common:actions.saveChanges')}
             </Button>
           </DialogFooter>
         </form>
@@ -187,11 +195,11 @@ export function EditTradeTransactionDialog<TResult>({
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownLabel: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownLabel
 }

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { SortableHeader } from '@/components/SortableHeader'
@@ -37,9 +38,13 @@ type Row = {
 const tiebreakByName = (a: Row, b: Row) => a.name.localeCompare(b.name)
 
 export function StocksScreen({ onSelect }: Props) {
+  const { t } = useTranslation(['investments', 'common', 'errors'])
   const { data, isPending, error } = useStocks()
   const [showInactive, setShowInactive] = useState(false)
   const [riskFilter, setRiskFilter] = useState<RiskProfileFilterValue>('all')
+
+  const noun = t('investments:list.noun')
+  const nounPlural = t('investments:list.nounPlural')
 
   const rows = useMemo<Row[]>(
     () =>
@@ -87,10 +92,11 @@ export function StocksScreen({ onSelect }: Props) {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Stocks</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t('investments:stock.listTitle')}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Listed equities — tracked by ticker and exchange, with monthly
-            quantity-and-price snapshots.
+            {t('investments:stock.listSubtitle')}
           </p>
         </div>
         <CreateStockDialog />
@@ -99,27 +105,28 @@ export function StocksScreen({ onSelect }: Props) {
       <ListHeadline
         totals={totals}
         count={count}
-        label="Total value"
-        noun="position"
-        nounPlural="positions"
+        label={t('investments:list.totalValue')}
+        noun={noun}
+        nounPlural={nounPlural}
         testId="stocks-total"
       />
 
-      {isPending && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {isPending && (
+        <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
+      )}
 
       {error && (
         <p className="text-sm text-destructive">
-          Failed to load: {(error as Error).message}
+          {t('errors:failedToLoad', { message: (error as Error).message })}
         </p>
       )}
 
       {data && data.length === 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>No stock positions yet</CardTitle>
+            <CardTitle>{t('investments:stock.emptyTitle')}</CardTitle>
             <CardDescription>
-              Create your first stock position to start tracking month-end
-              quantity and price.
+              {t('investments:stock.emptyBody')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -134,7 +141,7 @@ export function StocksScreen({ onSelect }: Props) {
           {terminatedCount > 0 && (
             <ShowInactiveToggle
               count={terminatedCount}
-              nounPlural="positions"
+              nounPlural={nounPlural}
               checked={showInactive}
               onChange={setShowInactive}
             />
@@ -142,9 +149,11 @@ export function StocksScreen({ onSelect }: Props) {
 
           {visibleRows.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No active positions. {terminatedCount} inactive position
-              {terminatedCount === 1 ? '' : 's'} hidden — tick "Show inactive
-              positions" to {terminatedCount === 1 ? 'see it' : 'see them'}.
+              {t('common:list.noActive', {
+                count: terminatedCount,
+                noun,
+                nounPlural,
+              })}
             </p>
           ) : (
             <Card>
@@ -153,22 +162,22 @@ export function StocksScreen({ onSelect }: Props) {
                   <TableHeader>
                     <TableRow>
                       <SortableHeader
-                        label="Name"
+                        label={t('common:tableHeaders.name')}
                         testId="sort-name"
                         active={sortKey === 'name'}
                         dir={sortDir}
                         onSort={() => toggle('name')}
                       />
-                      <TableHead>Ticker</TableHead>
+                      <TableHead>{t('investments:stock.tickerHeader')}</TableHead>
                       <SortableHeader
-                        label="Status"
+                        label={t('common:tableHeaders.status')}
                         testId="sort-status"
                         active={sortKey === 'status'}
                         dir={sortDir}
                         onSort={() => toggle('status')}
                       />
                       <SortableHeader
-                        label="Latest value"
+                        label={t('investments:stock.sortLatestValue')}
                         testId="sort-value"
                         align="right"
                         active={sortKey === 'value'}

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
@@ -55,11 +56,12 @@ export function CreateTradeTransactionDialog<TResult>({
   quantityUnit,
   mutation,
 }: Props<TResult>) {
+  const { t } = useTranslation(['investments', 'common'])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
 
   const derivedAmount = deriveAmount(form.quantity, form.price_per_unit)
-  const verb = txnType === 'buy' ? 'Buy' : 'Sell'
+  const isBuy = txnType === 'buy'
 
   function close() {
     setOpen(false)
@@ -91,22 +93,29 @@ export function CreateTradeTransactionDialog<TResult>({
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
-        <Button size="sm" variant={txnType === 'buy' ? 'default' : 'outline'}>
-          + {verb}
+        <Button size="sm" variant={isBuy ? 'default' : 'outline'}>
+          {t(isBuy ? 'investments:trade.buyTrigger' : 'investments:trade.sellTrigger')}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Record {verb}</DialogTitle>
+          <DialogTitle>
+            {t(isBuy ? 'investments:trade.buyTitle' : 'investments:trade.sellTitle')}
+          </DialogTitle>
           <DialogDescription>
-            {txnType === 'buy'
-              ? `Quantity acquired and the price paid per unit. Total cash out is derived (${currency}).`
-              : `Quantity sold and the price received per unit. Total cash in is derived (${currency}).`}
+            {t(
+              isBuy
+                ? 'investments:trade.buyDescription'
+                : 'investments:trade.sellDescription',
+              { currency },
+            )}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid gap-2">
-            <Label htmlFor="trade_date">Trade date</Label>
+            <Label htmlFor="trade_date">
+              {t('investments:trade.tradeDateLabel')}
+            </Label>
             <Input
               id="trade_date"
               type="date"
@@ -121,18 +130,22 @@ export function CreateTradeTransactionDialog<TResult>({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="trade_quantity">Quantity ({quantityUnit})</Label>
+              <Label htmlFor="trade_quantity">
+                {t('investments:trade.quantityLabel', { unit: quantityUnit })}
+              </Label>
               <Input
                 id="trade_quantity"
                 required
                 inputMode="decimal"
                 value={form.quantity}
                 onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-                placeholder="100"
+                placeholder={t('investments:trade.quantityPlaceholder')}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="trade_price">Price per unit ({currency})</Label>
+              <Label htmlFor="trade_price">
+                {t('investments:trade.pricePerUnitLabel', { currency })}
+              </Label>
               <Input
                 id="trade_price"
                 required
@@ -141,14 +154,14 @@ export function CreateTradeTransactionDialog<TResult>({
                 onChange={(e) =>
                   setForm({ ...form, price_per_unit: e.target.value })
                 }
-                placeholder="8500"
+                placeholder={t('investments:trade.pricePerUnitPlaceholder')}
               />
             </div>
           </div>
 
           <div className="rounded-md bg-muted px-3 py-2 text-sm">
             <span className="text-muted-foreground">
-              {txnType === 'buy' ? 'Cash out:' : 'Cash in:'}
+              {t(isBuy ? 'investments:trade.cashOutLabel' : 'investments:trade.cashInLabel')}
             </span>{' '}
             <span className="font-medium">
               {derivedAmount !== null
@@ -158,32 +171,36 @@ export function CreateTradeTransactionDialog<TResult>({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="trade_description">Description (optional)</Label>
+            <Label htmlFor="trade_description">
+              {t('common:fields.description')}
+            </Label>
             <Input
               id="trade_description"
               value={form.description}
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
               }
-              placeholder="from broker confirmation"
+              placeholder={t('investments:trade.descriptionPlaceholder')}
             />
           </div>
 
           {mutation.isError && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button
               type="submit"
               disabled={mutation.isPending || derivedAmount === null}
             >
-              {mutation.isPending ? 'Saving…' : `Record ${verb.toLowerCase()}`}
+              {mutation.isPending
+                ? t('common:actions.saving')
+                : t(isBuy ? 'investments:trade.recordBuy' : 'investments:trade.recordSell')}
             </Button>
           </DialogFooter>
         </form>
@@ -192,11 +209,11 @@ export function CreateTradeTransactionDialog<TResult>({
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownLabel: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownLabel
 }

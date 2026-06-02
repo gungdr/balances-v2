@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -33,6 +34,7 @@ function emptyForm() {
 }
 
 export function CreateGoldDialog() {
+  const { t } = useTranslation(['investments', 'common'])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const { data: user } = useSession()
@@ -70,19 +72,20 @@ export function CreateGoldDialog() {
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
-        <Button>+ New gold</Button>
+        <Button>{t('investments:gold.createTrigger')}</Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>New gold position</DialogTitle>
+          <DialogTitle>{t('investments:gold.createTitle')}</DialogTitle>
           <DialogDescription>
-            Track physical or digital gold. Monthly snapshots record grams
-            held and price per gram; the total value derives from those.
+            {t('investments:gold.createDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid gap-2">
-            <Label htmlFor="gold_display_name">Display name</Label>
+            <Label htmlFor="gold_display_name">
+              {t('common:fields.displayName')}
+            </Label>
             <Input
               id="gold_display_name"
               required
@@ -90,13 +93,15 @@ export function CreateGoldDialog() {
               onChange={(e) =>
                 setForm({ ...form, display_name: e.target.value })
               }
-              placeholder="Antam bar 10g"
+              placeholder={t('investments:gold.placeholders.displayName')}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="gold_form">Form</Label>
+              <Label htmlFor="gold_form">
+                {t('investments:gold.fields.form')}
+              </Label>
               <select
                 id="gold_form"
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -105,27 +110,29 @@ export function CreateGoldDialog() {
                   setForm({ ...form, form: e.target.value as GoldForm })
                 }
               >
-                <option value="bar">Bar</option>
-                <option value="coin">Coin</option>
-                <option value="digital">Digital</option>
-                <option value="jewelry">Jewelry</option>
+                <option value="bar">{t('investments:gold.goldForms.bar')}</option>
+                <option value="coin">{t('investments:gold.goldForms.coin')}</option>
+                <option value="digital">{t('investments:gold.goldForms.digital')}</option>
+                <option value="jewelry">{t('investments:gold.goldForms.jewelry')}</option>
               </select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="gold_purity">Purity (0–1)</Label>
+              <Label htmlFor="gold_purity">
+                {t('investments:gold.fields.purity')}
+              </Label>
               <Input
                 id="gold_purity"
                 required
                 inputMode="decimal"
                 value={form.purity}
                 onChange={(e) => setForm({ ...form, purity: e.target.value })}
-                placeholder="0.9999 = 24K"
+                placeholder={t('investments:gold.placeholders.purity')}
               />
             </div>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="gold_currency">Currency</Label>
+            <Label htmlFor="gold_currency">{t('common:fields.currency')}</Label>
             <Input
               id="gold_currency"
               required
@@ -136,13 +143,13 @@ export function CreateGoldDialog() {
                   native_currency: e.target.value.toUpperCase(),
                 })
               }
-              placeholder="IDR"
+              placeholder={t('investments:gold.placeholders.currency')}
               maxLength={3}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label>Ownership</Label>
+            <Label>{t('common:fields.ownership')}</Label>
             <div className="flex gap-4 text-sm">
               <label className="flex items-center gap-2">
                 <input
@@ -152,7 +159,7 @@ export function CreateGoldDialog() {
                   checked={form.ownership_type === 'joint'}
                   onChange={() => setForm({ ...form, ownership_type: 'joint' })}
                 />
-                Joint
+                {t('investments:ownership.joint')}
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -162,12 +169,12 @@ export function CreateGoldDialog() {
                   checked={form.ownership_type === 'sole'}
                   onChange={() => setForm({ ...form, ownership_type: 'sole' })}
                 />
-                Sole owner
+                {t('investments:ownership.soleOwner')}
               </label>
             </div>
             {form.ownership_type === 'sole' && (
               <select
-                aria-label="Sole owner"
+                aria-label={t('investments:ownership.soleOwnerAria')}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                 value={effectiveSoleOwnerID ?? ''}
                 onChange={(e) =>
@@ -177,7 +184,7 @@ export function CreateGoldDialog() {
                 {(members ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
                     {preferredName(m)}
-                    {user && m.id === user.id ? ' (you)' : ''}
+                    {user && m.id === user.id ? t('common:ownership.youSuffix') : ''}
                   </option>
                 ))}
               </select>
@@ -185,7 +192,9 @@ export function CreateGoldDialog() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="gold_description">Description (optional)</Label>
+            <Label htmlFor="gold_description">
+              {t('common:fields.description')}
+            </Label>
             <Input
               id="gold_description"
               value={form.description}
@@ -203,16 +212,18 @@ export function CreateGoldDialog() {
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Creating…' : 'Create'}
+              {mutation.isPending
+                ? t('common:actions.creating')
+                : t('common:actions.create')}
             </Button>
           </DialogFooter>
         </form>
@@ -221,11 +232,11 @@ export function CreateGoldDialog() {
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownLabel: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownLabel
 }

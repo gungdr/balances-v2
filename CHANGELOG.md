@@ -1033,6 +1033,79 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
   - Lint 681 → 615 (66 income warnings cleared; 615 remaining are all `#10`
     investment-transaction-dialog scope). Build green, vitest 13/13 (127/127).
     Playwright pending final commit.
+- **Investments i18n extraction (M6, frontend-only — issue #10).** Seventh and
+  largest extraction slice; all 5 subtypes end-to-end plus the shared
+  transaction/snapshot dialog set. 30 components touched
+  (5 × `*Screen` + `*Detail` + `*ListRow` + `Create*Dialog` + `Edit*Dialog`),
+  6 snapshot-fork files (`Create/Edit/Row` for `QuantityPrice` +
+  `AccruedInterest`), 8 transaction-fork files
+  (`Create/Edit` for `Trade` + `CashIncome` + `Fee` + `Maturity`),
+  the shared `TransactionRow`, the three `RiskProfile*` components, and
+  `lib/maturity.ts` — roughly 9.4 k lines of source routing every literal
+  through `t()`.
+  - **Per-subtype namespaces, shape-shared shared keys.** Subtype copy lives
+    at `investments.stock.*` / `mutualFund.*` / `bond.*` / `timeDeposit.*` /
+    `gold.*` (5 closed sets of list/detail/dialog text plus per-subtype
+    `quantityUnit` + `reconcileWarning` interpolation keys). Transaction
+    shapes get their own top-level blocks — `investments.trade.*`,
+    `cashIncome.*`, `fee.*`, `maturityTxn.*` — because the same dialog
+    drives multiple subtypes; the shared `TransactionRow` reads
+    `investments.transactionType.{buy,sell,coupon,dividend,distribution,fee,maturity}`
+    + `transactionRow.{tradeDetail,feeDetail,maturityPrincipalDetail,
+    maturityInterestDetail,deleteTitle,deleteDescription,rolledImpact,
+    actions}` + `disposition.{cashOut,rolledToNew,cashShort,rolledShort}`.
+    Snapshot dialogs split by shape: `quantityPriceSnapshot.*` (stocks /
+    mutual funds / gold) and `accruedInterestSnapshot.*` (bond / time
+    deposit), with a shared `snapshotsCard.*` (chart title +
+    `chartDescription` / `chartDescriptionTotal` + table headers) and
+    `snapshotRow.*` (actions + delete confirm).
+  - **Risk profile + maturity copy localised, behaviour preserved.**
+    `RiskProfileBadge` / `RiskProfileFilter` / `RiskProfileSelect` resolve
+    badges + chip labels + select options through
+    `investments.riskProfile.*` (badge letters too — L/M/H in EN become
+    R/S/T in ID). `lib/maturity.ts` switched its 4-tier label generator
+    to `i18n.t(..., { defaultValue: <english> })` — the node-env unit
+    tests still pass because they read the English defaults, matching
+    the lib/lifecycle.ts pattern. The 30/90-day urgency buckets and
+    Tailwind `maturityClass` tiers stay intact; only the label string is
+    translated.
+  - **`detailsCardLine` interpolated per subtype.** All 5 detail pages
+    render `Ownership: {x} · Currency: {y} · Status:` followed by an
+    inline `<StatusBadge />`; the prefix is one i18n key per subtype with
+    `{{ownership}}` + `{{currency}}` placeholders. ID flips this to
+    `Kepemilikan: … · Mata uang: … · Status:`.
+  - **Bond + TimeDeposit detail-card extras translated inline.** Bond
+    detail's Face value / Coupon / Maturity rows resolve via
+    `bond.faceValueLabel` + `couponLabel` + `couponValue` (with `rate`
+    + `frequency` interpolation) + `maturityLabel`; TD detail's
+    Principal / Placement / Maturity / At maturity rows via
+    `timeDeposit.principalLabel` + `placementLabel` + `maturityLabel` +
+    `atMaturityLabel`. Subtype + frequency dropdowns read closed enums
+    (`bond.bondType.{govt_primary,secondary_market}` +
+    `bond.couponFrequency.{monthly,quarterly,semi_annual,annual}` +
+    `timeDeposit.rolloverPolicy.{auto_renew_principal,
+    auto_renew_with_interest,no_rollover}`); list-row short forms
+    (`govt_primary_short` / `monthly_short`, etc.) and the bond
+    `rowMeta` joiner ("{type} · {issuer} · {rate}% {frequency}") read
+    matching sibling keys to keep ID grammar natural in the compact
+    row.
+  - **ID copy from `docs/glossary-id.md`:** Saham (Stock), Reksa Dana
+    (Mutual Fund), Obligasi (Bond — the glossary's deliberate override
+    of CONTEXT's English-side _Avoid_ list), Deposito (Time Deposit —
+    short form is everyday Indonesian usage), Emas (Gold), Beli / Jual
+    (Buy / Sell), Kupon / Dividen / Distribusi (Coupon / Dividend /
+    Distribution), Biaya (Fee — avoids the informal English loanword),
+    Jatuh Tempo (Maturity — both transaction type and lifecycle
+    status), Pokok / Nilai Nominal (Principal / Face Value), Bunga
+    Berjalan (Accrued Interest — preferred over Bunga Akrual which
+    reads textbook-y), Suku Bunga (Interest Rate), Risiko
+    Rendah / Sedang / Tinggi (Low / Medium / High Risk), Pemilik
+    Tunggal / Bersama (Sole / Joint Ownership), Penempatan / Tanggal
+    Jatuh Tempo (Placement / Maturity Date).
+  - **No `data-testid` changes**, no public-API changes; ~615 `no-restricted-syntax`
+    lint warnings cleared down to 13 pre-existing ones (em-dash placeholders + bare
+    "·" separators that match patterns left in the bank-account / property template
+    rows). Build green, vitest 13/13 (127/127); Playwright pending final commit.
 
 ## What M4.2 shipped
 

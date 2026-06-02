@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -56,6 +57,7 @@ type Props = {
 const PAGE_SIZE = 12
 
 export function StockDetail({ investmentId, onBack }: Props) {
+  const { t } = useTranslation(['investments', 'common', 'errors'])
   const { data: stock, isPending, error } = useStock(investmentId)
   const { data: snapshots } = useInvestmentSnapshots(investmentId)
   const { data: transactions } = useInvestmentTransactions(investmentId)
@@ -99,6 +101,7 @@ export function StockDetail({ investmentId, onBack }: Props) {
   const effectiveTxnPage = Math.min(txnPage, totalTxnPages)
   const latestSnapshot = snapshots && snapshots.length > 0 ? snapshots[0] : null
   const recon = reconcileQuantity(latestSnapshot, transactions)
+  const quantityUnit = t('investments:stock.quantityUnit')
 
   function handleConfirmDelete() {
     deleteMutation.mutate(investmentId, {
@@ -110,12 +113,12 @@ export function StockDetail({ investmentId, onBack }: Props) {
   }
 
   if (isPending) {
-    return <p className="text-sm text-muted-foreground">Loading…</p>
+    return <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
   }
   if (error) {
     return (
       <p className="text-sm text-destructive">
-        Failed to load: {(error as Error).message}
+        {t('errors:failedToLoad', { message: (error as Error).message })}
       </p>
     )
   }
@@ -140,7 +143,7 @@ export function StockDetail({ investmentId, onBack }: Props) {
             onClick={onBack}
             className="-ml-2 mb-1"
           >
-            ← Back
+            {t('common:actions.back')}
           </Button>
           <h1 className="text-2xl font-semibold tracking-tight">
             {stock.investment.display_name}
@@ -164,7 +167,7 @@ export function StockDetail({ investmentId, onBack }: Props) {
             </>
           )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-            Edit
+            {t('common:actions.edit')}
           </Button>
           <TerminatePositionDialog
             group="investments"
@@ -179,23 +182,24 @@ export function StockDetail({ investmentId, onBack }: Props) {
             size="sm"
             onClick={() => setDeleteOpen(true)}
           >
-            Delete
+            {t('common:delete')}
           </Button>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Stock Details</CardTitle>
+          <CardTitle>{t('investments:stock.detailsCardTitle')}</CardTitle>
           <CardDescription>
-            Ownership:{' '}
-            {ownershipLabel(
-              stock.investment.ownership_type,
-              stock.investment.sole_owner_user_id,
-              members,
-              currentUser,
-            )}{' '}
-            · Currency: {stock.investment.native_currency} · Status:{' '}
+            {t('investments:stock.detailsCardLine', {
+              ownership: ownershipLabel(
+                stock.investment.ownership_type,
+                stock.investment.sole_owner_user_id,
+                members,
+                currentUser,
+              ),
+              currency: stock.investment.native_currency,
+            })}{' '}
             <StatusBadge group="investments" status={stock.investment.status} />
           </CardDescription>
         </CardHeader>
@@ -209,9 +213,11 @@ export function StockDetail({ investmentId, onBack }: Props) {
       {snapshots && snapshots.length >= 2 && (
         <Card>
           <CardHeader>
-            <CardTitle>Position Value Over Time</CardTitle>
+            <CardTitle>{t('investments:snapshotsCard.chartTitle')}</CardTitle>
             <CardDescription>
-              Monthly value progression in {stock.investment.native_currency}.
+              {t('investments:snapshotsCard.chartDescription', {
+                currency: stock.investment.native_currency,
+              })}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -225,27 +231,26 @@ export function StockDetail({ investmentId, onBack }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Snapshots</CardTitle>
+          <CardTitle>{t('investments:snapshotsCard.title')}</CardTitle>
           <CardDescription>
-            Monthly quantity and price readings (manual entry).
+            {t('investments:stock.snapshotsDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {!snapshots || snapshots.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
-              No snapshots yet. Click "New snapshot" to record this month's
-              quantity and price.
+              {t('investments:stock.snapshotsEmpty')}
             </p>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Month</TableHead>
-                    <TableHead>Quantity</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Total value</TableHead>
-                    <TableHead>Notes</TableHead>
+                    <TableHead>{t('investments:snapshotsCard.monthHeader')}</TableHead>
+                    <TableHead>{t('investments:stock.quantityHeader')}</TableHead>
+                    <TableHead>{t('investments:stock.priceHeader')}</TableHead>
+                    <TableHead>{t('investments:snapshotsCard.totalValueHeader')}</TableHead>
+                    <TableHead>{t('investments:snapshotsCard.notesHeader')}</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -254,7 +259,7 @@ export function StockDetail({ investmentId, onBack }: Props) {
                     <QuantityPriceSnapshotRow
                       key={s.id}
                       snapshot={s}
-                      quantityUnit="sh"
+                      quantityUnit={quantityUnit}
                       updateMutation={updateSnapshotMutation}
                       deleteMutation={deleteSnapshotMutation}
                     />
@@ -279,10 +284,9 @@ export function StockDetail({ investmentId, onBack }: Props) {
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <CardTitle>Transactions</CardTitle>
+              <CardTitle>{t('investments:transactions.cardTitle')}</CardTitle>
               <CardDescription>
-                Trades, dividends, and fees. Cash impacts do not auto-update
-                bank balances.
+                {t('investments:stock.transactionsDescription')}
               </CardDescription>
             </div>
             {isActiveStatus(stock.investment.status) && (
@@ -290,13 +294,13 @@ export function StockDetail({ investmentId, onBack }: Props) {
                 <CreateTradeTransactionDialog
                   currency={stock.investment.native_currency}
                   txnType="buy"
-                  quantityUnit="sh"
+                  quantityUnit={quantityUnit}
                   mutation={createTransactionMutation}
                 />
                 <CreateTradeTransactionDialog
                   currency={stock.investment.native_currency}
                   txnType="sell"
-                  quantityUnit="sh"
+                  quantityUnit={quantityUnit}
                   mutation={createTransactionMutation}
                 />
                 <CreateCashIncomeTransactionDialog
@@ -306,7 +310,7 @@ export function StockDetail({ investmentId, onBack }: Props) {
                 />
                 <CreateFeeTransactionDialog
                   currency={stock.investment.native_currency}
-                  quantityUnit="sh"
+                  quantityUnit={quantityUnit}
                   mutation={createTransactionMutation}
                 />
               </div>
@@ -316,34 +320,34 @@ export function StockDetail({ investmentId, onBack }: Props) {
         <CardContent className="p-0">
           {recon && !recon.matches && (
             <div className="mx-6 mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-              Latest snapshot quantity ({recon.actual} sh) doesn't match
-              ledger total ({recon.expected} sh). Snapshots remain the
-              source of truth — review trades or fees if this is unexpected.
+              {t('investments:stock.reconcileWarning', {
+                actual: recon.actual,
+                expected: recon.expected,
+              })}
             </div>
           )}
           {!transactions || transactions.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
-              No transactions yet. Record a Buy or Dividend to start the
-              ledger.
+              {t('investments:stock.transactionsEmpty')}
             </p>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Cash impact</TableHead>
-                    <TableHead>Notes</TableHead>
+                    <TableHead>{t('investments:transactions.dateHeader')}</TableHead>
+                    <TableHead>{t('investments:transactions.typeHeader')}</TableHead>
+                    <TableHead>{t('investments:transactions.cashImpactHeader')}</TableHead>
+                    <TableHead>{t('investments:transactions.notesHeader')}</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pageTransactions.map((t) => (
+                  {pageTransactions.map((tx) => (
                     <TransactionRow
-                      key={t.id}
-                      transaction={t}
-                      quantityUnit="sh"
+                      key={tx.id}
+                      transaction={tx}
+                      quantityUnit={quantityUnit}
                       updateMutation={updateTransactionMutation}
                       deleteMutation={deleteTransactionMutation}
                     />
@@ -373,9 +377,9 @@ export function StockDetail({ investmentId, onBack }: Props) {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this stock position?"
-        description="Snapshots and history will be hidden. This can be undone via the database, not yet via the UI."
-        confirmLabel="Delete"
+        title={t('investments:stock.deleteTitle')}
+        description={t('investments:stock.deleteDetailDescription')}
+        confirmLabel={t('common:delete')}
         destructive
         pending={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}

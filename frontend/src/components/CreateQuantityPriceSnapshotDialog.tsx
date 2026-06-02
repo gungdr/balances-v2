@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
@@ -56,6 +57,7 @@ export function CreateQuantityPriceSnapshotDialog<TResult>({
   currency,
   mutation,
 }: Props<TResult>) {
+  const { t } = useTranslation(['investments', 'common'])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
 
@@ -88,20 +90,21 @@ export function CreateQuantityPriceSnapshotDialog<TResult>({
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
-        <Button size="sm">+ New snapshot</Button>
+        <Button size="sm">{t('investments:quantityPriceSnapshot.trigger')}</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Record monthly snapshot</DialogTitle>
+          <DialogTitle>
+            {t('investments:quantityPriceSnapshot.createTitle')}
+          </DialogTitle>
           <DialogDescription>
-            Enter the month-end quantity and price per unit. The total value
-            is derived ({currency}).
+            {t('investments:quantityPriceSnapshot.createDescription', { currency })}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="inv_year_month">Month</Label>
+              <Label htmlFor="inv_year_month">{t('common:fields.month')}</Label>
               <Input
                 id="inv_year_month"
                 type="month"
@@ -114,7 +117,9 @@ export function CreateQuantityPriceSnapshotDialog<TResult>({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="inv_as_of_date">Statement date (optional)</Label>
+              <Label htmlFor="inv_as_of_date">
+                {t('common:fields.statementDate')}
+              </Label>
               <Input
                 id="inv_as_of_date"
                 type="date"
@@ -129,19 +134,21 @@ export function CreateQuantityPriceSnapshotDialog<TResult>({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="inv_quantity">Quantity</Label>
+              <Label htmlFor="inv_quantity">
+                {t('investments:quantityPriceSnapshot.quantityLabel')}
+              </Label>
               <Input
                 id="inv_quantity"
                 required
                 inputMode="decimal"
                 value={form.quantity}
                 onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-                placeholder="100"
+                placeholder={t('investments:quantityPriceSnapshot.quantityPlaceholder')}
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="inv_price_per_unit">
-                Price per unit ({currency})
+                {t('investments:quantityPriceSnapshot.pricePerUnitLabel', { currency })}
               </Label>
               <Input
                 id="inv_price_per_unit"
@@ -151,13 +158,15 @@ export function CreateQuantityPriceSnapshotDialog<TResult>({
                 onChange={(e) =>
                   setForm({ ...form, price_per_unit: e.target.value })
                 }
-                placeholder="8500"
+                placeholder={t('investments:quantityPriceSnapshot.pricePerUnitPlaceholder')}
               />
             </div>
           </div>
 
           <div className="rounded-md bg-muted px-3 py-2 text-sm">
-            <span className="text-muted-foreground">Total value:</span>{' '}
+            <span className="text-muted-foreground">
+              {t('investments:quantityPriceSnapshot.totalValueLabel')}
+            </span>{' '}
             <span className="font-medium">
               {derivedAmount !== null
                 ? formatCurrency(derivedAmount, currency)
@@ -166,32 +175,36 @@ export function CreateQuantityPriceSnapshotDialog<TResult>({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="inv_snap_description">Description (optional)</Label>
+            <Label htmlFor="inv_snap_description">
+              {t('common:fields.description')}
+            </Label>
             <Input
               id="inv_snap_description"
               value={form.description}
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
               }
-              placeholder="from broker statement"
+              placeholder={t('investments:quantityPriceSnapshot.descriptionPlaceholder')}
             />
           </div>
 
           {mutation.isError && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button
               type="submit"
               disabled={mutation.isPending || derivedAmount === null}
             >
-              {mutation.isPending ? 'Saving…' : 'Save snapshot'}
+              {mutation.isPending
+                ? t('common:actions.saving')
+                : t('investments:quantityPriceSnapshot.save')}
             </Button>
           </DialogFooter>
         </form>
@@ -200,11 +213,11 @@ export function CreateQuantityPriceSnapshotDialog<TResult>({
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownLabel: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownLabel
 }

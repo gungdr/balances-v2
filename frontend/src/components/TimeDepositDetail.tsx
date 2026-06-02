@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -49,7 +50,6 @@ import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { maturityClass, maturityInfo } from '@/lib/maturity'
 import { ownershipLabel } from '@/lib/ownership'
-import type { RolloverPolicy } from '@/api/types'
 
 type Props = {
   investmentId: string
@@ -58,18 +58,8 @@ type Props = {
 
 const PAGE_SIZE = 12
 
-function rolloverLabel(p: RolloverPolicy): string {
-  switch (p) {
-    case 'auto_renew_principal':
-      return 'Auto-renew principal'
-    case 'auto_renew_with_interest':
-      return 'Auto-renew with interest'
-    case 'no_rollover':
-      return 'No rollover'
-  }
-}
-
 export function TimeDepositDetail({ investmentId, onBack }: Props) {
+  const { t } = useTranslation(['investments', 'common', 'errors'])
   const { data: td, isPending, error } = useTimeDeposit(investmentId)
   const { data: snapshots } = useInvestmentSnapshots(investmentId)
   const { data: transactions } = useInvestmentTransactions(investmentId)
@@ -125,12 +115,12 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
   }
 
   if (isPending) {
-    return <p className="text-sm text-muted-foreground">Loading…</p>
+    return <p className="text-sm text-muted-foreground">{t('common:loading')}</p>
   }
   if (error) {
     return (
       <p className="text-sm text-destructive">
-        Failed to load: {(error as Error).message}
+        {t('errors:failedToLoad', { message: (error as Error).message })}
       </p>
     )
   }
@@ -149,6 +139,9 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
   // gated off entirely by isActiveStatus below.
   const mInfo = maturityInfo(td.details.maturity_date)
   const ratePct = Number(td.details.interest_rate).toFixed(2)
+  const rolloverLabel = t(
+    `investments:timeDeposit.rolloverPolicy.${td.details.rollover_policy}`,
+  )
 
   return (
     <div className="space-y-6">
@@ -160,13 +153,17 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
             onClick={onBack}
             className="-ml-2 mb-1"
           >
-            ← Back
+            {t('common:actions.back')}
           </Button>
           <h1 className="text-2xl font-semibold tracking-tight">
             {td.investment.display_name}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {td.details.bank_name} · {ratePct}% · {td.details.term_months}mo
+            {t('investments:timeDeposit.subtitle', {
+              bank: td.details.bank_name,
+              rate: ratePct,
+              months: td.details.term_months,
+            })}
           </p>
         </div>
         <div className="flex gap-2">
@@ -184,7 +181,7 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
             </>
           )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-            Edit
+            {t('common:actions.edit')}
           </Button>
           <TerminatePositionDialog
             group="investments"
@@ -199,48 +196,57 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
             size="sm"
             onClick={() => setDeleteOpen(true)}
           >
-            Delete
+            {t('common:delete')}
           </Button>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Time Deposit Details</CardTitle>
+          <CardTitle>{t('investments:timeDeposit.detailsCardTitle')}</CardTitle>
           <CardDescription>
-            Ownership:{' '}
-            {ownershipLabel(
-              td.investment.ownership_type,
-              td.investment.sole_owner_user_id,
-              members,
-              currentUser,
-            )}{' '}
-            · Currency: {td.investment.native_currency} · Status:{' '}
+            {t('investments:timeDeposit.detailsCardLine', {
+              ownership: ownershipLabel(
+                td.investment.ownership_type,
+                td.investment.sole_owner_user_id,
+                members,
+                currentUser,
+              ),
+              currency: td.investment.native_currency,
+            })}{' '}
             <StatusBadge group="investments" status={td.investment.status} />
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm space-y-1">
           <p>
-            <span className="text-muted-foreground">Principal:</span>{' '}
+            <span className="text-muted-foreground">
+              {t('investments:timeDeposit.principalLabel')}
+            </span>{' '}
             {formatCurrency(
               td.details.principal,
               td.investment.native_currency,
             )}
           </p>
           <p>
-            <span className="text-muted-foreground">Placement:</span>{' '}
+            <span className="text-muted-foreground">
+              {t('investments:timeDeposit.placementLabel')}
+            </span>{' '}
             {formatDate(td.details.placement_date)}
           </p>
           <p>
-            <span className="text-muted-foreground">Maturity:</span>{' '}
+            <span className="text-muted-foreground">
+              {t('investments:timeDeposit.maturityLabel')}
+            </span>{' '}
             {formatDate(td.details.maturity_date)}{' '}
             <span className={maturityClass(mInfo.state)}>
               ({mInfo.label})
             </span>
           </p>
           <p>
-            <span className="text-muted-foreground">At maturity:</span>{' '}
-            {rolloverLabel(td.details.rollover_policy)}
+            <span className="text-muted-foreground">
+              {t('investments:timeDeposit.atMaturityLabel')}
+            </span>{' '}
+            {rolloverLabel}
           </p>
           {td.investment.description && (
             <p className="pt-1">{td.investment.description}</p>
@@ -251,10 +257,11 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
       {snapshots && snapshots.length >= 2 && (
         <Card>
           <CardHeader>
-            <CardTitle>Position Value Over Time</CardTitle>
+            <CardTitle>{t('investments:snapshotsCard.chartTitle')}</CardTitle>
             <CardDescription>
-              Monthly total value progression in{' '}
-              {td.investment.native_currency}.
+              {t('investments:snapshotsCard.chartDescriptionTotal', {
+                currency: td.investment.native_currency,
+              })}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -268,27 +275,26 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Snapshots</CardTitle>
+          <CardTitle>{t('investments:snapshotsCard.title')}</CardTitle>
           <CardDescription>
-            Monthly total value and accrued-interest breakdown.
+            {t('investments:timeDeposit.snapshotsDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {!snapshots || snapshots.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
-              No snapshots yet. Click "New snapshot" to record this month's
-              total value and accrued interest.
+              {t('investments:timeDeposit.snapshotsEmpty')}
             </p>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Month</TableHead>
-                    <TableHead>Principal</TableHead>
-                    <TableHead>Accrued</TableHead>
-                    <TableHead>Total value</TableHead>
-                    <TableHead>Notes</TableHead>
+                    <TableHead>{t('investments:snapshotsCard.monthHeader')}</TableHead>
+                    <TableHead>{t('investments:snapshotsCard.principalHeader')}</TableHead>
+                    <TableHead>{t('investments:snapshotsCard.accruedHeader')}</TableHead>
+                    <TableHead>{t('investments:snapshotsCard.totalValueHeader')}</TableHead>
+                    <TableHead>{t('investments:snapshotsCard.notesHeader')}</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -321,11 +327,9 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
             <div>
-              <CardTitle>Transactions</CardTitle>
+              <CardTitle>{t('investments:transactions.cardTitle')}</CardTitle>
               <CardDescription>
-                Record the Maturity event when the term ends. The configured
-                rollover policy seeds the disposition defaults; banks can
-                deviate.
+                {t('investments:timeDeposit.transactionsDescription')}
               </CardDescription>
             </div>
             {isActiveStatus(td.investment.status) && (
@@ -342,25 +346,25 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
         <CardContent className="p-0">
           {!transactions || transactions.length === 0 ? (
             <p className="p-6 text-sm text-muted-foreground">
-              No transactions yet. Record a Maturity when the term ends.
+              {t('investments:timeDeposit.transactionsEmpty')}
             </p>
           ) : (
             <>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Cash impact</TableHead>
-                    <TableHead>Notes</TableHead>
+                    <TableHead>{t('investments:transactions.dateHeader')}</TableHead>
+                    <TableHead>{t('investments:transactions.typeHeader')}</TableHead>
+                    <TableHead>{t('investments:transactions.cashImpactHeader')}</TableHead>
+                    <TableHead>{t('investments:transactions.notesHeader')}</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pageTransactions.map((t) => (
+                  {pageTransactions.map((tx) => (
                     <TransactionRow
-                      key={t.id}
-                      transaction={t}
+                      key={tx.id}
+                      transaction={tx}
                       quantityUnit=""
                       updateMutation={updateTransactionMutation}
                       deleteMutation={deleteTransactionMutation}
@@ -391,9 +395,9 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this time deposit?"
-        description="Snapshots and history will be hidden. This can be undone via the database, not yet via the UI."
-        confirmLabel="Delete"
+        title={t('investments:timeDeposit.deleteTitle')}
+        description={t('investments:timeDeposit.deleteDetailDescription')}
+        confirmLabel={t('common:delete')}
         destructive
         pending={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -52,6 +53,7 @@ export function EditTimeDepositDialog({
   onOpenChange,
   timeDeposit,
 }: Props) {
+  const { t } = useTranslation(['investments', 'common'])
   const [form, setForm] = useState(() => toForm(timeDeposit))
   const { data: user } = useSession()
   const { data: members } = useHouseholdMembers()
@@ -85,15 +87,17 @@ export function EditTimeDepositDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit time deposit</DialogTitle>
+          <DialogTitle>{t('investments:timeDeposit.editTitle')}</DialogTitle>
           <DialogDescription>
-            Currency is fixed at creation. Ownership is editable.
+            {t('investments:timeDeposit.editDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-3">
             <div className="grid gap-2">
-              <Label htmlFor="edit_td_display_name">Display name</Label>
+              <Label htmlFor="edit_td_display_name">
+                {t('common:fields.displayName')}
+              </Label>
               <Input
                 id="edit_td_display_name"
                 required
@@ -105,7 +109,7 @@ export function EditTimeDepositDialog({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit_td_description">
-                Description (optional)
+                {t('common:fields.description')}
               </Label>
               <Input
                 id="edit_td_description"
@@ -119,7 +123,9 @@ export function EditTimeDepositDialog({
 
           <div className="space-y-3 border-t pt-4">
             <div className="grid gap-2">
-              <Label htmlFor="edit_td_bank_name">Bank name</Label>
+              <Label htmlFor="edit_td_bank_name">
+                {t('investments:timeDeposit.fields.bankName')}
+              </Label>
               <Input
                 id="edit_td_bank_name"
                 required
@@ -130,7 +136,9 @@ export function EditTimeDepositDialog({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit_td_principal">Principal</Label>
+              <Label htmlFor="edit_td_principal">
+                {t('investments:timeDeposit.fields.principal')}
+              </Label>
               <Input
                 id="edit_td_principal"
                 required
@@ -147,7 +155,7 @@ export function EditTimeDepositDialog({
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
                 <Label htmlFor="edit_td_interest_rate">
-                  Interest rate (% per year)
+                  {t('investments:timeDeposit.fields.interestRate')}
                 </Label>
                 <Input
                   id="edit_td_interest_rate"
@@ -160,7 +168,9 @@ export function EditTimeDepositDialog({
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit_td_term_months">Term (months)</Label>
+                <Label htmlFor="edit_td_term_months">
+                  {t('investments:timeDeposit.fields.termMonths')}
+                </Label>
                 <Input
                   id="edit_td_term_months"
                   required
@@ -174,7 +184,9 @@ export function EditTimeDepositDialog({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
-                <Label htmlFor="edit_td_placement_date">Placement date</Label>
+                <Label htmlFor="edit_td_placement_date">
+                  {t('investments:timeDeposit.fields.placementDate')}
+                </Label>
                 <Input
                   id="edit_td_placement_date"
                   required
@@ -186,7 +198,9 @@ export function EditTimeDepositDialog({
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit_td_maturity_date">Maturity date</Label>
+                <Label htmlFor="edit_td_maturity_date">
+                  {t('investments:timeDeposit.fields.maturityDate')}
+                </Label>
                 <Input
                   id="edit_td_maturity_date"
                   required
@@ -202,7 +216,9 @@ export function EditTimeDepositDialog({
 
           <div className="space-y-3 border-t pt-4">
             <div className="grid gap-2">
-              <Label htmlFor="edit_td_rollover_policy">At maturity</Label>
+              <Label htmlFor="edit_td_rollover_policy">
+                {t('investments:timeDeposit.fields.rolloverPolicy')}
+              </Label>
               <select
                 id="edit_td_rollover_policy"
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -215,19 +231,21 @@ export function EditTimeDepositDialog({
                 }
               >
                 <option value="auto_renew_principal">
-                  Auto-renew principal
+                  {t('investments:timeDeposit.rolloverPolicy.auto_renew_principal')}
                 </option>
                 <option value="auto_renew_with_interest">
-                  Auto-renew with interest
+                  {t('investments:timeDeposit.rolloverPolicy.auto_renew_with_interest')}
                 </option>
-                <option value="no_rollover">No rollover</option>
+                <option value="no_rollover">
+                  {t('investments:timeDeposit.rolloverPolicy.no_rollover')}
+                </option>
               </select>
             </div>
           </div>
 
           <div className="space-y-3 border-t pt-4">
             <div className="grid gap-2">
-              <Label>Ownership</Label>
+              <Label>{t('common:fields.ownership')}</Label>
               <div className="flex gap-4 text-sm">
                 <label className="flex items-center gap-2">
                   <input
@@ -239,7 +257,7 @@ export function EditTimeDepositDialog({
                       setForm({ ...form, ownership_type: 'joint' })
                     }
                   />
-                  Joint
+                  {t('investments:ownership.joint')}
                 </label>
                 <label className="flex items-center gap-2">
                   <input
@@ -251,12 +269,12 @@ export function EditTimeDepositDialog({
                       setForm({ ...form, ownership_type: 'sole' })
                     }
                   />
-                  Sole owner
+                  {t('investments:ownership.soleOwner')}
                 </label>
               </div>
               {form.ownership_type === 'sole' && (
                 <select
-                  aria-label="Sole owner"
+                  aria-label={t('investments:ownership.soleOwnerAria')}
                   className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                   value={effectiveSoleOwnerID ?? ''}
                   onChange={(e) =>
@@ -266,7 +284,7 @@ export function EditTimeDepositDialog({
                   {(members ?? []).map((m) => (
                     <option key={m.id} value={m.id}>
                       {preferredName(m)}
-                      {user && m.id === user.id ? ' (you)' : ''}
+                      {user && m.id === user.id ? t('common:ownership.youSuffix') : ''}
                     </option>
                   ))}
                 </select>
@@ -282,7 +300,7 @@ export function EditTimeDepositDialog({
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
@@ -292,10 +310,12 @@ export function EditTimeDepositDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Saving…' : 'Save changes'}
+              {mutation.isPending
+                ? t('common:actions.saving')
+                : t('common:actions.saveChanges')}
             </Button>
           </DialogFooter>
         </form>
@@ -304,11 +324,11 @@ export function EditTimeDepositDialog({
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownLabel: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownLabel
 }

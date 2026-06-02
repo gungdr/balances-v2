@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
@@ -35,6 +36,7 @@ export function EditFeeTransactionDialog<TResult>({
   quantityUnit,
   mutation,
 }: Props<TResult>) {
+  const { t } = useTranslation(['investments', 'common'])
   const [form, setForm] = useState({
     transaction_date: transaction.transaction_date.slice(0, 10),
     amount: transaction.amount ?? '',
@@ -74,15 +76,17 @@ export function EditFeeTransactionDialog<TResult>({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Fee</DialogTitle>
+          <DialogTitle>{t('investments:fee.editTitle')}</DialogTitle>
           <DialogDescription>
-            Adjust the fee date, amount, deducted units, or description.
+            {t('investments:fee.editDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="edit_fee_date">Fee date</Label>
+              <Label htmlFor="edit_fee_date">
+                {t('investments:fee.feeDateLabel')}
+              </Label>
               <Input
                 id="edit_fee_date"
                 type="date"
@@ -96,7 +100,9 @@ export function EditFeeTransactionDialog<TResult>({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit_fee_amount">
-                Cash amount ({transaction.currency})
+                {t('investments:fee.cashAmountLabel', {
+                  currency: transaction.currency,
+                })}
               </Label>
               <Input
                 id="edit_fee_amount"
@@ -111,7 +117,7 @@ export function EditFeeTransactionDialog<TResult>({
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
               <Label htmlFor="edit_fee_quantity">
-                Units deducted ({quantityUnit}, optional)
+                {t('investments:fee.unitsDeductedLabel', { unit: quantityUnit })}
               </Label>
               <Input
                 id="edit_fee_quantity"
@@ -124,7 +130,9 @@ export function EditFeeTransactionDialog<TResult>({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit_fee_price">
-                Conversion price ({transaction.currency}, optional)
+                {t('investments:fee.conversionPriceLabel', {
+                  currency: transaction.currency,
+                })}
               </Label>
               <Input
                 id="edit_fee_price"
@@ -139,13 +147,13 @@ export function EditFeeTransactionDialog<TResult>({
 
           {unitFeeIncomplete && (
             <p className="text-xs text-amber-600">
-              If recording a unit-settled fee, fill in both quantity and price.
+              {t('investments:fee.incompleteHint')}
             </p>
           )}
 
           <div className="grid gap-2">
             <Label htmlFor="edit_fee_description">
-              Description (optional)
+              {t('common:fields.description')}
             </Label>
             <Input
               id="edit_fee_description"
@@ -158,7 +166,7 @@ export function EditFeeTransactionDialog<TResult>({
 
           {mutation.isError && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
@@ -168,7 +176,7 @@ export function EditFeeTransactionDialog<TResult>({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button
               type="submit"
@@ -176,7 +184,9 @@ export function EditFeeTransactionDialog<TResult>({
                 mutation.isPending || !form.amount || unitFeeIncomplete
               }
             >
-              {mutation.isPending ? 'Saving…' : 'Save changes'}
+              {mutation.isPending
+                ? t('common:actions.saving')
+                : t('common:actions.saveChanges')}
             </Button>
           </DialogFooter>
         </form>
@@ -185,11 +195,11 @@ export function EditFeeTransactionDialog<TResult>({
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownLabel: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownLabel
 }

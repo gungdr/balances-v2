@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -17,16 +18,6 @@ import { EditMaturityTransactionDialog } from '@/components/EditMaturityTransact
 import { formatCurrency, formatDate } from '@/lib/format'
 import type { InvestmentTransaction } from '@/api/types'
 import type { UpdateTransactionMutationVariables } from '@/components/EditTradeTransactionDialog'
-
-const TYPE_LABELS: Record<InvestmentTransaction['transaction_type'], string> = {
-  buy: 'Buy',
-  sell: 'Sell',
-  coupon: 'Coupon',
-  dividend: 'Dividend',
-  distribution: 'Distribution',
-  fee: 'Fee',
-  maturity: 'Maturity',
-}
 
 // Sign convention for the Cash impact column:
 //   Buy, Fee     → negative (cash out)
@@ -75,34 +66,6 @@ function impactColor(dir: Direction): string {
   return 'text-muted-foreground'
 }
 
-function detailLine(t: InvestmentTransaction, quantityUnit: string): string {
-  switch (t.transaction_type) {
-    case 'buy':
-    case 'sell':
-      if (!t.quantity || !t.price_per_unit) return ''
-      return `${t.quantity} ${quantityUnit} @ ${formatCurrency(t.price_per_unit, t.currency)}`
-    case 'fee':
-      if (t.quantity && t.price_per_unit) {
-        return `${t.quantity} ${quantityUnit} deducted @ ${formatCurrency(t.price_per_unit, t.currency)}`
-      }
-      return ''
-    case 'maturity': {
-      const parts: string[] = []
-      if (t.principal_amount) {
-        const disp = t.principal_disposition === 'rolled_to_new' ? 'rolled' : 'cash'
-        parts.push(`P ${formatCurrency(t.principal_amount, t.currency)} (${disp})`)
-      }
-      if (t.interest_amount) {
-        const disp = t.interest_disposition === 'rolled_to_new' ? 'rolled' : 'cash'
-        parts.push(`I ${formatCurrency(t.interest_amount, t.currency)} (${disp})`)
-      }
-      return parts.join(' · ')
-    }
-    default:
-      return ''
-  }
-}
-
 type Props<TUpdate, TDelete> = {
   transaction: InvestmentTransaction
   quantityUnit: string
@@ -120,13 +83,69 @@ export function TransactionRow<TUpdate, TDelete>({
   updateMutation,
   deleteMutation,
 }: Props<TUpdate, TDelete>) {
+  const { t } = useTranslation(['investments', 'common'])
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
 
   const dir = impactDirection(transaction)
   const impact = impactAmount(transaction)
-  const detail = detailLine(transaction, quantityUnit)
-  const label = TYPE_LABELS[transaction.transaction_type]
+  const label = t(`investments:transactionType.${transaction.transaction_type}`)
+
+  function detailLine(): string {
+    switch (transaction.transaction_type) {
+      case 'buy':
+      case 'sell':
+        if (!transaction.quantity || !transaction.price_per_unit) return ''
+        return t('investments:transactionRow.tradeDetail', {
+          quantity: transaction.quantity,
+          unit: quantityUnit,
+          price: formatCurrency(transaction.price_per_unit, transaction.currency),
+        })
+      case 'fee':
+        if (transaction.quantity && transaction.price_per_unit) {
+          return t('investments:transactionRow.feeDetail', {
+            quantity: transaction.quantity,
+            unit: quantityUnit,
+            price: formatCurrency(transaction.price_per_unit, transaction.currency),
+          })
+        }
+        return ''
+      case 'maturity': {
+        const parts: string[] = []
+        if (transaction.principal_amount) {
+          const disp = t(
+            transaction.principal_disposition === 'rolled_to_new'
+              ? 'investments:disposition.rolledShort'
+              : 'investments:disposition.cashShort',
+          )
+          parts.push(
+            t('investments:transactionRow.maturityPrincipalDetail', {
+              amount: formatCurrency(transaction.principal_amount, transaction.currency),
+              disp,
+            }),
+          )
+        }
+        if (transaction.interest_amount) {
+          const disp = t(
+            transaction.interest_disposition === 'rolled_to_new'
+              ? 'investments:disposition.rolledShort'
+              : 'investments:disposition.cashShort',
+          )
+          parts.push(
+            t('investments:transactionRow.maturityInterestDetail', {
+              amount: formatCurrency(transaction.interest_amount, transaction.currency),
+              disp,
+            }),
+          )
+        }
+        return parts.join(' · ')
+      }
+      default:
+        return ''
+    }
+  }
+
+  const detail = detailLine()
 
   function handleConfirmDelete() {
     deleteMutation.mutate(transaction.id, {
@@ -136,7 +155,9 @@ export function TransactionRow<TUpdate, TDelete>({
 
   function impactText(): string {
     if (impact === null) return '—'
-    if (dir === 'mixed' && Number(impact) === 0) return 'rolled'
+    if (dir === 'mixed' && Number(impact) === 0) {
+      return t('investments:transactionRow.rolledImpact')
+    }
     const sign = dir === 'out' ? '−' : dir === 'in' ? '+' : ''
     return `${sign}${formatCurrency(impact, transaction.currency)}`
   }
@@ -165,20 +186,20 @@ export function TransactionRow<TUpdate, TDelete>({
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label="Transaction actions"
+                aria-label={t('investments:transactionRow.actions')}
               >
                 <MoreHorizontal className="size-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                Edit
+                {t('common:actions.edit')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setDeleteOpen(true)}
                 variant="destructive"
               >
-                Delete
+                {t('common:delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -233,9 +254,12 @@ export function TransactionRow<TUpdate, TDelete>({
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this transaction?"
-        description={`The ${label.toLowerCase()} on ${formatDate(transaction.transaction_date)} will be hidden from the ledger. This can be undone via the database, not yet via the UI.`}
-        confirmLabel="Delete"
+        title={t('investments:transactionRow.deleteTitle')}
+        description={t('investments:transactionRow.deleteDescription', {
+          label: label.toLowerCase(),
+          date: formatDate(transaction.transaction_date),
+        })}
+        confirmLabel={t('common:delete')}
         destructive
         pending={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}

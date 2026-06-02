@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,6 +25,7 @@ type Props = {
 }
 
 export function MutualFundListRow({ item, onSelect }: Props) {
+  const { t } = useTranslation(['investments', 'common'])
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const deleteMutation = useDeleteMutualFund()
@@ -89,7 +91,7 @@ export function MutualFundListRow({ item, onSelect }: Props) {
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label="Mutual fund actions"
+                aria-label={t('investments:mutualFund.rowActions')}
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreHorizontal className="size-4" />
@@ -100,13 +102,13 @@ export function MutualFundListRow({ item, onSelect }: Props) {
               onClick={(e) => e.stopPropagation()}
             >
               <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                Edit
+                {t('common:actions.edit')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setDeleteOpen(true)}
                 variant="destructive"
               >
-                Delete
+                {t('common:delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -123,9 +125,11 @@ export function MutualFundListRow({ item, onSelect }: Props) {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this mutual fund position?"
-        description={`${item.investment.display_name} will be hidden from lists and reports. This can be undone via the database, not yet via the UI.`}
-        confirmLabel="Delete"
+        title={t('investments:mutualFund.deleteTitle')}
+        description={t('investments:mutualFund.deleteRowDescription', {
+          name: item.investment.display_name,
+        })}
+        confirmLabel={t('common:delete')}
         destructive
         pending={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}

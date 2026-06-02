@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -25,6 +26,7 @@ type Props = {
 }
 
 export function GoldListRow({ item, onSelect }: Props) {
+  const { t } = useTranslation(['investments', 'common'])
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const deleteMutation = useDeleteGold()
@@ -36,6 +38,8 @@ export function GoldListRow({ item, onSelect }: Props) {
       onSuccess: () => setDeleteOpen(false),
     })
   }
+
+  const formLabel = t(`investments:gold.goldForms.${item.details.form}`)
 
   return (
     <>
@@ -57,7 +61,7 @@ export function GoldListRow({ item, onSelect }: Props) {
           )}
         </TableCell>
         <TableCell>
-          <div className="capitalize">{item.details.form}</div>
+          <div>{formLabel}</div>
           <div className="text-xs text-muted-foreground">
             {formatGoldPurity(item.details.purity)}
           </div>
@@ -88,7 +92,7 @@ export function GoldListRow({ item, onSelect }: Props) {
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label="Gold actions"
+                aria-label={t('investments:gold.rowActions')}
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreHorizontal className="size-4" />
@@ -99,13 +103,13 @@ export function GoldListRow({ item, onSelect }: Props) {
               onClick={(e) => e.stopPropagation()}
             >
               <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                Edit
+                {t('common:actions.edit')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setDeleteOpen(true)}
                 variant="destructive"
               >
-                Delete
+                {t('common:delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -122,9 +126,11 @@ export function GoldListRow({ item, onSelect }: Props) {
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this gold position?"
-        description={`${item.investment.display_name} will be hidden from lists and reports. This can be undone via the database, not yet via the UI.`}
-        confirmLabel="Delete"
+        title={t('investments:gold.deleteTitle')}
+        description={t('investments:gold.deleteRowDescription', {
+          name: item.investment.display_name,
+        })}
+        confirmLabel={t('common:delete')}
         destructive
         pending={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}

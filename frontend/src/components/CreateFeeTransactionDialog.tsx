@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
@@ -46,6 +47,7 @@ export function CreateFeeTransactionDialog<TResult>({
   quantityUnit,
   mutation,
 }: Props<TResult>) {
+  const { t } = useTranslation(['investments', 'common'])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
 
@@ -85,23 +87,22 @@ export function CreateFeeTransactionDialog<TResult>({
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
-          + Fee
+          {t('investments:fee.trigger')}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Record Fee</DialogTitle>
+          <DialogTitle>{t('investments:fee.createTitle')}</DialogTitle>
           <DialogDescription>
-            Manager-imposed fee. Set quantity + price only when the manager
-            settles by removing units (e.g., gold storage fees). NAV-embedded
-            fees on mutual funds are already in the price snapshot — don't
-            record them here.
+            {t('investments:fee.createDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="fee_date">Fee date</Label>
+              <Label htmlFor="fee_date">
+                {t('investments:fee.feeDateLabel')}
+              </Label>
               <Input
                 id="fee_date"
                 type="date"
@@ -114,14 +115,16 @@ export function CreateFeeTransactionDialog<TResult>({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="fee_amount">Cash amount ({currency})</Label>
+              <Label htmlFor="fee_amount">
+                {t('investments:fee.cashAmountLabel', { currency })}
+              </Label>
               <Input
                 id="fee_amount"
                 required
                 inputMode="decimal"
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                placeholder="50000"
+                placeholder={t('investments:fee.cashAmountPlaceholder')}
               />
             </div>
           </div>
@@ -129,7 +132,7 @@ export function CreateFeeTransactionDialog<TResult>({
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
               <Label htmlFor="fee_quantity">
-                Units deducted ({quantityUnit}, optional)
+                {t('investments:fee.unitsDeductedLabel', { unit: quantityUnit })}
               </Label>
               <Input
                 id="fee_quantity"
@@ -142,7 +145,7 @@ export function CreateFeeTransactionDialog<TResult>({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="fee_price">
-                Conversion price ({currency}, optional)
+                {t('investments:fee.conversionPriceLabel', { currency })}
               </Label>
               <Input
                 id="fee_price"
@@ -157,31 +160,33 @@ export function CreateFeeTransactionDialog<TResult>({
 
           {unitFeeIncomplete && (
             <p className="text-xs text-amber-600">
-              If recording a unit-settled fee, fill in both quantity and price.
+              {t('investments:fee.incompleteHint')}
             </p>
           )}
 
           <div className="grid gap-2">
-            <Label htmlFor="fee_description">Description (optional)</Label>
+            <Label htmlFor="fee_description">
+              {t('common:fields.description')}
+            </Label>
             <Input
               id="fee_description"
               value={form.description}
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
               }
-              placeholder="annual storage fee"
+              placeholder={t('investments:fee.descriptionPlaceholder')}
             />
           </div>
 
           {mutation.isError && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button
               type="submit"
@@ -189,7 +194,9 @@ export function CreateFeeTransactionDialog<TResult>({
                 mutation.isPending || !form.amount || unitFeeIncomplete
               }
             >
-              {mutation.isPending ? 'Saving…' : 'Record fee'}
+              {mutation.isPending
+                ? t('common:actions.saving')
+                : t('investments:fee.recordFee')}
             </Button>
           </DialogFooter>
         </form>
@@ -198,11 +205,11 @@ export function CreateFeeTransactionDialog<TResult>({
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownLabel: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownLabel
 }

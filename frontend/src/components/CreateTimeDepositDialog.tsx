@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -52,6 +53,7 @@ function addMonths(date: string, months: number): string {
 }
 
 export function CreateTimeDepositDialog() {
+  const { t } = useTranslation(['investments', 'common'])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const { data: user } = useSession()
@@ -112,21 +114,21 @@ export function CreateTimeDepositDialog() {
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
-        <Button>+ New time deposit</Button>
+        <Button>{t('investments:timeDeposit.createTrigger')}</Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>New time deposit</DialogTitle>
+          <DialogTitle>{t('investments:timeDeposit.createTitle')}</DialogTitle>
           <DialogDescription>
-            Track a locked principal at a bank — fixed rate, fixed term.
-            Monthly snapshots record the total value and the accrued-interest
-            breakdown.
+            {t('investments:timeDeposit.createDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-3">
             <div className="grid gap-2">
-              <Label htmlFor="td_display_name">Display name</Label>
+              <Label htmlFor="td_display_name">
+                {t('common:fields.displayName')}
+              </Label>
               <Input
                 id="td_display_name"
                 required
@@ -134,11 +136,13 @@ export function CreateTimeDepositDialog() {
                 onChange={(e) =>
                   setForm({ ...form, display_name: e.target.value })
                 }
-                placeholder="Vacation fund TD"
+                placeholder={t('investments:timeDeposit.placeholders.displayName')}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="td_description">Description (optional)</Label>
+              <Label htmlFor="td_description">
+                {t('common:fields.description')}
+              </Label>
               <Input
                 id="td_description"
                 value={form.description}
@@ -152,7 +156,9 @@ export function CreateTimeDepositDialog() {
           <div className="space-y-3 border-t pt-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
-                <Label htmlFor="td_bank_name">Bank name</Label>
+                <Label htmlFor="td_bank_name">
+                  {t('investments:timeDeposit.fields.bankName')}
+                </Label>
                 <Input
                   id="td_bank_name"
                   required
@@ -160,11 +166,11 @@ export function CreateTimeDepositDialog() {
                   onChange={(e) =>
                     setForm({ ...form, bank_name: e.target.value })
                   }
-                  placeholder="BCA"
+                  placeholder={t('investments:timeDeposit.placeholders.bankName')}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="td_currency">Currency</Label>
+                <Label htmlFor="td_currency">{t('common:fields.currency')}</Label>
                 <Input
                   id="td_currency"
                   required
@@ -175,13 +181,15 @@ export function CreateTimeDepositDialog() {
                       native_currency: e.target.value.toUpperCase(),
                     })
                   }
-                  placeholder="IDR"
+                  placeholder={t('investments:timeDeposit.placeholders.currency')}
                   maxLength={3}
                 />
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="td_principal">Principal</Label>
+              <Label htmlFor="td_principal">
+                {t('investments:timeDeposit.fields.principal')}
+              </Label>
               <Input
                 id="td_principal"
                 required
@@ -190,7 +198,7 @@ export function CreateTimeDepositDialog() {
                 onChange={(e) =>
                   setForm({ ...form, principal: e.target.value })
                 }
-                placeholder="50000000"
+                placeholder={t('investments:timeDeposit.placeholders.principal')}
               />
             </div>
           </div>
@@ -199,7 +207,7 @@ export function CreateTimeDepositDialog() {
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
                 <Label htmlFor="td_interest_rate">
-                  Interest rate (% per year)
+                  {t('investments:timeDeposit.fields.interestRate')}
                 </Label>
                 <Input
                   id="td_interest_rate"
@@ -209,24 +217,28 @@ export function CreateTimeDepositDialog() {
                   onChange={(e) =>
                     setForm({ ...form, interest_rate: e.target.value })
                   }
-                  placeholder="4.5"
+                  placeholder={t('investments:timeDeposit.placeholders.interestRate')}
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="td_term_months">Term (months)</Label>
+                <Label htmlFor="td_term_months">
+                  {t('investments:timeDeposit.fields.termMonths')}
+                </Label>
                 <Input
                   id="td_term_months"
                   required
                   inputMode="numeric"
                   value={form.term_months}
                   onChange={(e) => setTerm(e.target.value)}
-                  placeholder="12"
+                  placeholder={t('investments:timeDeposit.placeholders.termMonths')}
                 />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
-                <Label htmlFor="td_placement_date">Placement date</Label>
+                <Label htmlFor="td_placement_date">
+                  {t('investments:timeDeposit.fields.placementDate')}
+                </Label>
                 <Input
                   id="td_placement_date"
                   required
@@ -236,7 +248,9 @@ export function CreateTimeDepositDialog() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="td_maturity_date">Maturity date</Label>
+                <Label htmlFor="td_maturity_date">
+                  {t('investments:timeDeposit.fields.maturityDate')}
+                </Label>
                 <Input
                   id="td_maturity_date"
                   required
@@ -252,7 +266,9 @@ export function CreateTimeDepositDialog() {
 
           <div className="space-y-3 border-t pt-4">
             <div className="grid gap-2">
-              <Label htmlFor="td_rollover_policy">At maturity</Label>
+              <Label htmlFor="td_rollover_policy">
+                {t('investments:timeDeposit.fields.rolloverPolicy')}
+              </Label>
               <select
                 id="td_rollover_policy"
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -265,25 +281,24 @@ export function CreateTimeDepositDialog() {
                 }
               >
                 <option value="auto_renew_principal">
-                  Auto-renew principal
+                  {t('investments:timeDeposit.rolloverPolicy.auto_renew_principal')}
                 </option>
                 <option value="auto_renew_with_interest">
-                  Auto-renew with interest
+                  {t('investments:timeDeposit.rolloverPolicy.auto_renew_with_interest')}
                 </option>
-                <option value="no_rollover">No rollover</option>
+                <option value="no_rollover">
+                  {t('investments:timeDeposit.rolloverPolicy.no_rollover')}
+                </option>
               </select>
               <p className="text-xs text-muted-foreground">
-                What the bank does automatically at maturity if you take no
-                action. Auto-renew with interest = compound; auto-renew
-                principal = interest paid out, principal rolls; no rollover =
-                bank releases everything to your account.
+                {t('investments:timeDeposit.rolloverHint')}
               </p>
             </div>
           </div>
 
           <div className="space-y-3 border-t pt-4">
             <div className="grid gap-2">
-              <Label>Ownership</Label>
+              <Label>{t('common:fields.ownership')}</Label>
               <div className="flex gap-4 text-sm">
                 <label className="flex items-center gap-2">
                   <input
@@ -295,7 +310,7 @@ export function CreateTimeDepositDialog() {
                       setForm({ ...form, ownership_type: 'joint' })
                     }
                   />
-                  Joint
+                  {t('investments:ownership.joint')}
                 </label>
                 <label className="flex items-center gap-2">
                   <input
@@ -307,12 +322,12 @@ export function CreateTimeDepositDialog() {
                       setForm({ ...form, ownership_type: 'sole' })
                     }
                   />
-                  Sole owner
+                  {t('investments:ownership.soleOwner')}
                 </label>
               </div>
               {form.ownership_type === 'sole' && (
                 <select
-                  aria-label="Sole owner"
+                  aria-label={t('investments:ownership.soleOwnerAria')}
                   className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                   value={effectiveSoleOwnerID ?? ''}
                   onChange={(e) =>
@@ -322,7 +337,7 @@ export function CreateTimeDepositDialog() {
                   {(members ?? []).map((m) => (
                     <option key={m.id} value={m.id}>
                       {preferredName(m)}
-                      {user && m.id === user.id ? ' (you)' : ''}
+                      {user && m.id === user.id ? t('common:ownership.youSuffix') : ''}
                     </option>
                   ))}
                 </select>
@@ -338,16 +353,18 @@ export function CreateTimeDepositDialog() {
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Creating…' : 'Create'}
+              {mutation.isPending
+                ? t('common:actions.creating')
+                : t('common:actions.create')}
             </Button>
           </DialogFooter>
         </form>
@@ -356,11 +373,11 @@ export function CreateTimeDepositDialog() {
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownLabel: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownLabel
 }

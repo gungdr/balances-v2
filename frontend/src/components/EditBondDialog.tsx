@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -49,6 +50,7 @@ function toForm(bond: Bond | BondListItem) {
 }
 
 export function EditBondDialog({ open, onOpenChange, bond }: Props) {
+  const { t } = useTranslation(['investments', 'common'])
   const [form, setForm] = useState(() => toForm(bond))
   const { data: user } = useSession()
   const { data: members } = useHouseholdMembers()
@@ -82,15 +84,17 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit bond</DialogTitle>
+          <DialogTitle>{t('investments:bond.editTitle')}</DialogTitle>
           <DialogDescription>
-            Currency is fixed at creation. Ownership is editable.
+            {t('investments:bond.editDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div className="space-y-3">
             <div className="grid gap-2">
-              <Label htmlFor="edit_bond_display_name">Display name</Label>
+              <Label htmlFor="edit_bond_display_name">
+                {t('common:fields.displayName')}
+              </Label>
               <Input
                 id="edit_bond_display_name"
                 required
@@ -103,7 +107,7 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
                 <Label htmlFor="edit_bond_series_code">
-                  Series code (optional)
+                  {t('investments:bond.fields.seriesCode')}
                 </Label>
                 <Input
                   id="edit_bond_series_code"
@@ -114,7 +118,9 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit_bond_issuer">Issuer</Label>
+                <Label htmlFor="edit_bond_issuer">
+                  {t('investments:bond.fields.issuer')}
+                </Label>
                 <Input
                   id="edit_bond_issuer"
                   required
@@ -127,7 +133,7 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit_bond_description">
-                Description (optional)
+                {t('common:fields.description')}
               </Label>
               <Input
                 id="edit_bond_description"
@@ -142,7 +148,9 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
           <div className="space-y-3 border-t pt-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
-                <Label htmlFor="edit_bond_type">Bond type</Label>
+                <Label htmlFor="edit_bond_type">
+                  {t('investments:bond.fields.bondType')}
+                </Label>
                 <select
                   id="edit_bond_type"
                   className="h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -151,12 +159,18 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
                     setForm({ ...form, bond_type: e.target.value as BondType })
                   }
                 >
-                  <option value="govt_primary">Government primary</option>
-                  <option value="secondary_market">Secondary market</option>
+                  <option value="govt_primary">
+                    {t('investments:bond.bondType.govt_primary')}
+                  </option>
+                  <option value="secondary_market">
+                    {t('investments:bond.bondType.secondary_market')}
+                  </option>
                 </select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit_bond_face_value">Face value</Label>
+                <Label htmlFor="edit_bond_face_value">
+                  {t('investments:bond.fields.faceValue')}
+                </Label>
                 <Input
                   id="edit_bond_face_value"
                   required
@@ -174,7 +188,7 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
                 <Label htmlFor="edit_bond_coupon_rate">
-                  Coupon rate (% per year)
+                  {t('investments:bond.fields.couponRate')}
                 </Label>
                 <Input
                   id="edit_bond_coupon_rate"
@@ -188,7 +202,7 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="edit_bond_coupon_frequency">
-                  Coupon frequency
+                  {t('investments:bond.fields.couponFrequency')}
                 </Label>
                 <select
                   id="edit_bond_coupon_frequency"
@@ -201,15 +215,25 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
                     })
                   }
                 >
-                  <option value="monthly">Monthly</option>
-                  <option value="quarterly">Quarterly</option>
-                  <option value="semi_annual">Semi-annual</option>
-                  <option value="annual">Annual</option>
+                  <option value="monthly">
+                    {t('investments:bond.couponFrequency.monthly')}
+                  </option>
+                  <option value="quarterly">
+                    {t('investments:bond.couponFrequency.quarterly')}
+                  </option>
+                  <option value="semi_annual">
+                    {t('investments:bond.couponFrequency.semi_annual')}
+                  </option>
+                  <option value="annual">
+                    {t('investments:bond.couponFrequency.annual')}
+                  </option>
                 </select>
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="edit_bond_maturity">Maturity date</Label>
+              <Label htmlFor="edit_bond_maturity">
+                {t('investments:bond.fields.maturityDate')}
+              </Label>
               <Input
                 id="edit_bond_maturity"
                 required
@@ -224,7 +248,7 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
 
           <div className="space-y-3 border-t pt-4">
             <div className="grid gap-2">
-              <Label>Ownership</Label>
+              <Label>{t('common:fields.ownership')}</Label>
               <div className="flex gap-4 text-sm">
                 <label className="flex items-center gap-2">
                   <input
@@ -236,7 +260,7 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
                       setForm({ ...form, ownership_type: 'joint' })
                     }
                   />
-                  Joint
+                  {t('investments:ownership.joint')}
                 </label>
                 <label className="flex items-center gap-2">
                   <input
@@ -248,12 +272,12 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
                       setForm({ ...form, ownership_type: 'sole' })
                     }
                   />
-                  Sole owner
+                  {t('investments:ownership.soleOwner')}
                 </label>
               </div>
               {form.ownership_type === 'sole' && (
                 <select
-                  aria-label="Sole owner"
+                  aria-label={t('investments:ownership.soleOwnerAria')}
                   className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                   value={effectiveSoleOwnerID ?? ''}
                   onChange={(e) =>
@@ -263,7 +287,7 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
                   {(members ?? []).map((m) => (
                     <option key={m.id} value={m.id}>
                       {preferredName(m)}
-                      {user && m.id === user.id ? ' (you)' : ''}
+                      {user && m.id === user.id ? t('common:ownership.youSuffix') : ''}
                     </option>
                   ))}
                 </select>
@@ -279,7 +303,7 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
@@ -289,10 +313,12 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Saving…' : 'Save changes'}
+              {mutation.isPending
+                ? t('common:actions.saving')
+                : t('common:actions.saveChanges')}
             </Button>
           </DialogFooter>
         </form>
@@ -301,11 +327,11 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownLabel: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownLabel
 }

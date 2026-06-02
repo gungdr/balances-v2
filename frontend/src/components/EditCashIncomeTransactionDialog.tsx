@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
@@ -27,10 +28,10 @@ type Props<TResult> = {
   >
 }
 
-const TITLES: Record<string, string> = {
-  coupon: 'Coupon',
-  dividend: 'Dividend',
-  distribution: 'Distribution',
+const TITLE_KEYS: Record<string, string> = {
+  coupon: 'investments:cashIncome.editCouponTitle',
+  dividend: 'investments:cashIncome.editDividendTitle',
+  distribution: 'investments:cashIncome.editDistributionTitle',
 }
 
 export function EditCashIncomeTransactionDialog<TResult>({
@@ -39,13 +40,16 @@ export function EditCashIncomeTransactionDialog<TResult>({
   transaction,
   mutation,
 }: Props<TResult>) {
+  const { t } = useTranslation(['investments', 'common'])
   const [form, setForm] = useState({
     transaction_date: transaction.transaction_date.slice(0, 10),
     amount: transaction.amount ?? '',
     description: transaction.description ?? '',
   })
 
-  const title = TITLES[transaction.transaction_type] ?? 'Income'
+  const titleKey =
+    TITLE_KEYS[transaction.transaction_type] ??
+    'investments:cashIncome.editIncomeTitle'
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -74,15 +78,17 @@ export function EditCashIncomeTransactionDialog<TResult>({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit {title}</DialogTitle>
+          <DialogTitle>{t(titleKey)}</DialogTitle>
           <DialogDescription>
-            Adjust the payment date, amount, or description.
+            {t('investments:cashIncome.editDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="edit_cash_date">Payment date</Label>
+              <Label htmlFor="edit_cash_date">
+                {t('investments:cashIncome.paymentDateLabel')}
+              </Label>
               <Input
                 id="edit_cash_date"
                 type="date"
@@ -96,7 +102,9 @@ export function EditCashIncomeTransactionDialog<TResult>({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="edit_cash_amount">
-                Amount ({transaction.currency})
+                {t('investments:cashIncome.amountLabel', {
+                  currency: transaction.currency,
+                })}
               </Label>
               <Input
                 id="edit_cash_amount"
@@ -110,7 +118,7 @@ export function EditCashIncomeTransactionDialog<TResult>({
 
           <div className="grid gap-2">
             <Label htmlFor="edit_cash_description">
-              Description (optional)
+              {t('common:fields.description')}
             </Label>
             <Input
               id="edit_cash_description"
@@ -123,7 +131,7 @@ export function EditCashIncomeTransactionDialog<TResult>({
 
           {mutation.isError && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
@@ -133,10 +141,12 @@ export function EditCashIncomeTransactionDialog<TResult>({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending || !form.amount}>
-              {mutation.isPending ? 'Saving…' : 'Save changes'}
+              {mutation.isPending
+                ? t('common:actions.saving')
+                : t('common:actions.saveChanges')}
             </Button>
           </DialogFooter>
         </form>
@@ -145,11 +155,11 @@ export function EditCashIncomeTransactionDialog<TResult>({
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownLabel: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownLabel
 }

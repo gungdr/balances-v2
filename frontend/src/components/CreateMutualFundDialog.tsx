@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -33,6 +34,7 @@ function emptyForm() {
 }
 
 export function CreateMutualFundDialog() {
+  const { t } = useTranslation(['investments', 'common'])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const { data: user } = useSession()
@@ -70,19 +72,20 @@ export function CreateMutualFundDialog() {
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
-        <Button>+ New mutual fund</Button>
+        <Button>{t('investments:mutualFund.createTrigger')}</Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>New mutual fund position</DialogTitle>
+          <DialogTitle>{t('investments:mutualFund.createTitle')}</DialogTitle>
           <DialogDescription>
-            Track a pooled fund. Monthly snapshots record units held and NAV
-            per unit; the total value derives from those.
+            {t('investments:mutualFund.createDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid gap-2">
-            <Label htmlFor="mf_display_name">Display name</Label>
+            <Label htmlFor="mf_display_name">
+              {t('common:fields.displayName')}
+            </Label>
             <Input
               id="mf_display_name"
               required
@@ -90,13 +93,15 @@ export function CreateMutualFundDialog() {
               onChange={(e) =>
                 setForm({ ...form, display_name: e.target.value })
               }
-              placeholder="Mandiri Pasar Uang"
+              placeholder={t('investments:mutualFund.placeholders.displayName')}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="mf_fund_code">Fund code</Label>
+              <Label htmlFor="mf_fund_code">
+                {t('investments:mutualFund.fields.fundCode')}
+              </Label>
               <Input
                 id="mf_fund_code"
                 required
@@ -104,24 +109,26 @@ export function CreateMutualFundDialog() {
                 onChange={(e) =>
                   setForm({ ...form, fund_code: e.target.value })
                 }
-                placeholder="MNDR-PU"
+                placeholder={t('investments:mutualFund.placeholders.fundCode')}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="mf_fund_manager">Fund manager (optional)</Label>
+              <Label htmlFor="mf_fund_manager">
+                {t('investments:mutualFund.fields.fundManager')}
+              </Label>
               <Input
                 id="mf_fund_manager"
                 value={form.fund_manager}
                 onChange={(e) =>
                   setForm({ ...form, fund_manager: e.target.value })
                 }
-                placeholder="Mandiri Investasi"
+                placeholder={t('investments:mutualFund.placeholders.fundManager')}
               />
             </div>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="mf_currency">Currency</Label>
+            <Label htmlFor="mf_currency">{t('common:fields.currency')}</Label>
             <Input
               id="mf_currency"
               required
@@ -132,13 +139,13 @@ export function CreateMutualFundDialog() {
                   native_currency: e.target.value.toUpperCase(),
                 })
               }
-              placeholder="IDR"
+              placeholder={t('investments:mutualFund.placeholders.currency')}
               maxLength={3}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label>Ownership</Label>
+            <Label>{t('common:fields.ownership')}</Label>
             <div className="flex gap-4 text-sm">
               <label className="flex items-center gap-2">
                 <input
@@ -148,7 +155,7 @@ export function CreateMutualFundDialog() {
                   checked={form.ownership_type === 'joint'}
                   onChange={() => setForm({ ...form, ownership_type: 'joint' })}
                 />
-                Joint
+                {t('investments:ownership.joint')}
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -158,12 +165,12 @@ export function CreateMutualFundDialog() {
                   checked={form.ownership_type === 'sole'}
                   onChange={() => setForm({ ...form, ownership_type: 'sole' })}
                 />
-                Sole owner
+                {t('investments:ownership.soleOwner')}
               </label>
             </div>
             {form.ownership_type === 'sole' && (
               <select
-                aria-label="Sole owner"
+                aria-label={t('investments:ownership.soleOwnerAria')}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
                 value={effectiveSoleOwnerID ?? ''}
                 onChange={(e) =>
@@ -173,7 +180,7 @@ export function CreateMutualFundDialog() {
                 {(members ?? []).map((m) => (
                   <option key={m.id} value={m.id}>
                     {preferredName(m)}
-                    {user && m.id === user.id ? ' (you)' : ''}
+                    {user && m.id === user.id ? t('common:ownership.youSuffix') : ''}
                   </option>
                 ))}
               </select>
@@ -181,7 +188,7 @@ export function CreateMutualFundDialog() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="mf_description">Description (optional)</Label>
+            <Label htmlFor="mf_description">{t('common:fields.description')}</Label>
             <Input
               id="mf_description"
               value={form.description}
@@ -199,16 +206,18 @@ export function CreateMutualFundDialog() {
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending}>
-              {mutation.isPending ? 'Creating…' : 'Create'}
+              {mutation.isPending
+                ? t('common:actions.creating')
+                : t('common:actions.create')}
             </Button>
           </DialogFooter>
         </form>
@@ -217,11 +226,11 @@ export function CreateMutualFundDialog() {
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownLabel: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownLabel
 }

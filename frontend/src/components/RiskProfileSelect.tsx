@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Label } from '@/components/ui/label'
 import type { RiskProfile } from '@/api/types'
 
@@ -16,10 +17,11 @@ type Props = {
 }
 
 export function RiskProfileSelect({ idPrefix, value, onChange }: Props) {
+  const { t } = useTranslation('investments')
   const id = `${idPrefix}_risk_profile`
   return (
     <div className="grid gap-2">
-      <Label htmlFor={id}>Risk profile</Label>
+      <Label htmlFor={id}>{t('riskProfile.selectLabel')}</Label>
       <select
         id={id}
         required
@@ -28,11 +30,11 @@ export function RiskProfileSelect({ idPrefix, value, onChange }: Props) {
         onChange={(e) => onChange(e.target.value as RiskProfile)}
       >
         <option value="" disabled>
-          — select —
+          {t('riskProfile.selectPlaceholder')}
         </option>
-        <option value="low">Low</option>
-        <option value="medium">Medium</option>
-        <option value="high">High</option>
+        <option value="low">{t('riskProfile.selectLow')}</option>
+        <option value="medium">{t('riskProfile.selectMedium')}</option>
+        <option value="high">{t('riskProfile.selectHigh')}</option>
       </select>
     </div>
   )

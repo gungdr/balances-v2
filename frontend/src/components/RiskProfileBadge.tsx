@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Shield, ShieldAlert, ShieldHalf } from 'lucide-react'
 import type { RiskProfile } from '@/api/types'
 
@@ -18,30 +19,38 @@ type Props = {
 
 const META: Record<
   RiskProfile,
-  { Icon: typeof Shield; label: string; letter: string; colour: string }
+  {
+    Icon: typeof Shield
+    labelKey: string
+    letterKey: string
+    colour: string
+  }
 > = {
   low: {
     Icon: Shield,
-    label: 'Low risk',
-    letter: 'L',
+    labelKey: 'riskProfile.badgeLow',
+    letterKey: 'riskProfile.badgeLetterLow',
     colour: 'text-emerald-500',
   },
   medium: {
     Icon: ShieldHalf,
-    label: 'Medium risk',
-    letter: 'M',
+    labelKey: 'riskProfile.badgeMedium',
+    letterKey: 'riskProfile.badgeLetterMedium',
     colour: 'text-amber-500',
   },
   high: {
     Icon: ShieldAlert,
-    label: 'High risk',
-    letter: 'H',
+    labelKey: 'riskProfile.badgeHigh',
+    letterKey: 'riskProfile.badgeLetterHigh',
     colour: 'text-rose-500',
   },
 }
 
 export function RiskProfileBadge({ profile, compact = false }: Props) {
-  const { Icon, label, letter, colour } = META[profile]
+  const { t } = useTranslation('investments')
+  const { Icon, labelKey, letterKey, colour } = META[profile]
+  const label = t(labelKey)
+  const letter = t(letterKey)
   return (
     <span
       className={`inline-flex items-center gap-1 ${colour}`}

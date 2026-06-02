@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
@@ -69,6 +70,7 @@ export function CreateMaturityTransactionDialog<TResult>({
   rolloverPolicy,
   mutation,
 }: Props<TResult>) {
+  const { t } = useTranslation(['investments', 'common'])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(() => emptyForm(rolloverPolicy))
 
@@ -110,21 +112,21 @@ export function CreateMaturityTransactionDialog<TResult>({
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
-          + Maturity
+          {t('investments:maturityTxn.trigger')}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Record Maturity</DialogTitle>
+          <DialogTitle>{t('investments:maturityTxn.createTitle')}</DialogTitle>
           <DialogDescription>
-            Position reached its scheduled end. Record principal, interest, and
-            what happened to each. Rolled portions imply a fresh position
-            record — create it separately if needed.
+            {t('investments:maturityTxn.createDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid gap-2">
-            <Label htmlFor="mat_date">Maturity date</Label>
+            <Label htmlFor="mat_date">
+              {t('investments:maturityTxn.maturityDateLabel')}
+            </Label>
             <Input
               id="mat_date"
               type="date"
@@ -139,7 +141,9 @@ export function CreateMaturityTransactionDialog<TResult>({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="mat_principal">Principal ({currency})</Label>
+              <Label htmlFor="mat_principal">
+                {t('investments:maturityTxn.principalLabel', { currency })}
+              </Label>
               <Input
                 id="mat_principal"
                 required
@@ -148,11 +152,13 @@ export function CreateMaturityTransactionDialog<TResult>({
                 onChange={(e) =>
                   setForm({ ...form, principal_amount: e.target.value })
                 }
-                placeholder="50000000"
+                placeholder={t('investments:maturityTxn.principalPlaceholder')}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="mat_interest">Interest ({currency})</Label>
+              <Label htmlFor="mat_interest">
+                {t('investments:maturityTxn.interestLabel', { currency })}
+              </Label>
               <Input
                 id="mat_interest"
                 required
@@ -161,13 +167,15 @@ export function CreateMaturityTransactionDialog<TResult>({
                 onChange={(e) =>
                   setForm({ ...form, interest_amount: e.target.value })
                 }
-                placeholder="2750000"
+                placeholder={t('investments:maturityTxn.interestPlaceholder')}
               />
             </div>
           </div>
 
           <div className="rounded-md bg-muted px-3 py-2 text-sm">
-            <span className="text-muted-foreground">Total at maturity:</span>{' '}
+            <span className="text-muted-foreground">
+              {t('investments:maturityTxn.totalAtMaturityLabel')}
+            </span>{' '}
             <span className="font-medium">
               {totalReceived !== null
                 ? formatCurrency(totalReceived, currency)
@@ -177,7 +185,9 @@ export function CreateMaturityTransactionDialog<TResult>({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="mat_principal_disp">Principal disposition</Label>
+              <Label htmlFor="mat_principal_disp">
+                {t('investments:maturityTxn.principalDispositionLabel')}
+              </Label>
               <select
                 id="mat_principal_disp"
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -189,12 +199,18 @@ export function CreateMaturityTransactionDialog<TResult>({
                   })
                 }
               >
-                <option value="cash_out">Cash out</option>
-                <option value="rolled_to_new">Rolled to new</option>
+                <option value="cash_out">
+                  {t('investments:disposition.cashOut')}
+                </option>
+                <option value="rolled_to_new">
+                  {t('investments:disposition.rolledToNew')}
+                </option>
               </select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="mat_interest_disp">Interest disposition</Label>
+              <Label htmlFor="mat_interest_disp">
+                {t('investments:maturityTxn.interestDispositionLabel')}
+              </Label>
               <select
                 id="mat_interest_disp"
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -206,33 +222,39 @@ export function CreateMaturityTransactionDialog<TResult>({
                   })
                 }
               >
-                <option value="cash_out">Cash out</option>
-                <option value="rolled_to_new">Rolled to new</option>
+                <option value="cash_out">
+                  {t('investments:disposition.cashOut')}
+                </option>
+                <option value="rolled_to_new">
+                  {t('investments:disposition.rolledToNew')}
+                </option>
               </select>
             </div>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="mat_description">Description (optional)</Label>
+            <Label htmlFor="mat_description">
+              {t('common:fields.description')}
+            </Label>
             <Input
               id="mat_description"
               value={form.description}
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
               }
-              placeholder="actual bank policy applied"
+              placeholder={t('investments:maturityTxn.descriptionPlaceholder')}
             />
           </div>
 
           {mutation.isError && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button
               type="submit"
@@ -242,7 +264,9 @@ export function CreateMaturityTransactionDialog<TResult>({
                 !form.interest_amount
               }
             >
-              {mutation.isPending ? 'Saving…' : 'Record maturity'}
+              {mutation.isPending
+                ? t('common:actions.saving')
+                : t('investments:maturityTxn.recordMaturity')}
             </Button>
           </DialogFooter>
         </form>
@@ -251,11 +275,11 @@ export function CreateMaturityTransactionDialog<TResult>({
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownLabel: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownLabel
 }

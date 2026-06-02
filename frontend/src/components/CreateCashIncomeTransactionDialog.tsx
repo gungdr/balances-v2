@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import {
@@ -20,9 +21,11 @@ import type { CreateInvestmentTransactionPayload } from '@/hooks/useInvestmentTr
 // (mutual fund). Cash received from the instrument; per ADR-0003 it does
 // NOT propagate to bank-account snapshots (the user reads the resulting
 // cash off the next bank statement).
+type CashIncomeType = 'coupon' | 'dividend' | 'distribution'
+
 type Props<TResult> = {
   currency: string
-  txnType: 'coupon' | 'dividend' | 'distribution'
+  txnType: CashIncomeType
   mutation: UseMutationResult<
     TResult,
     unknown,
@@ -38,10 +41,20 @@ function emptyForm() {
   }
 }
 
-const TITLES: Record<Props<unknown>['txnType'], string> = {
-  coupon: 'Coupon',
-  dividend: 'Dividend',
-  distribution: 'Distribution',
+const TRIGGER_KEYS: Record<CashIncomeType, string> = {
+  coupon: 'investments:cashIncome.couponTrigger',
+  dividend: 'investments:cashIncome.dividendTrigger',
+  distribution: 'investments:cashIncome.distributionTrigger',
+}
+const TITLE_KEYS: Record<CashIncomeType, string> = {
+  coupon: 'investments:cashIncome.couponTitle',
+  dividend: 'investments:cashIncome.dividendTitle',
+  distribution: 'investments:cashIncome.distributionTitle',
+}
+const RECORD_KEYS: Record<CashIncomeType, string> = {
+  coupon: 'investments:cashIncome.recordCoupon',
+  dividend: 'investments:cashIncome.recordDividend',
+  distribution: 'investments:cashIncome.recordDistribution',
 }
 
 export function CreateCashIncomeTransactionDialog<TResult>({
@@ -49,10 +62,9 @@ export function CreateCashIncomeTransactionDialog<TResult>({
   txnType,
   mutation,
 }: Props<TResult>) {
+  const { t } = useTranslation(['investments', 'common'])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
-
-  const title = TITLES[txnType]
 
   function close() {
     setOpen(false)
@@ -85,21 +97,22 @@ export function CreateCashIncomeTransactionDialog<TResult>({
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
-          + {title}
+          {t(TRIGGER_KEYS[txnType])}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Record {title}</DialogTitle>
+          <DialogTitle>{t(TITLE_KEYS[txnType])}</DialogTitle>
           <DialogDescription>
-            Cash payment received from the instrument. This will not update
-            any bank balance — the cash appears in the next bank statement.
+            {t('investments:cashIncome.createDescription')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
-              <Label htmlFor="cash_date">Payment date</Label>
+              <Label htmlFor="cash_date">
+                {t('investments:cashIncome.paymentDateLabel')}
+              </Label>
               <Input
                 id="cash_date"
                 type="date"
@@ -112,42 +125,48 @@ export function CreateCashIncomeTransactionDialog<TResult>({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="cash_amount">Amount ({currency})</Label>
+              <Label htmlFor="cash_amount">
+                {t('investments:cashIncome.amountLabel', { currency })}
+              </Label>
               <Input
                 id="cash_amount"
                 required
                 inputMode="decimal"
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                placeholder="50000"
+                placeholder={t('investments:cashIncome.amountPlaceholder')}
               />
             </div>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="cash_description">Description (optional)</Label>
+            <Label htmlFor="cash_description">
+              {t('common:fields.description')}
+            </Label>
             <Input
               id="cash_description"
               value={form.description}
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
               }
-              placeholder="Q1 2026 distribution"
+              placeholder={t('investments:cashIncome.descriptionPlaceholder')}
             />
           </div>
 
           {mutation.isError && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error)}
+              {formatError(mutation.error, t('common:unknownError'))}
             </p>
           )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" disabled={mutation.isPending || !form.amount}>
-              {mutation.isPending ? 'Saving…' : `Record ${title.toLowerCase()}`}
+              {mutation.isPending
+                ? t('common:actions.saving')
+                : t(RECORD_KEYS[txnType])}
             </Button>
           </DialogFooter>
         </form>
@@ -156,11 +175,11 @@ export function CreateCashIncomeTransactionDialog<TResult>({
   )
 }
 
-function formatError(err: unknown): string {
+function formatError(err: unknown, unknownLabel: string): string {
   if (err instanceof ApiError) {
     if (typeof err.body === 'string' && err.body) return err.body
     return `${err.status} ${err.message}`
   }
   if (err instanceof Error) return err.message
-  return 'unknown error'
+  return unknownLabel
 }

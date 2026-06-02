@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -53,6 +54,7 @@ export function AccruedInterestSnapshotRow<TUpdate, TDelete>({
   updateMutation,
   deleteMutation,
 }: Props<TUpdate, TDelete>) {
+  const { t } = useTranslation(['investments', 'common'])
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
 
@@ -73,7 +75,9 @@ export function AccruedInterestSnapshotRow<TUpdate, TDelete>({
           </div>
           {snapshot.as_of_date && (
             <div className="text-xs text-muted-foreground">
-              statement: {formatDate(snapshot.as_of_date)}
+              {t('common:snapshot.statementPrefix', {
+                date: formatDate(snapshot.as_of_date),
+              })}
             </div>
           )}
         </TableCell>
@@ -94,19 +98,23 @@ export function AccruedInterestSnapshotRow<TUpdate, TDelete>({
         <TableCell className="text-right">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Snapshot actions">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={t('investments:snapshotRow.actions')}
+              >
                 <MoreHorizontal className="size-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                Edit
+                {t('common:actions.edit')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => setDeleteOpen(true)}
                 variant="destructive"
               >
-                Delete
+                {t('common:delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -124,9 +132,11 @@ export function AccruedInterestSnapshotRow<TUpdate, TDelete>({
       <ConfirmDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title="Delete this snapshot?"
-        description={`The ${formatYearMonth(snapshot.year_month)} reading will be hidden from reports. This can be undone via the database, not yet via the UI.`}
-        confirmLabel="Delete"
+        title={t('investments:snapshotRow.deleteTitle')}
+        description={t('investments:snapshotRow.deleteDescription', {
+          month: formatYearMonth(snapshot.year_month),
+        })}
+        confirmLabel={t('common:delete')}
         destructive
         pending={deleteMutation.isPending}
         onConfirm={handleConfirmDelete}

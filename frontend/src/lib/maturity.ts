@@ -1,4 +1,5 @@
 import { formatShortYearMonth } from '@/lib/format'
+import i18n from '@/i18n'
 
 // Maturity status + label for bond + time_deposit list rows.
 //
@@ -14,6 +15,10 @@ import { formatShortYearMonth } from '@/lib/format'
 //
 // Callers map state → className. Today is computed in the user's locale
 // (no time-zone juggling — the maturity_date is stored as a calendar DATE).
+//
+// Copy is resolved via i18n.t with English defaultValue fallbacks so the
+// node-env unit tests (which run with no i18n init) still see the original
+// English labels, matching the lib/lifecycle.ts pattern.
 
 export type MaturityState =
   | 'default'
@@ -44,18 +49,39 @@ export function maturityInfo(
   }
   const days = daysBetween(now, m)
   if (days < 0) {
-    return { state: 'matured', label: `⚠ Matured ${formatShortYearMonth(m)}` }
-  }
-  if (days <= 30) {
     return {
-      state: 'imminent',
-      label: days === 0 ? 'Matures today' : `Matures in ${days} days`,
+      state: 'matured',
+      label: i18n.t('investments:maturityState.matured', {
+        month: formatShortYearMonth(m),
+        defaultValue: `⚠ Matured ${formatShortYearMonth(m)}`,
+      }),
     }
   }
-  if (days <= 90) {
-    return { state: 'approaching', label: `Matures ${formatShortYearMonth(m)}` }
+  if (days <= 30) {
+    if (days === 0) {
+      return {
+        state: 'imminent',
+        label: i18n.t('investments:maturityState.maturesToday', {
+          defaultValue: 'Matures today',
+        }),
+      }
+    }
+    return {
+      state: 'imminent',
+      label: i18n.t('investments:maturityState.maturesIn', {
+        count: days,
+        defaultValue: `Matures in ${days} days`,
+      }),
+    }
   }
-  return { state: 'default', label: `Matures ${formatShortYearMonth(m)}` }
+  const label = i18n.t('investments:maturityState.matures', {
+    month: formatShortYearMonth(m),
+    defaultValue: `Matures ${formatShortYearMonth(m)}`,
+  })
+  if (days <= 90) {
+    return { state: 'approaching', label }
+  }
+  return { state: 'default', label }
 }
 
 // Tailwind class fragment per state. Kept here so list rows stay terse.

@@ -113,6 +113,28 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     from the glossary: Pemasukan (Income), Gaji / Pendapatan usaha / Pendapatan
     sewa / Hadiah / Pengembalian pajak / Klaim asuransi / Lainnya (categories),
     Rutin / Insidental (regularity), Duplikat (Duplicate row-action verb).
+  - Investments extraction (issue #10): all 5 subtypes end-to-end plus the
+    shared transaction / snapshot dialog set — the largest slice by file
+    count (30 components + 6 snapshot-fork files + 8 transaction-fork files
+    + `TransactionRow` + the 3 `RiskProfile*` components + `lib/maturity.ts`).
+    Per-subtype copy under `investments.{stock,mutualFund,bond,timeDeposit,
+    gold}.*`; shape-shared transaction blocks (`trade.*` / `cashIncome.*` /
+    `fee.*` / `maturityTxn.*`) plus `transactionType.*` (7 enum labels),
+    `transactionRow.*` (detail templates + delete confirm + rolled-impact
+    label), `disposition.*` (full + short forms for the maturity detail
+    line). Snapshot dialogs split by shape under
+    `quantityPriceSnapshot.*` + `accruedInterestSnapshot.*` + a shared
+    `snapshotsCard.*` (chart titles + table headers) + `snapshotRow.*`.
+    `riskProfile.*` covers badge labels + chip filter + select options +
+    localised single-letter pips (L/M/H → R/S/T in ID). `lib/maturity.ts`
+    switched to `i18n.t({ defaultValue: <english> })` mirroring
+    `lib/lifecycle.ts` so the node-env unit tests still pass. ID copy
+    from the glossary: Saham, Reksa Dana, Obligasi, Deposito, Emas
+    (subtypes), Beli / Jual / Kupon / Dividen / Distribusi / Biaya /
+    Jatuh Tempo (transaction types), Pokok / Nilai Nominal / Bunga
+    Berjalan / Suku Bunga / Tenor / Penempatan / Tanggal Jatuh Tempo,
+    Risiko Rendah / Sedang / Tinggi, Dicairkan / Digulung ke baru
+    (maturity dispositions).
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
