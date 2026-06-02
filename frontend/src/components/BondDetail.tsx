@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Card,
   CardContent,
@@ -50,6 +51,7 @@ import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { maturityClass, maturityInfo } from '@/lib/maturity'
 import { ownershipLabel } from '@/lib/ownership'
+import { matchesTxnSearch } from '@/lib/transactionSearch'
 
 type Props = {
   investmentId: string
@@ -93,15 +95,19 @@ export function BondDetail({ investmentId, onBack }: Props) {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [page, setPage] = useState(1)
   const [txnPage, setTxnPage] = useState(1)
+  const [txnSearch, setTxnSearch] = useState('')
 
   const totalPages = Math.max(
     1,
     Math.ceil((snapshots?.length ?? 0) / PAGE_SIZE),
   )
   const effectivePage = Math.min(page, totalPages)
+  const filteredTransactions = (transactions ?? []).filter((tx) =>
+    matchesTxnSearch(tx, txnSearch),
+  )
   const totalTxnPages = Math.max(
     1,
-    Math.ceil((transactions?.length ?? 0) / PAGE_SIZE),
+    Math.ceil(filteredTransactions.length / PAGE_SIZE),
   )
   const effectiveTxnPage = Math.min(txnPage, totalTxnPages)
   const quantityUnit = t('investments:bond.quantityUnit')
@@ -131,10 +137,21 @@ export function BondDetail({ investmentId, onBack }: Props) {
     (effectivePage - 1) * PAGE_SIZE,
     effectivePage * PAGE_SIZE,
   )
-  const pageTransactions = (transactions ?? []).slice(
+  const pageTransactions = filteredTransactions.slice(
     (effectiveTxnPage - 1) * PAGE_SIZE,
     effectiveTxnPage * PAGE_SIZE,
   )
+  // Lifetime sums of coupon income and trading fees — quick "yield-to-date"
+  // glance the user asked for in #14. Maturity payouts intentionally excluded:
+  // they're terminal, not recurring income.
+  const txnSum = (kind: 'coupon' | 'fee'): number =>
+    (transactions ?? []).reduce(
+      (acc, tx) =>
+        tx.transaction_type === kind ? acc + Number(tx.amount) : acc,
+      0,
+    )
+  const totalCoupons = txnSum('coupon')
+  const totalFees = txnSum('fee')
   // Maturity is uniquely terminal: posting it flips the position to 'matured'
   // (backend hard guard, ADR-0009), after which the transaction-create row is
   // gated off entirely by isActiveStatus below.
@@ -295,9 +312,9 @@ export function BondDetail({ investmentId, onBack }: Props) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t('investments:snapshotsCard.monthHeader')}</TableHead>
-                    <TableHead>{t('investments:snapshotsCard.principalHeader')}</TableHead>
-                    <TableHead>{t('investments:snapshotsCard.accruedHeader')}</TableHead>
-                    <TableHead>{t('investments:snapshotsCard.totalValueHeader')}</TableHead>
+                    <TableHead className="text-right">{t('investments:snapshotsCard.principalHeader')}</TableHead>
+                    <TableHead className="text-right">{t('investments:snapshotsCard.accruedHeader')}</TableHead>
+                    <TableHead className="text-right">{t('investments:snapshotsCard.totalValueHeader')}</TableHead>
                     <TableHead>{t('investments:snapshotsCard.notesHeader')}</TableHead>
                     <TableHead className="w-12"></TableHead>
                   </TableRow>
@@ -375,36 +392,77 @@ export function BondDetail({ investmentId, onBack }: Props) {
             </p>
           ) : (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('investments:transactions.dateHeader')}</TableHead>
-                    <TableHead>{t('investments:transactions.typeHeader')}</TableHead>
-                    <TableHead>{t('investments:transactions.cashImpactHeader')}</TableHead>
-                    <TableHead>{t('investments:transactions.notesHeader')}</TableHead>
-                    <TableHead className="w-12"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pageTransactions.map((tx) => (
-                    <TransactionRow
-                      key={tx.id}
-                      transaction={tx}
-                      quantityUnit={quantityUnit}
-                      updateMutation={updateTransactionMutation}
-                      deleteMutation={deleteTransactionMutation}
-                    />
-                  ))}
-                </TableBody>
-              </Table>
-              {totalTxnPages > 1 && (
-                <div className="px-6 py-3 border-t">
-                  <PaginationControls
-                    page={effectiveTxnPage}
-                    totalPages={totalTxnPages}
-                    onPageChange={setTxnPage}
-                  />
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b px-6 py-3">
+                <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">
+                      {t('investments:bond.totalCouponsLabel')}
+                    </span>{' '}
+                    <span className="tabular-nums">
+                      {formatCurrency(
+                        totalCoupons.toString(),
+                        bond.investment.native_currency,
+                      )}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">
+                      {t('investments:bond.totalFeesLabel')}
+                    </span>{' '}
+                    <span className="tabular-nums">
+                      {formatCurrency(
+                        totalFees.toString(),
+                        bond.investment.native_currency,
+                      )}
+                    </span>
+                  </div>
                 </div>
+                <Input
+                  data-testid="txn-search"
+                  placeholder={t('investments:transactions.searchPlaceholder')}
+                  value={txnSearch}
+                  onChange={(e) => setTxnSearch(e.target.value)}
+                  className="max-w-xs"
+                />
+              </div>
+              {filteredTransactions.length === 0 ? (
+                <p className="p-6 text-sm text-muted-foreground">
+                  {t('investments:transactions.searchEmpty')}
+                </p>
+              ) : (
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t('investments:transactions.dateHeader')}</TableHead>
+                        <TableHead>{t('investments:transactions.typeHeader')}</TableHead>
+                        <TableHead className="text-right">{t('investments:transactions.cashImpactHeader')}</TableHead>
+                        <TableHead>{t('investments:transactions.notesHeader')}</TableHead>
+                        <TableHead className="w-12"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pageTransactions.map((tx) => (
+                        <TransactionRow
+                          key={tx.id}
+                          transaction={tx}
+                          quantityUnit={quantityUnit}
+                          updateMutation={updateTransactionMutation}
+                          deleteMutation={deleteTransactionMutation}
+                        />
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {totalTxnPages > 1 && (
+                    <div className="px-6 py-3 border-t">
+                      <PaginationControls
+                        page={effectiveTxnPage}
+                        totalPages={totalTxnPages}
+                        onPageChange={setTxnPage}
+                      />
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}

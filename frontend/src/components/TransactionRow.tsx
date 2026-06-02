@@ -176,7 +176,9 @@ export function TransactionRow<TUpdate, TDelete>({
             <div className="text-xs text-muted-foreground">{detail}</div>
           )}
         </TableCell>
-        <TableCell className={impactColor(dir)}>{impactText()}</TableCell>
+        <TableCell className={`text-right tabular-nums ${impactColor(dir)}`}>
+          {impactText()}
+        </TableCell>
         <TableCell className="text-muted-foreground">
           {transaction.description ?? '—'}
         </TableCell>

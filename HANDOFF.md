@@ -173,6 +173,22 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     +188/−458 across 44 files; vitest 127/127, vite build green,
     backend suite green (no backend changes), Playwright E2E green
     locally.
+  - Investment screens enhancements (issue #14, slice 14a of 4 —
+    smallest-risk first): right-align sweep across the three shared
+    detail-screen row components (`QuantityPriceSnapshotRow`,
+    `AccruedInterestSnapshotRow`, `TransactionRow`) plus the matching
+    `TableHead` cells on all 5 detail screens; bond detail Σ coupons
+    + Σ fees totals strip above the Transactions table (maturity
+    payouts deliberately excluded as terminal, not recurring); new
+    `lib/transactionSearch.ts` (`matchesTxnSearch`) wired into all 5
+    detail screens via a `data-testid="txn-search"` input above the
+    Transactions table. Filter matches localised transaction-type
+    label + description; investment transactions have no separate
+    counterparty field, so the description doubles as that surface.
+    New shared keys `transactions.searchPlaceholder`/`searchEmpty` +
+    `bond.totalCouponsLabel`/`totalFeesLabel` populated EN+ID. Net
+    +345/−183 across 11 files; vitest 127/127, vite build green,
+    eslint 0 errors.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

@@ -81,15 +81,15 @@ export function AccruedInterestSnapshotRow<TUpdate, TDelete>({
             </div>
           )}
         </TableCell>
-        <TableCell>
+        <TableCell className="text-right tabular-nums">
           {p !== null ? formatCurrency(p, snapshot.currency) : '—'}
         </TableCell>
-        <TableCell>
+        <TableCell className="text-right tabular-nums">
           {snapshot.accrued_interest
             ? formatCurrency(snapshot.accrued_interest, snapshot.currency)
             : '—'}
         </TableCell>
-        <TableCell>
+        <TableCell className="text-right tabular-nums">
           {formatCurrency(snapshot.amount, snapshot.currency)}
         </TableCell>
         <TableCell className="text-muted-foreground">

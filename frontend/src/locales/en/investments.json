@@ -183,7 +183,9 @@
     "dateHeader": "Date",
     "typeHeader": "Type",
     "cashImpactHeader": "Cash impact",
-    "notesHeader": "Notes"
+    "notesHeader": "Notes",
+    "searchPlaceholder": "Search transactions…",
+    "searchEmpty": "No transactions match your search."
   },
   "stock": {
     "listTitle": "Stocks",
@@ -285,6 +287,8 @@
     "snapshotsEmpty": "No snapshots yet. Click \"New snapshot\" to record this month's reading. For held-to-maturity bonds (Indonesian govt-primary where coupons pay out to your bank account), a single initial snapshot at face value is enough — snapshot carry-forward handles every subsequent month until maturity.",
     "transactionsDescription": "Buys / sells (secondary market), coupons, fees, and the terminal maturity event. For Indonesian govt-primary retail bonds, log each coupon as received.",
     "transactionsEmpty": "No transactions yet. Record a Buy or Coupon to start the ledger.",
+    "totalCouponsLabel": "Total coupons:",
+    "totalFeesLabel": "Total fees:",
     "quantityUnit": "lot",
     "bondType": {
       "govt_primary": "Government primary",

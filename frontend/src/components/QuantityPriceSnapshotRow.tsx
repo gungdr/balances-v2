@@ -72,15 +72,17 @@ export function QuantityPriceSnapshotRow<TUpdate, TDelete>({
             </div>
           )}
         </TableCell>
-        <TableCell>
+        <TableCell className="text-right tabular-nums">
           {snapshot.quantity ? `${snapshot.quantity} ${quantityUnit}` : '—'}
         </TableCell>
-        <TableCell>
+        <TableCell className="text-right tabular-nums">
           {snapshot.price_per_unit
             ? formatCurrency(snapshot.price_per_unit, snapshot.currency)
             : '—'}
         </TableCell>
-        <TableCell>{formatCurrency(snapshot.amount, snapshot.currency)}</TableCell>
+        <TableCell className="text-right tabular-nums">
+          {formatCurrency(snapshot.amount, snapshot.currency)}
+        </TableCell>
         <TableCell className="text-muted-foreground">
           {snapshot.description ?? '—'}
         </TableCell>

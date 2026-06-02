@@ -183,7 +183,9 @@
     "dateHeader": "Tanggal",
     "typeHeader": "Tipe",
     "cashImpactHeader": "Dampak kas",
-    "notesHeader": "Catatan"
+    "notesHeader": "Catatan",
+    "searchPlaceholder": "Cari transaksi…",
+    "searchEmpty": "Tidak ada transaksi yang cocok dengan pencarian."
   },
   "stock": {
     "listTitle": "Saham",
@@ -285,6 +287,8 @@
     "snapshotsEmpty": "Belum ada snapshot. Klik \"Snapshot baru\" untuk mencatat bacaan bulan ini. Untuk obligasi hingga jatuh tempo (obligasi pemerintah primer Indonesia di mana kupon dibayar ke rekening bank), satu snapshot awal sebesar nilai nominal sudah cukup — carry-forward snapshot menangani setiap bulan berikutnya hingga jatuh tempo.",
     "transactionsDescription": "Beli / jual (pasar sekunder), kupon, biaya, dan peristiwa jatuh tempo terminal. Untuk obligasi ritel pemerintah Indonesia, catat setiap kupon saat diterima.",
     "transactionsEmpty": "Belum ada transaksi. Catat Beli atau Kupon untuk memulai catatan.",
+    "totalCouponsLabel": "Total kupon:",
+    "totalFeesLabel": "Total biaya:",
     "quantityUnit": "lot",
     "bondType": {
       "govt_primary": "Pemerintah primer",

@@ -1317,6 +1317,82 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     changes; the wire contract from slices 1–3 was already in place).
     Playwright E2E green locally.
 
+- **Investment screens enhancements — slice 14a (M6, frontend —
+  issue #14, slice 1 of 4).** Smallest-risk hits of the four-slice
+  enhancement bundle: numeric-alignment sweep, bond-detail
+  transaction-section totals, and transaction-search input on all 5
+  detail screens. Issue #14 originally bundled four UI concepts
+  (alignment, cost-line on detail graph, list-screen graphs +
+  headlines, investment home dashboard); 14a takes the three
+  smallest, lowest-risk pieces first so the larger cost-basis +
+  charting work in 14b–14d can build on a clean alignment baseline.
+  - **Right-align numerics across investment detail tables.** Three
+    shared row components flip their numeric `<TableCell>` to
+    `text-right tabular-nums`: `QuantityPriceSnapshotRow`
+    (quantity / price / total — used by Stock / MutualFund / Gold);
+    `AccruedInterestSnapshotRow` (principal / accrued / total —
+    used by Bond / TimeDeposit); `TransactionRow` (cash impact —
+    preserves the dir-color class, just appends alignment). The
+    five detail screens each gain `className="text-right"` on the
+    matching `<TableHead>`s — snapshot table's qty/price/total or
+    principal/accrued/total + transactions table's cash impact.
+    List-screen tables were already right-aligned via the
+    `SortableHeader align="right"` + cell-level `text-right
+    tabular-nums` combo from the M6 list-screen polish; no list
+    change needed.
+  - **Bond detail Σ coupons + Σ fees.** Quick yield-to-date glance
+    the user asked for: a totals strip inside the Transactions
+    `CardContent`, above the table, showing `Total coupons: X` +
+    `Total fees: Y` in the bond's native currency. Computed via a
+    one-line `txnSum` reducer over `transactions` filtered to
+    `transaction_type === 'coupon'` / `'fee'`. Maturity payouts are
+    deliberately excluded — they're terminal, not recurring income,
+    and rolling them into the "total coupons" line would mix two
+    different signals. The strip renders side-by-side with the
+    transaction-search input (`flex flex-wrap justify-between`),
+    both above the table. Keys `bond.totalCouponsLabel` /
+    `totalFeesLabel` added to EN ("Total coupons:" / "Total fees:")
+    and ID ("Total kupon:" / "Total biaya:" — both terms from
+    `docs/glossary-id.md`).
+  - **Transaction search on all 5 detail screens.** New
+    `frontend/src/lib/transactionSearch.ts` exports a pure
+    `matchesTxnSearch(tx, query)` predicate that lowercase-matches
+    `query.trim()` against the localised transaction-type label
+    (`i18n.t(\`investments:transactionType.${tx.transaction_type}\`)`)
+    and the user-entered description. Pulls the live i18n instance
+    directly via `import i18n from '@/i18n'`, mirroring
+    `lib/lifecycle.ts` / `lib/maturity.ts` — callers re-render
+    through their own `useTranslation` hook on locale change. Each
+    detail screen gains a `useState('')` for `txnSearch`, computes
+    `filteredTransactions = (transactions ?? []).filter(...)`
+    before pagination, and renders an `<Input
+    data-testid="txn-search">` above the Transactions table. The
+    inner ternary handles "raw > 0 but filtered === 0" with a
+    fresh `transactions.searchEmpty` line; `txnPage` clamps
+    naturally via the existing `effectiveTxnPage = Math.min(...)`
+    pattern, so no effect needed to reset pages on filter change.
+  - **Counterparty caveat.** The original ask was "search over type
+    + notes + counterparty" but investment transactions don't carry
+    a separate counterparty column on either repo or wire (only
+    `receivable`/`liability` rows do). The description doubles as
+    that surface today; filtering against description + type label
+    covers the actual use cases ("show all my BBCA buys", "find
+    that fee from last quarter").
+  - **i18n keys.** Shared keys live in the `transactions` namespace
+    block: `searchPlaceholder` ("Search transactions…" /
+    "Cari transaksi…") and `searchEmpty` ("No transactions match
+    your search." / "Tidak ada transaksi yang cocok dengan
+    pencarian."). The bond-specific totals keys live under
+    `bond.*` because they're not shareable shape — only bonds carry
+    the coupon + fee total semantics in the same view.
+  - **Tests + lint clean.** Vitest 127/127, vite build green,
+    eslint 0 errors (13 pre-existing "Bare JSX text" warnings
+    unchanged from the issue-#13 baseline). Backend suite untouched
+    (no backend changes). Playwright E2E deferred per the
+    no-Playwright-while-experimenting workflow note; user will
+    eyeball before/after the next slice. Net +345/−183 across 11
+    files (10 modified + 1 new helper).
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:
