@@ -143,6 +143,22 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     translated copy confirms each string still resolves to the canonical
     EN value. Spec writers exercise the ID UI by clicking the Settings
     language dropdown, never by mutating the seed.
+  - Backend error-code envelope (issue #13, slices 1–3 of 4): ADR-0027
+    designs the `{code, args}` wire shape (no `message` in prod); new
+    `internal/httperr` package (`Envelope`, `Write`, `WriteRepo`,
+    `WriteValidation`, `NewValidator` with JSON-tag-name func) and
+    `internal/errs` leaf (sentinel error vars re-exported by
+    `internal/repo/errors.go` to break the auth → httperr → repo →
+    auth cycle). Every `http.Error(...)` site across
+    `internal/{assets,liabilities,receivables,investments,income,
+    fxrates,reports,auth-non-callback}` swapped to the envelope; ~23
+    exported `Code` constants in `internal/httperr/codes.go`; new
+    `CodeUnauthorized` for the middleware 401 (distinct from repo's
+    unreachable `ErrUnauthenticated`). The OAuth callback redirects
+    and the mock OIDC subcommand stay exempt per the ADR. Slice 4
+    (FE swap: one `errorMessage(err, t)` helper deletes ~50 local
+    `formatError` dialog clones + `errors.json` populated EN+ID)
+    closes the issue.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
@@ -160,9 +176,10 @@ always reports one stable status so a future branch protection has a safe requir
 M6 is the v1-polish milestone (see `docs/ROADMAP.md`). Still open in M6:
 
 - **Internationalization (EN + ID)** — react-i18next with persisted `users.locale`, locale-aware
-  `lib/format.ts`, ID financial-vocab glossary. Backend stays English; a follow-up ADR introduces a
-  typed error-code envelope so future locales never touch Go. See ADR-0026 and issues #1–#12;
-  Shape-C follow-up tracked as #13.
+  `lib/format.ts`, ID financial-vocab glossary. Backend ships the ADR-0027 `{code, args}` envelope
+  so future locales never touch Go (slices 1–3 of issue #13 shipped); slice 4 = FE swap (one
+  `errorMessage(err, t)` helper replaces ~50 local `formatError` dialog clones, `errors.json`
+  populated EN+ID). See ADR-0026 + ADR-0027 and issues #1–#13.
 - **PDF export** of monthly reports (user requirement, Q22).
 - **Fee cash→quantity helper** (Q12).
 - **TimeDeposit "duplicate matured TD" helper** (Q14c-iv): when a Maturity transaction has
@@ -312,12 +329,21 @@ These are not ADRs because they're tactical, but they're load-bearing:
   leaves the detail+snapshot join loop in `List*` unexercised. Phase 2c fixed this for
   `ListProperties` + `ListVehicles` (both were at 21.9%); use those subtests as the template when
   adding a new group.
-- **HTTP error mapping skips unreachable repo sentinels.** `repoErrorStatus` / `writeRepoError` in
-  the 4 position-group HTTP packages map only sentinels reachable through HTTP — `ErrNotFound` (and
-  investments-specific 400 sentinels) yes, `ErrUnauthenticated` no. `RequireAuth` gates every route
-  in each package's `Mount`, so a repo's `currentUser()` always finds a user; if a future misconfig
-  ever leaked one, the fall-through to 500 is correct (server bug, not client error). Don't
-  reintroduce the `ErrUnauthenticated` case.
+- **HTTP error responses ship the ADR-0027 envelope.** Every 4xx/5xx from `internal/*` goes through
+  `internal/httperr` (`Write` / `WriteRepo` / `WriteValidation`) and ships
+  `{"code": "<CODE>", "args": {...}}` — never raw `http.Error(...)`. Codes are the wire contract;
+  human copy lives in the FE i18n catalogs (`errors:code.<CODE>`); no `message` field on the wire.
+  Sentinel error vars live in `internal/errs` (leaf, dependency-free); `internal/repo/errors.go`
+  re-exports them via aliases so `repo.ErrFoo` keeps working at call sites. **Exceptions:** the
+  OAuth callback flow in `internal/auth/handlers.go:handleCallback` (redirect-based) and the
+  mock OIDC subcommand in `cmd/balances/mockoidc.go` (dev-only) keep their plain `http.Error`
+  bodies. New handlers reach for `httperr.Write(w, status, code, args)`, not `http.Error`. New
+  validator-emitted errors need only the catalog entry — `WriteValidation` handles the field/rule
+  extraction via the JSON-tag-name func registered by `httperr.NewValidator()`. Repo's
+  `ErrUnauthenticated` stays deliberately unmapped (RequireAuth gates every route, so a repo
+  seeing no user is a server bug, not a client error — falls through to 500 INTERNAL).
+  Adding a new code: declare it in `internal/httperr/codes.go` + emit it + add the catalog entry
+  in both locales.
 
 ## Things explicitly NOT to do
 
