@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ApiError } from '@/api/client'
+import { errorMessage } from '@/lib/errorMessage'
 import { todayDate } from '@/lib/dateLimits'
 import type { CreateInvestmentTransactionPayload } from '@/hooks/useInvestmentTransactions'
 
@@ -180,7 +180,7 @@ export function CreateFeeTransactionDialog<TResult>({
 
           {mutation.isError && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error, t('common:unknownError'))}
+              {errorMessage(mutation.error)}
             </p>
           )}
 
@@ -203,13 +203,4 @@ export function CreateFeeTransactionDialog<TResult>({
       </DialogContent>
     </Dialog>
   )
-}
-
-function formatError(err: unknown, unknownLabel: string): string {
-  if (err instanceof ApiError) {
-    if (typeof err.body === 'string' && err.body) return err.body
-    return `${err.status} ${err.message}`
-  }
-  if (err instanceof Error) return err.message
-  return unknownLabel
 }

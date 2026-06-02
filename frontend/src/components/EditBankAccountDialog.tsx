@@ -15,7 +15,7 @@ import { useUpdateBankAccount } from '@/hooks/useBankAccounts'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { preferredName } from '@/lib/names'
 import { useSession } from '@/hooks/useSession'
-import { ApiError } from '@/api/client'
+import { errorMessage } from '@/lib/errorMessage'
 import type { BankAccount } from '@/api/types'
 
 type Props = {
@@ -192,7 +192,7 @@ export function EditBankAccountDialog({ open, onOpenChange, account }: Props) {
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error, t('common:unknownError'))}
+              {errorMessage(mutation.error)}
             </p>
           )}
 
@@ -214,13 +214,4 @@ export function EditBankAccountDialog({ open, onOpenChange, account }: Props) {
       </DialogContent>
     </Dialog>
   )
-}
-
-function formatError(err: unknown, unknownMsg: string): string {
-  if (err instanceof ApiError) {
-    if (typeof err.body === 'string' && err.body) return err.body
-    return `${err.status} ${err.message}`
-  }
-  if (err instanceof Error) return err.message
-  return unknownMsg
 }

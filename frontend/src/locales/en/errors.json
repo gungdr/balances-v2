@@ -1,4 +1,39 @@
 {
   "failedToLoad": "Failed to load: {{message}}",
-  "unknownError": "unknown error"
+  "unknownError": "unknown error",
+  "code": {
+    "UNKNOWN": "Something went wrong.",
+    "INTERNAL": "Server error. Please try again.",
+    "UNAUTHORIZED": "Please sign in again.",
+    "NOT_FOUND": "Not found.",
+    "INVALID_ID": "Invalid {{field}}.",
+    "INVALID_JSON_BODY": "Malformed request body.",
+    "INVALID_DATE": "Invalid {{field}}: expected a YYYY-MM-DD date.",
+    "INVALID_YEAR_MONTH": "Invalid month: expected YYYY-MM.",
+    "FUTURE_YEAR_MONTH": "Month cannot be in the future.",
+    "SNAPSHOT_FUTURE_DATE": "Snapshot date cannot be in the future.",
+    "TRANSACTION_FUTURE_DATE": "Transaction date cannot be in the future.",
+    "INVALID_SNAPSHOT_SHAPE": "Snapshot values don't match this investment type.",
+    "INVALID_TRANSACTION_TYPE": "Transaction type isn't supported for this investment.",
+    "INVALID_TRANSACTION_SHAPE": "Transaction values don't match the chosen type.",
+    "INVALID_LIFECYCLE": "Invalid position status.",
+    "FX_RATE_EXISTS": "An FX rate already exists for that month and currency.",
+    "FOREIGN_POSITIONS_EXIST": "Foreign-currency positions exist; remove them before turning off multi-currency.",
+    "POSITION_NOT_ACTIVE": "This position is no longer active.",
+    "INVALID_RATE": "Rate must be greater than zero.",
+    "INVALID_IMPORT_MODE": "Import mode must be preview or commit.",
+    "INVALID_FILE_UPLOAD": "Missing or oversized file upload.",
+    "INVALID_SPREADSHEET": "Could not read the spreadsheet.",
+    "CANNOT_INVITE_SELF": "You can't invite yourself.",
+    "VALIDATION": "{{field}} {{rule}}.",
+    "VALIDATION_RULE": {
+      "required": "is required",
+      "required_if": "is required",
+      "required_unless": "is required",
+      "email": "must be a valid email address",
+      "gt": "must be greater than zero",
+      "iso4217": "must be a valid currency code",
+      "oneof": "is not one of the allowed values"
+    }
+  }
 }

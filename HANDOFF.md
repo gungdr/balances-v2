@@ -155,10 +155,24 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     exported `Code` constants in `internal/httperr/codes.go`; new
     `CodeUnauthorized` for the middleware 401 (distinct from repo's
     unreachable `ErrUnauthenticated`). The OAuth callback redirects
-    and the mock OIDC subcommand stay exempt per the ADR. Slice 4
-    (FE swap: one `errorMessage(err, t)` helper deletes ~50 local
-    `formatError` dialog clones + `errors.json` populated EN+ID)
-    closes the issue.
+    and the mock OIDC subcommand stay exempt per the ADR.
+  - Frontend error-envelope sweep (issue #13, slice 4 of 4 — closes
+    the issue): `@/api/client` retypes `ApiError.body` to
+    `ErrorEnvelope | string | undefined` and exports
+    `ErrorEnvelope` + `isEnvelope()`; new `src/lib/errorMessage.ts`
+    helper resolves envelope → `errors:code.<CODE>` with `args`
+    interpolated (VALIDATION fans out via sibling
+    `errors:code.VALIDATION_RULE.<rule>` because JSON can't keep a
+    string and an object at the same key — one structural deviation
+    from the ADR sketch). 39 components delete their local
+    `formatError` clone in favour of `errorMessage(mutation.error)`;
+    `SettingsScreen`'s parallel `errText` helper swaps too. EN + ID
+    `errors.json` populated for all 23 codes + the 7 validator-tag
+    sub-keys actually used (`required`, `required_if`,
+    `required_unless`, `email`, `gt`, `iso4217`, `oneof`). Net
+    +188/−458 across 44 files; vitest 127/127, vite build green,
+    backend suite green (no backend changes), Playwright E2E green
+    locally.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
@@ -175,11 +189,6 @@ always reports one stable status so a future branch protection has a safe requir
 
 M6 is the v1-polish milestone (see `docs/ROADMAP.md`). Still open in M6:
 
-- **Internationalization (EN + ID)** — react-i18next with persisted `users.locale`, locale-aware
-  `lib/format.ts`, ID financial-vocab glossary. Backend ships the ADR-0027 `{code, args}` envelope
-  so future locales never touch Go (slices 1–3 of issue #13 shipped); slice 4 = FE swap (one
-  `errorMessage(err, t)` helper replaces ~50 local `formatError` dialog clones, `errors.json`
-  populated EN+ID). See ADR-0026 + ADR-0027 and issues #1–#13.
 - **PDF export** of monthly reports (user requirement, Q22).
 - **Fee cash→quantity helper** (Q12).
 - **TimeDeposit "duplicate matured TD" helper** (Q14c-iv): when a Maturity transaction has

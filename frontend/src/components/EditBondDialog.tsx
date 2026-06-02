@@ -15,7 +15,7 @@ import { useUpdateBond } from '@/hooks/useInvestments'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { preferredName } from '@/lib/names'
 import { useSession } from '@/hooks/useSession'
-import { ApiError } from '@/api/client'
+import { errorMessage } from '@/lib/errorMessage'
 import { RiskProfileSelect } from '@/components/RiskProfileSelect'
 import type {
   Bond,
@@ -303,7 +303,7 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error, t('common:unknownError'))}
+              {errorMessage(mutation.error)}
             </p>
           )}
 
@@ -325,13 +325,4 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
       </DialogContent>
     </Dialog>
   )
-}
-
-function formatError(err: unknown, unknownLabel: string): string {
-  if (err instanceof ApiError) {
-    if (typeof err.body === 'string' && err.body) return err.body
-    return `${err.status} ${err.message}`
-  }
-  if (err instanceof Error) return err.message
-  return unknownLabel
 }

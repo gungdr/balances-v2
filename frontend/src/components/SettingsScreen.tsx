@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { ApiError } from '@/api/client'
+import { errorMessage } from '@/lib/errorMessage'
 import { useSession } from '@/hooks/useSession'
 import { useUpdateMe } from '@/hooks/useUpdateMe'
 import { useUpdateHouseholdSettings } from '@/hooks/useHouseholdSettings'
@@ -31,16 +31,6 @@ import {
 } from '@/hooks/useFxRates'
 import { formatYearMonth } from '@/lib/format'
 import { InviteForm } from '@/components/InviteForm'
-
-// Server-error formatter. Server bodies stay visible (the status-code →
-// translated toast mapping lands with ADR-0027); only the no-body fallback
-// routes through i18n.
-function errText(err: unknown, fallback: string): string {
-  if (err instanceof ApiError && typeof err.body === 'string' && err.body) {
-    return err.body
-  }
-  return err instanceof Error ? err.message : fallback
-}
 
 export function SettingsScreen() {
   const { t } = useTranslation(['settings', 'common'])
@@ -116,7 +106,7 @@ export function SettingsScreen() {
 
           {updateSettings.isError && (
             <p className="text-sm text-destructive">
-              {errText(updateSettings.error, t('common:somethingWentWrong'))}
+              {errorMessage(updateSettings.error)}
             </p>
           )}
         </CardContent>
@@ -182,7 +172,7 @@ function NicknameCard() {
 
         {updateMe.isError && (
           <p className="text-sm text-destructive">
-            {errText(updateMe.error, t('common:somethingWentWrong'))}
+            {errorMessage(updateMe.error)}
           </p>
         )}
       </CardContent>
@@ -242,7 +232,7 @@ function LanguageCard() {
         </div>
         {updateMe.isError && (
           <p className="text-sm text-destructive">
-            {errText(updateMe.error, t('common:somethingWentWrong'))}
+            {errorMessage(updateMe.error)}
           </p>
         )}
       </CardContent>
@@ -325,7 +315,7 @@ function FxRatesCard() {
 
         {createRate.isError && (
           <p className="text-sm text-destructive">
-            {errText(createRate.error, t('common:somethingWentWrong'))}
+            {errorMessage(createRate.error)}
           </p>
         )}
 

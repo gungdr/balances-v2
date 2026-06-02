@@ -16,7 +16,7 @@ import { useCreateBankAccount } from '@/hooks/useBankAccounts'
 import { useSession } from '@/hooks/useSession'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { preferredName } from '@/lib/names'
-import { ApiError } from '@/api/client'
+import { errorMessage } from '@/lib/errorMessage'
 
 const empty = {
   display_name: '',
@@ -216,7 +216,7 @@ export function CreateBankAccountDialog() {
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error, t('common:unknownError'))}
+              {errorMessage(mutation.error)}
             </p>
           )}
 
@@ -234,13 +234,4 @@ export function CreateBankAccountDialog() {
       </DialogContent>
     </Dialog>
   )
-}
-
-function formatError(err: unknown, unknownMsg: string): string {
-  if (err instanceof ApiError) {
-    if (typeof err.body === 'string' && err.body) return err.body
-    return `${err.status} ${err.message}`
-  }
-  if (err instanceof Error) return err.message
-  return unknownMsg
 }

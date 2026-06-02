@@ -16,7 +16,7 @@ import { useCreateBond } from '@/hooks/useInvestments'
 import { useSession } from '@/hooks/useSession'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { preferredName } from '@/lib/names'
-import { ApiError } from '@/api/client'
+import { errorMessage } from '@/lib/errorMessage'
 import { RiskProfileSelect } from '@/components/RiskProfileSelect'
 import type { RiskProfile } from '@/api/types'
 import type { BondType, CouponFrequency } from '@/api/types'
@@ -333,7 +333,7 @@ export function CreateBondDialog() {
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error, t('common:unknownError'))}
+              {errorMessage(mutation.error)}
             </p>
           )}
 
@@ -351,13 +351,4 @@ export function CreateBondDialog() {
       </DialogContent>
     </Dialog>
   )
-}
-
-function formatError(err: unknown, unknownLabel: string): string {
-  if (err instanceof ApiError) {
-    if (typeof err.body === 'string' && err.body) return err.body
-    return `${err.status} ${err.message}`
-  }
-  if (err instanceof Error) return err.message
-  return unknownLabel
 }

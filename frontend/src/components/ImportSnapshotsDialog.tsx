@@ -12,7 +12,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { ApiError } from '@/api/client'
+import { errorMessage } from '@/lib/errorMessage'
 import type { ImportArgs, ImportResult } from '@/hooks/snapshotImport'
 
 type Props = {
@@ -155,7 +155,7 @@ export function ImportSnapshotsDialog({ templateUrl, mutation, currency }: Props
 
           {mutation.isError && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error, t('unknownError'))}
+              {errorMessage(mutation.error)}
             </p>
           )}
         </div>
@@ -197,13 +197,4 @@ export function ImportSnapshotsDialog({ templateUrl, mutation, currency }: Props
       </DialogContent>
     </Dialog>
   )
-}
-
-function formatError(err: unknown, unknownMsg: string): string {
-  if (err instanceof ApiError) {
-    if (typeof err.body === 'string' && err.body) return err.body
-    return `${err.status} ${err.message}`
-  }
-  if (err instanceof Error) return err.message
-  return unknownMsg
 }

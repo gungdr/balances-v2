@@ -15,7 +15,7 @@ import { useUpdateProperty } from '@/hooks/useProperties'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { preferredName } from '@/lib/names'
 import { useSession } from '@/hooks/useSession'
-import { ApiError } from '@/api/client'
+import { errorMessage } from '@/lib/errorMessage'
 import type { Property } from '@/api/types'
 
 type Props = {
@@ -220,7 +220,7 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error, t('common:unknownError'))}
+              {errorMessage(mutation.error)}
             </p>
           )}
 
@@ -242,13 +242,4 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
       </DialogContent>
     </Dialog>
   )
-}
-
-function formatError(err: unknown, unknownMsg: string): string {
-  if (err instanceof ApiError) {
-    if (typeof err.body === 'string' && err.body) return err.body
-    return `${err.status} ${err.message}`
-  }
-  if (err instanceof Error) return err.message
-  return unknownMsg
 }

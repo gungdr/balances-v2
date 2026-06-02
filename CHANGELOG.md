@@ -1261,6 +1261,61 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
   - Slice 4 (FE swap — one `errorMessage(err, t)` helper replacing
     ~50 local `formatError` clones + `errors.json` populated EN+ID)
     closes out issue #13.
+- **Frontend error-envelope sweep (M6, frontend — issue #13, slice
+  4).** Closes out the ADR-0027 stream. The 39 dialogs + non-dialog
+  surfaces that surfaced a mutation error each carried a local
+  `formatError(err, unknownMsg)` clone that rendered the raw English
+  server body verbatim; every one of them now goes through a single
+  `errorMessage(err, fallback?)` helper.
+  - **`@/api/client` envelope plumbing.** `ApiError.body` retypes
+    from `unknown` to `ErrorEnvelope | string | undefined`; new
+    `ErrorEnvelope = { code: string; args?: Record<string, unknown> }`
+    and `isEnvelope()` narrowing guard exported alongside. The `api()`
+    wrapper parses the body as JSON, accepts it only if it shapes as
+    an envelope, and otherwise falls through to `text()` (so the OAuth
+    callback's plain redirect-error responses still surface a useful
+    string in dev). `@/hooks/snapshotImport` (the multipart importer
+    that bypasses `api()`) does the same narrowing on its 4xx path —
+    its 422 "file had bad rows" body is still consumed as the
+    success-shaped `ImportResult`, unchanged.
+  - **`src/lib/errorMessage.ts` helper.** Resolution order: ApiError
+    + envelope body → `errors:code.<CODE>` with `args` interpolated;
+    ApiError without envelope → generic `errors:code.UNKNOWN`; native
+    `Error` → `err.message`; anything else → optional `fallback`,
+    else UNKNOWN. Unknown codes log a dev-only `console.warn` before
+    falling to UNKNOWN, so a missing catalog entry doesn't go silent
+    during development. Pattern mirrors `lib/lifecycle.ts` — pulls
+    the live i18n instance directly rather than threading a `t` arg,
+    so callers re-render on locale change via their own
+    `useTranslation` hook.
+  - **VALIDATION rule lookup deviates one step from the ADR sketch.**
+    The ADR pitched `errors:code.VALIDATION` as both the template
+    string and the parent of `rule.<rule>` sub-keys; JSON can't carry
+    both at the same key, so rule strings live under sibling
+    `errors:code.VALIDATION_RULE.<rule>` and the helper resolves the
+    rule first, then feeds the human form into the
+    `errors:code.VALIDATION` template's `{{rule}}` placeholder.
+  - **`errors.json` populated EN+ID.** Every code emitted in slices
+    1–3 has a catalog entry in both locales (23 codes total) plus the
+    VALIDATION_RULE sub-keys for the seven validator tags actually
+    used by the backend structs (`required`, `required_if`,
+    `required_unless`, `email`, `gt`, `iso4217`, `oneof`). ID copy
+    follows `docs/glossary-id.md` conventions; the `Errors` section
+    of the glossary stays the canonical reference for future codes.
+  - **Sweep across 39 components.** Every `Create*Dialog` /
+    `Edit*Dialog` / `Import*Dialog` / `TerminatePositionDialog` /
+    `InviteForm` deletes its local `formatError` (~9 lines each) and
+    swaps `formatError(mutation.error, t('common:unknownError'))` →
+    `errorMessage(mutation.error)`. `SettingsScreen`'s parallel
+    `errText` helper (same shape, different name) also swaps. Net:
+    +188/−458 lines across 44 files. `InviteForm` dropped its
+    `const unknownError = t('common:unknownError')` line since the
+    helper owns the fallback now.
+  - **Tests + lint clean.** Vitest 127/127, vite build green,
+    eslint 0 errors (13 pre-existing "Bare JSX text" warnings
+    unrelated to this slice). Backend suite still green (no backend
+    changes; the wire contract from slices 1–3 was already in place).
+    Playwright E2E green locally.
 
 ## What M4.2 shipped
 

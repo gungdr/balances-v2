@@ -11,7 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { api, ApiError } from '@/api/client'
+import { api } from '@/api/client'
+import { errorMessage } from '@/lib/errorMessage'
 import { formatDateTime } from '@/lib/format'
 
 type InviteResp = {
@@ -37,8 +38,6 @@ export function InviteForm() {
       setEmail('')
     },
   })
-
-  const unknownError = t('common:unknownError')
 
   return (
     <Card>
@@ -72,7 +71,7 @@ export function InviteForm() {
 
         {mutation.error && (
           <p className="mt-3 text-sm text-destructive">
-            {formatError(mutation.error, unknownError)}
+            {errorMessage(mutation.error)}
           </p>
         )}
 
@@ -93,16 +92,4 @@ export function InviteForm() {
       </CardContent>
     </Card>
   )
-}
-
-// Server-error formatter. Keeps the server-supplied English body visible (the
-// status-code → friendly-toast mapping lands with ADR-0027); only the generic
-// fallback used when no body is present routes through i18n.
-function formatError(err: unknown, fallback: string): string {
-  if (err instanceof ApiError) {
-    if (typeof err.body === 'string' && err.body) return err.body
-    return `${err.status} ${err.message}`
-  }
-  if (err instanceof Error) return err.message
-  return fallback
 }

@@ -16,7 +16,7 @@ import { useCreateLiability } from '@/hooks/useLiabilities'
 import { useSession } from '@/hooks/useSession'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { preferredName } from '@/lib/names'
-import { ApiError } from '@/api/client'
+import { errorMessage } from '@/lib/errorMessage'
 
 type Props = {
   // When the dialog opens from inside an inner-tab (Personal / Institutional),
@@ -283,7 +283,7 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
 
           {mutation.error && (
             <p className="text-sm text-destructive">
-              {formatError(mutation.error, t('common:unknownError'))}
+              {errorMessage(mutation.error)}
             </p>
           )}
 
@@ -301,13 +301,4 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
       </DialogContent>
     </Dialog>
   )
-}
-
-function formatError(err: unknown, unknownMsg: string): string {
-  if (err instanceof ApiError) {
-    if (typeof err.body === 'string' && err.body) return err.body
-    return `${err.status} ${err.message}`
-  }
-  if (err instanceof Error) return err.message
-  return unknownMsg
 }

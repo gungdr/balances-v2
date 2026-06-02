@@ -1,4 +1,4 @@
-import { ApiError } from '@/api/client'
+import { ApiError, isEnvelope, type ErrorEnvelope } from '@/api/client'
 
 // Shared core for the bulk snapshot importer, group-agnostic. Every amount-shape
 // position group (assets, liabilities, receivables) exposes the same backend
@@ -42,9 +42,10 @@ export async function postSnapshotImport(
   })
   if (res.status === 422) return (await res.json()) as ImportResult
   if (!res.ok) {
-    let errBody: unknown
+    let errBody: ErrorEnvelope | string | undefined
     try {
-      errBody = await res.json()
+      const parsed = await res.json()
+      errBody = isEnvelope(parsed) ? parsed : undefined
     } catch {
       errBody = await res.text().catch(() => undefined)
     }
