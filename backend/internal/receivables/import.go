@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/kerti/balances-v2/backend/internal/httperr"
 	"github.com/kerti/balances-v2/backend/internal/repo"
 	"github.com/kerti/balances-v2/backend/internal/snapshotimport"
 )
@@ -17,13 +18,13 @@ const maxImportUpload = 5 << 20 // 5 MB
 func (h *Handlers) handleImportTemplate(w http.ResponseWriter, r *http.Request) {
 	receivableID, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 
 	name, currency, err := h.repo.ReceivableImportMeta(r.Context(), receivableID)
 	if err != nil {
-		writeRepoError(w, "import template: receivable meta", err)
+		httperr.WriteRepo(w, "import template: receivable meta", err)
 		return
 	}
 
@@ -32,7 +33,7 @@ func (h *Handlers) handleImportTemplate(w http.ResponseWriter, r *http.Request) 
 		DefaultCurrency: currency,
 	})
 	if err != nil {
-		writeRepoError(w, "import template: build", err)
+		httperr.WriteRepo(w, "import template: build", err)
 		return
 	}
 
@@ -57,7 +58,7 @@ type importResponse struct {
 func (h *Handlers) handleImportSnapshots(w http.ResponseWriter, r *http.Request) {
 	receivableID, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 
@@ -66,21 +67,21 @@ func (h *Handlers) handleImportSnapshots(w http.ResponseWriter, r *http.Request)
 		mode = "preview"
 	}
 	if mode != "preview" && mode != "commit" {
-		http.Error(w, "invalid mode: expected preview or commit", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidImportMode, nil)
 		return
 	}
 
 	// Ownership check + default currency for blank cells (404 if not owned).
 	_, currency, err := h.repo.ReceivableImportMeta(r.Context(), receivableID)
 	if err != nil {
-		writeRepoError(w, "import: receivable meta", err)
+		httperr.WriteRepo(w, "import: receivable meta", err)
 		return
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxImportUpload)
 	file, _, err := r.FormFile("file")
 	if err != nil {
-		http.Error(w, "missing or oversized file upload (field \"file\")", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidFileUpload, nil)
 		return
 	}
 	defer func() { _ = file.Close() }()
@@ -90,7 +91,7 @@ func (h *Handlers) handleImportSnapshots(w http.ResponseWriter, r *http.Request)
 		ValidCurrency:   func(c string) bool { return h.validate.Var(c, "iso4217") == nil },
 	})
 	if err != nil {
-		http.Error(w, "could not read spreadsheet: "+err.Error(), http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidSpreadsheet, nil)
 		return
 	}
 
@@ -119,7 +120,7 @@ func (h *Handlers) handleImportSnapshots(w http.ResponseWriter, r *http.Request)
 	dryRun := mode == "preview"
 	res, err := h.repo.ImportReceivableSnapshots(r.Context(), receivableID, rows, dryRun)
 	if err != nil {
-		writeRepoError(w, fmt.Sprintf("import snapshots (%s)", mode), err)
+		httperr.WriteRepo(w, fmt.Sprintf("import snapshots (%s)", mode), err)
 		return
 	}
 

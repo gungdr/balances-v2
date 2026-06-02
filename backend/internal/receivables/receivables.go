@@ -7,9 +7,6 @@ package receivables
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
-	"log/slog"
 	"net/http"
 	"time"
 
@@ -19,6 +16,7 @@ import (
 	"github.com/shopspring/decimal"
 
 	"github.com/kerti/balances-v2/backend/internal/auth"
+	"github.com/kerti/balances-v2/backend/internal/httperr"
 	"github.com/kerti/balances-v2/backend/internal/repo"
 )
 
@@ -41,7 +39,7 @@ func WithNow(fn func() time.Time) Option {
 func New(r *repo.ReceivableRepo, opts ...Option) *Handlers {
 	h := &Handlers{
 		repo:     r,
-		validate: validator.New(validator.WithRequiredStructEnabled()),
+		validate: httperr.NewValidator(),
 		now:      time.Now,
 	}
 	for _, opt := range opts {
@@ -101,16 +99,16 @@ type updateReq struct {
 func (h *Handlers) handleCreate(w http.ResponseWriter, r *http.Request) {
 	var req createReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
-	dueDate, err := parseOptionalDate(req.DueDate, "due_date")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	dueDate, ok := parseOptionalDate(req.DueDate)
+	if !ok {
+		writeInvalidDate(w, "due_date")
 		return
 	}
 
@@ -124,7 +122,7 @@ func (h *Handlers) handleCreate(w http.ResponseWriter, r *http.Request) {
 		DueDate:          dueDate,
 	})
 	if err != nil {
-		writeRepoError(w, "create receivable", err)
+		httperr.WriteRepo(w, "create receivable", err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, row)
@@ -133,7 +131,7 @@ func (h *Handlers) handleCreate(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleList(w http.ResponseWriter, r *http.Request) {
 	list, err := h.repo.ListReceivables(r.Context())
 	if err != nil {
-		writeRepoError(w, "list receivables", err)
+		httperr.WriteRepo(w, "list receivables", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, list)
@@ -142,12 +140,12 @@ func (h *Handlers) handleList(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleGet(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	row, err := h.repo.GetReceivable(r.Context(), id)
 	if err != nil {
-		writeRepoError(w, "get receivable", err)
+		httperr.WriteRepo(w, "get receivable", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, row)
@@ -156,21 +154,21 @@ func (h *Handlers) handleGet(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	var req updateReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
-	dueDate, err := parseOptionalDate(req.DueDate, "due_date")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	dueDate, ok := parseOptionalDate(req.DueDate)
+	if !ok {
+		writeInvalidDate(w, "due_date")
 		return
 	}
 
@@ -183,7 +181,7 @@ func (h *Handlers) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		DueDate:          dueDate,
 	})
 	if err != nil {
-		writeRepoError(w, "update receivable", err)
+		httperr.WriteRepo(w, "update receivable", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, row)
@@ -192,11 +190,11 @@ func (h *Handlers) handleUpdate(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleDelete(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	if err := h.repo.DeleteReceivable(r.Context(), id); err != nil {
-		writeRepoError(w, "delete receivable", err)
+		httperr.WriteRepo(w, "delete receivable", err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -222,34 +220,34 @@ type updateSnapshotReq struct {
 func (h *Handlers) handleCreateSnapshot(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	var req createSnapshotReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
 	ym, err := parseYearMonth(req.YearMonth)
 	if err != nil {
-		http.Error(w, "invalid year_month: expected YYYY-MM or YYYY-MM-DD", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidYearMonth, nil)
 		return
 	}
 	if isFutureYearMonth(ym, h.now()) {
-		http.Error(w, "year_month cannot be in the future", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeFutureYearMonth, nil)
 		return
 	}
-	asOf, err := parseOptionalDate(req.AsOfDate, "as_of_date")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	asOf, ok := parseOptionalDate(req.AsOfDate)
+	if !ok {
+		writeInvalidDate(w, "as_of_date")
 		return
 	}
 	if asOf != nil && isFutureDate(*asOf, h.now()) {
-		http.Error(w, "as_of_date cannot be in the future", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeSnapshotFutureDate, nil)
 		return
 	}
 
@@ -262,7 +260,7 @@ func (h *Handlers) handleCreateSnapshot(w http.ResponseWriter, r *http.Request) 
 		Description:  req.Description,
 	})
 	if err != nil {
-		writeRepoError(w, "create receivable snapshot", err)
+		httperr.WriteRepo(w, "create receivable snapshot", err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, snap)
@@ -271,12 +269,12 @@ func (h *Handlers) handleCreateSnapshot(w http.ResponseWriter, r *http.Request) 
 func (h *Handlers) handleListSnapshots(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	snaps, err := h.repo.ListReceivableSnapshots(r.Context(), id)
 	if err != nil {
-		writeRepoError(w, "list receivable snapshots", err)
+		httperr.WriteRepo(w, "list receivable snapshots", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, snaps)
@@ -285,25 +283,25 @@ func (h *Handlers) handleListSnapshots(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) handleUpdateSnapshot(w http.ResponseWriter, r *http.Request) {
 	snapshotID, err := parseIDParam(r, "snapshotID")
 	if err != nil {
-		http.Error(w, "invalid snapshot id", http.StatusBadRequest)
+		writeInvalidID(w, "snapshot_id")
 		return
 	}
 	var req updateSnapshotReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
-	asOf, err := parseOptionalDate(req.AsOfDate, "as_of_date")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	asOf, ok := parseOptionalDate(req.AsOfDate)
+	if !ok {
+		writeInvalidDate(w, "as_of_date")
 		return
 	}
 	if asOf != nil && isFutureDate(*asOf, h.now()) {
-		http.Error(w, "as_of_date cannot be in the future", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeSnapshotFutureDate, nil)
 		return
 	}
 
@@ -315,7 +313,7 @@ func (h *Handlers) handleUpdateSnapshot(w http.ResponseWriter, r *http.Request) 
 		Description: req.Description,
 	})
 	if err != nil {
-		writeRepoError(w, "update receivable snapshot", err)
+		httperr.WriteRepo(w, "update receivable snapshot", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, snap)
@@ -324,11 +322,11 @@ func (h *Handlers) handleUpdateSnapshot(w http.ResponseWriter, r *http.Request) 
 func (h *Handlers) handleDeleteSnapshot(w http.ResponseWriter, r *http.Request) {
 	snapshotID, err := parseIDParam(r, "snapshotID")
 	if err != nil {
-		http.Error(w, "invalid snapshot id", http.StatusBadRequest)
+		writeInvalidID(w, "snapshot_id")
 		return
 	}
 	if err := h.repo.DeleteReceivableSnapshot(r.Context(), snapshotID); err != nil {
-		writeRepoError(w, "delete receivable snapshot", err)
+		httperr.WriteRepo(w, "delete receivable snapshot", err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -344,40 +342,37 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	}
 }
 
-// writeRepoError maps a repo error to an HTTP response. repo.ErrUnauthenticated
-// is unreachable here — RequireAuth gates every route in Mount, so the repo's
-// currentUser() helper always finds a user.
-func writeRepoError(w http.ResponseWriter, op string, err error) {
-	var status int
-	switch {
-	case errors.Is(err, repo.ErrNotFound):
-		status = http.StatusNotFound
-	case errors.Is(err, repo.ErrInvalidLifecycle):
-		status = http.StatusBadRequest
-	default:
-		status = http.StatusInternalServerError
-	}
-	if status == http.StatusInternalServerError {
-		slog.Error(op, "err", err)
-		http.Error(w, "internal error", status)
-		return
-	}
-	http.Error(w, err.Error(), status)
+// writeInvalidID is a small shim around httperr.Write so the "invalid UUID
+// path param" call sites read at one level of abstraction. The field arg
+// is the JSON-style name the FE will interpolate ("id", "snapshot_id").
+func writeInvalidID(w http.ResponseWriter, field string) {
+	httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidID, map[string]any{"field": field})
+}
+
+// writeInvalidDate is the equivalent shim for a YYYY-MM-DD parse failure on
+// an optional body field. parseOptionalDate is field-agnostic by design;
+// the caller names the field at the write site.
+func writeInvalidDate(w http.ResponseWriter, field string) {
+	httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidDate, map[string]any{"field": field})
 }
 
 func parseIDParam(r *http.Request, name string) (uuid.UUID, error) {
 	return uuid.Parse(chi.URLParam(r, name))
 }
 
-func parseOptionalDate(s *string, field string) (*time.Time, error) {
+// parseOptionalDate parses a YYYY-MM-DD pointer-string into a UTC time. Empty
+// or nil input is a success with a nil time; an unparseable string returns
+// (nil, false) so the caller can emit INVALID_DATE with its known field
+// name rather than threading the field through here.
+func parseOptionalDate(s *string) (*time.Time, bool) {
 	if s == nil || *s == "" {
-		return nil, nil
+		return nil, true
 	}
 	t, err := time.Parse("2006-01-02", *s)
 	if err != nil {
-		return nil, fmt.Errorf("invalid %s: expected YYYY-MM-DD", field)
+		return nil, false
 	}
-	return &t, nil
+	return &t, true
 }
 
 func parseYearMonth(s string) (time.Time, error) {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/kerti/balances-v2/backend/internal/httperr"
 	"github.com/kerti/balances-v2/backend/internal/repo"
 )
 
@@ -18,21 +19,21 @@ type updateLifecycleReq struct {
 func (h *Handlers) handleUpdateLifecycle(w http.ResponseWriter, r *http.Request) {
 	id, err := parseIDParam(r, "id")
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeInvalidID(w, "id")
 		return
 	}
 	var req updateLifecycleReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid json body", http.StatusBadRequest)
+		httperr.Write(w, http.StatusBadRequest, httperr.CodeInvalidJSONBody, nil)
 		return
 	}
 	if err := h.validate.Struct(&req); err != nil {
-		http.Error(w, "invalid request: "+err.Error(), http.StatusBadRequest)
+		httperr.WriteValidation(w, err)
 		return
 	}
-	terminatedAt, err := parseOptionalDate(req.TerminatedAt, "terminated_at")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	terminatedAt, ok := parseOptionalDate(req.TerminatedAt)
+	if !ok {
+		writeInvalidDate(w, "terminated_at")
 		return
 	}
 
@@ -42,7 +43,7 @@ func (h *Handlers) handleUpdateLifecycle(w http.ResponseWriter, r *http.Request)
 		TerminationNote: req.TerminationNote,
 	})
 	if err != nil {
-		writeRepoError(w, "update receivable lifecycle", err)
+		httperr.WriteRepo(w, "update receivable lifecycle", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, receivable)

@@ -1138,6 +1138,62 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     specs including the new investments-extraction targets
     (`bond-snapshot`, `trade`, `dividend-fee`, `maturity`). No
     `data-testid` changes; no source changes outside `e2e/README.md`.
+- **Backend error-code envelope ADR + httperr package + receivables
+  template (M6, backend — issue #13, slices 1 + 2).** Closes the
+  Shape-C transition deferred by ADR-0026: HTTP errors move from
+  English `http.Error(...)` text bodies to a typed JSON envelope
+  `{code, args}` so future locales never touch Go. Codes are the wire
+  contract; the FE i18n catalog (`errors:code.<CODE>`) is the single
+  source of human copy — no `message` field on the wire.
+  - **ADR-0027 (slice 1, commit cf707e4).** Designs the envelope: shape
+    `{code, args}` with codes as SCREAMING_SNAKE_CASE strings, ten
+    sentinel-derived codes (`NOT_FOUND`, `INVALID_LIFECYCLE`,
+    `INVALID_SNAPSHOT_SHAPE`, `INVALID_TRANSACTION_TYPE`,
+    `INVALID_TRANSACTION_SHAPE`, `FX_RATE_EXISTS`,
+    `FOREIGN_POSITIONS_EXIST`, `POSITION_NOT_ACTIVE`, `INTERNAL`,
+    and `ErrUnauthenticated` deliberately unmapped) + twelve inline
+    codes for the parse/validation layer above the repo. Validator
+    field errors collapse into one generic `VALIDATION` code with
+    `{field, rule}` args (one catalog template handles every rule
+    via i18next interpolation). ADR-0026 link updated from "planned"
+    to live.
+  - **`internal/httperr` package (slice 2).** `Envelope` type +
+    `Write(w, status, code, args)` + `WriteRepo(w, op, err)` sentinel
+    switch + `WriteValidation(w, err)` first-field-error mapper +
+    `NewValidator()` that registers a JSON-tag-name func so the
+    `field` arg reads as the on-wire field name (`amount`, not
+    `Amount`). Codes live in `codes.go` as exported `Code` constants
+    with one-paragraph godoc per code documenting the trigger + the
+    mapped HTTP status. 8 test cases cover Write JSON shape +
+    `args: omitempty` + sentinel mapping (including `errors.Is`
+    traversal through `fmt.Errorf` wrapping) + the
+    `ErrUnauthenticated` fall-through to INTERNAL + validator
+    mapping for both struct-tag and oneof rules + the untagged-field
+    fallback to Go name (safety-net path; internal/* tags every
+    wire field).
+  - **Receivables template (slice 2).** Every `http.Error(...)` call
+    site in `internal/receivables/{receivables,lifecycle,import}.go`
+    swapped to `httperr.Write` / `WriteRepo` / `WriteValidation`. The
+    package-local `writeRepoError` helper deleted; `validator.New(...)`
+    construction swapped to `httperr.NewValidator()`. Two small shims
+    `writeInvalidID(w, field)` + `writeInvalidDate(w, field)` keep the
+    call sites at one level of abstraction. `parseOptionalDate`
+    signature simplified from `(s, field string) (*time.Time, error)`
+    to `(s *string) (*time.Time, bool)` — the field name is named at
+    the write site so the helper stays field-agnostic. `path /
+    snapshot path id` distinction surfaces in the envelope as
+    `{field: "id"}` vs `{field: "snapshot_id"}`. The other six BE
+    packages convert in slice 3; the FE swap (one
+    `errorMessage(err, t)` helper replacing ~50 local `formatError`
+    clones + `errors.json` populated EN+ID) lands as slice 4.
+  - **No test churn.** Two existing body-string assertions across
+    `internal/**/*_test.go` (`auth/handlers_test.go` checks the
+    response does *not* leak `google_sub`; `auth/callback_test.go`
+    checks an invitation-failure redirect mentions `invitation`) are
+    both out of scope for the envelope (the leak check passes
+    unchanged; the redirect path is exempt per ADR-0027) so no test
+    file in the receivables sweep needed editing — full backend suite
+    + new httperr unit tests green, `golangci-lint run` 0 issues.
 
 ## What M4.2 shipped
 
