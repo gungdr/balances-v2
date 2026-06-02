@@ -5,7 +5,7 @@ languages without code changes. UI strings move from hard-coded JSX literals to 
 catalogs, locale-aware number/date/currency formatting consolidates behind a single helper module,
 and the active locale is **persisted on the user row** so it survives device changes. Backend HTTP
 responses stay English in this milestone; a follow-up ADR will introduce a typed error-code envelope
-([[adr-0027]] — planned) so future locales don't touch Go code.
+([[adr-0027]]) so future locales don't touch Go code.
 
 ## Why now
 
@@ -164,7 +164,8 @@ inline-translation-then-sweep is avoided.
   `supportedLocales` map.
 - **HANDOFF gains a "Don't reintroduce bare JSX text" convention** under the existing FE-lint
   bullet, and an i18n entry in the M6-shipped list when the work completes.
-- **A follow-up ADR (0027) introduces a backend error-code envelope.** Tracking issue links it.
+- **[[adr-0027]] introduces the backend error-code envelope** that closes the Shape-C transition;
+  tracking issue #13 links it.
 - **Future languages: JSON files + a small `i18n/index.ts` edit.** Add
   `src/locales/<lang>/<ns>.json` files, extend the static-import block and the `resources` map
   in `i18n/index.ts` (keyed by full BCP47 — `'fr-FR'`, not `'fr'`), extend `SUPPORTED_LOCALES`,
