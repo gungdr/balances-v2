@@ -296,6 +296,22 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     aggregator comment notes the dependency. Vitest 164/164
     (+2), vite build green, eslint 0 errors. Net +171/−24
     across 10 files. Backend untouched.
+  - Auto-snapshot on Maturity (issues #17, closes #16):
+    `CreateInvestmentTransaction` for `TxnTypeMaturity` now
+    upserts an `investment_snapshots` row at
+    `firstOfMonth(transaction_date)` with `amount = principal +
+    interest` and `accrued_interest = interest` — atomic with
+    the existing flip to `matured`, idempotent via the
+    importer's `UpsertInvestmentSnapshot`. Resolves the
+    end-of-month-snap-at-0 misread (−100% P/L) for matured
+    bond / TD positions; `InvestmentHeadline` short-circuit
+    narrowed to `status === 'sold'` (sold manual-terminate flow
+    still has no auto-snap). `headline.closed.matured` +
+    `.default` i18n keys dropped EN+ID. Two new tenancy
+    sub-tests (basic + idempotent upsert over a pre-maturity
+    snap). Backend tests + golangci-lint green; vitest
+    164/164; vite build + ESLint 0 errors. Net +148/−22 across
+    5 files.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
@@ -573,14 +589,13 @@ invite-form relocation, the `users.nickname` build, vitest setup) — is preserv
   `lib/costBasis.ts`'s precise replay). Once landed, drop `hooks/useInvestmentBatch.ts`'s
   transactions batch (snapshots batch still needed for the time graph until a parallel monthly-
   series endpoint exists).
-- **Auto-snapshot on Maturity transaction (issue #17).** Filed during the #14 slice 14b grilling.
-  When a TD / bond matures mid-month, the user's end-of-month snapshot reads value=0 (cash already
-  paid out) and would produce a misleading −100% P/L on the detail-screen headline. Slice 14b ships
-  a short-circuit (suppress P/L + show "Matured on {date}" / "Sold on {date}") as a stop-gap. The
-  structural fix is backend: have `CreateInvestmentTransaction` insert a snapshot at `maturity_date`
-  with `amount = principal_amount + interest_amount` (and `accrued_interest = interest_amount` for
-  the accrued shape) in the same Tx that flips lifecycle to `matured`. Once landed, remove the
-  closed-status short-circuit in `InvestmentHeadline.tsx`.
+- **Auto-snapshot on Sell transaction.** Counterpart to the now-shipped #17 Maturity auto-snapshot:
+  a manually-terminated sold position still snaps to 0 the following month, leaving the
+  termination-month bar inflated on the closed-positions time graphs (#21) and forcing the
+  `InvestmentHeadline` to keep the sold-status short-circuit. Structurally similar fix — insert /
+  upsert a snapshot at the sale month with the realized proceeds — but the user-driven Sell flow is
+  more nuanced (partial vs. full disposal, no equivalent of `maturity_date`), so left as a separate
+  ticket for when usage signals it matters.
 
 ## Updating this document
 

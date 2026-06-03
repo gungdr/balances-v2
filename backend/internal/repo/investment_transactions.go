@@ -135,6 +135,34 @@ func (r *InvestmentRepo) CreateInvestmentTransaction(ctx context.Context, p Crea
 		}); err != nil {
 			return nil, fmt.Errorf("flip investment to matured: %w", err)
 		}
+
+		// Auto-snapshot at maturity month so the position's end-of-life value
+		// (principal + interest payout) lands in the carry-forward series and
+		// the detail-screen P/L compares cost basis against a meaningful
+		// number rather than the zero an end-of-month snapshot would record
+		// after the cash already left the position (issue #17, fixes #16).
+		// Bond + TimeDeposit are the only subtypes that accept Maturity
+		// (per validateInvestmentTransactionType) and both use the accrued
+		// shape, so amount = principal + interest and accrued_interest =
+		// interest. Upserts to win over any pre-maturity snap the user took
+		// in the same month — the maturity payout is the authoritative
+		// end-of-life value.
+		total := p.PrincipalAmount.Add(*p.InterestAmount)
+		interest := *p.InterestAmount
+		ym := time.Date(p.TransactionDate.Year(), p.TransactionDate.Month(), 1, 0, 0, 0, 0, time.UTC)
+		asOf := p.TransactionDate
+		if _, err := qtx.UpsertInvestmentSnapshot(ctx, db.UpsertInvestmentSnapshotParams{
+			ID:              p.InvestmentID,
+			YearMonth:       ym,
+			Amount:          total,
+			Currency:        p.Currency,
+			AccruedInterest: &interest,
+			AsOfDate:        &asOf,
+			CreatedBy:       &user,
+			HouseholdID:     hid,
+		}); err != nil {
+			return nil, fmt.Errorf("auto-snapshot on maturity: %w", err)
+		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {

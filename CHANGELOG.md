@@ -1745,6 +1745,70 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     0 errors (only pre-existing bare-JSX-text warnings remain).
     Net +171/−24 across 10 files. Backend untouched.
 
+- **Auto-snapshot on Maturity (M6, backend + frontend — issue #17,
+  fixes #16).** Structural fix flagged during #14 slice 14b
+  grilling and listed in the deferred backlog. When a Bond or
+  TimeDeposit Maturity transaction lands,
+  `CreateInvestmentTransaction` now upserts an
+  `investment_snapshots` row at `firstOfMonth(transaction_date)`
+  with `amount = principal_amount + interest_amount` and
+  `accrued_interest = interest_amount` — atomic with the existing
+  status flip to `matured`, in the same Tx. Bond + TimeDeposit are
+  the only subtypes that accept Maturity per
+  `validateInvestmentTransactionType` and both use the accrued
+  shape, so a single code path covers both. Reuses the existing
+  `UpsertInvestmentSnapshot` (the importer's idempotent path), so
+  a pre-maturity snap the user took earlier in the same month is
+  overwritten — the maturity payout is the authoritative
+  end-of-life value. Carry-forward into next months now reflects
+  the realized payout instead of the zero an end-of-month snap
+  would record after the cash already left the position, which
+  fixes the −100% P/L misread that #16 reported and was also the
+  root cause behind 14b's closed-status short-circuit + 14d/21's
+  mid-month-closure caveat in the cross-subtype graphs.
+  - `internal/repo/investment_transactions.go` —
+    `CreateInvestmentTransaction` gains the upsert call inside
+    the same Tx as `UpdateInvestmentLifecycle`; no new error
+    code (snapshot-shape is already validated by the type/shape
+    guards on the parent transaction).
+  - `internal/repo/investment_transactions_tenancy_test.go` —
+    new sub-test `alice maturity auto-creates snapshot at
+    maturity month` asserts the upserted row's `YearMonth`
+    (2027-01-01 for a 2027-01-15 maturity), `Amount` (principal +
+    interest), `AccruedInterest` (= interest), nil `Quantity` /
+    `PricePerUnit`, and `Currency`. New `maturity overwrites
+    pre-existing snapshot in same month` sub-test creates a
+    second TD, pre-creates a user snapshot for the maturity
+    month, then triggers Maturity and asserts the row was
+    overwritten with the payout values (same snapshot count).
+  - `frontend/src/components/InvestmentHeadline.tsx` — closed-
+    status short-circuit narrowed from "any closed status" to
+    `status === 'sold'`. Matured positions now flow through the
+    normal P/L branch, which produces the right number against
+    the new maturity-month snapshot. Sold positions keep the
+    short-circuit because the manual terminate flow doesn't
+    auto-snapshot — the latest snap is still the pre-sale value
+    and would render value=0 / −100% in the same misleading way.
+    File header comment rewritten to reflect the narrower scope.
+  - `frontend/src/locales/{en,id}/investments.json` —
+    `headline.closed.matured` + `headline.closed.default` dropped
+    (no longer rendered); `headline.closed.sold` retained for the
+    sold short-circuit.
+  - **Side note for #14 slice 14d / #21.** The mid-month-closure
+    caveat documented in `lib/listAggregates.ts` is now resolved
+    by this change for matured positions: the termination-month
+    bar reads the realized payout (positive value drops to 0 in
+    the following month as the position drops out). Sold
+    positions still suffer the inflated termination-month read
+    until a parallel auto-snapshot on Sell lands, which is not in
+    scope here. No changes to the aggregator are required —
+    carry-forward already does the right thing once the snapshot
+    exists.
+  - Go test suite all packages green; golangci-lint 0 issues;
+    vitest 164/164; vite build green; ESLint 0 errors (only
+    pre-existing bare-JSX-text warnings). Net +148/−22 across 5
+    files.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

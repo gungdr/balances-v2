@@ -214,9 +214,7 @@
     "unrealizedPL": "Untung/rugi belum direalisasi:",
     "unrealizedPLEmpty": "—",
     "closed": {
-      "matured": "Jatuh tempo pada:",
-      "sold": "Dijual pada:",
-      "default": "Ditutup pada:"
+      "sold": "Dijual pada:"
     }
   },
   "stock": {

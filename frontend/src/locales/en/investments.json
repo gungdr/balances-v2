@@ -214,9 +214,7 @@
     "unrealizedPL": "Unrealized P/L:",
     "unrealizedPLEmpty": "—",
     "closed": {
-      "matured": "Matured on:",
-      "sold": "Sold on:",
-      "default": "Closed on:"
+      "sold": "Sold on:"
     }
   },
   "stock": {

@@ -370,6 +370,109 @@ func TestInvestmentTransaction_TenancyAndCRUD(t *testing.T) {
 		}
 	})
 
+	// Issue #17 — Maturity auto-creates a snapshot at the maturity month
+	// with the realized payout (principal + interest) so the detail-screen
+	// P/L compares cost basis against a meaningful end-of-life value rather
+	// than the zero an unaware end-of-month snap would record.
+	t.Run("alice maturity auto-creates snapshot at maturity month", func(t *testing.T) {
+		snaps, err := r.ListInvestmentSnapshots(aliceCtx, td.Investment.ID)
+		if err != nil {
+			t.Fatalf("ListInvestmentSnapshots: %v", err)
+		}
+		if len(snaps) != 1 {
+			t.Fatalf("td snapshots after maturity: got %d, want 1", len(snaps))
+		}
+		s := snaps[0]
+		wantYM := time.Date(2027, time.January, 1, 0, 0, 0, 0, time.UTC)
+		if !s.YearMonth.Equal(wantYM) {
+			t.Errorf("snapshot YearMonth: got %s, want %s", s.YearMonth.Format("2006-01-02"), wantYM.Format("2006-01-02"))
+		}
+		wantTotal := matPrincipal.Add(matInterest)
+		if !s.Amount.Equal(wantTotal) {
+			t.Errorf("snapshot Amount: got %s, want %s", s.Amount.String(), wantTotal.String())
+		}
+		if s.AccruedInterest == nil || !s.AccruedInterest.Equal(matInterest) {
+			t.Errorf("snapshot AccruedInterest: got %v, want %s", s.AccruedInterest, matInterest.String())
+		}
+		if s.Quantity != nil {
+			t.Errorf("snapshot Quantity should be nil for TD (accrued shape); got %v", s.Quantity)
+		}
+		if s.PricePerUnit != nil {
+			t.Errorf("snapshot PricePerUnit should be nil for TD (accrued shape); got %v", s.PricePerUnit)
+		}
+		if s.Currency != "IDR" {
+			t.Errorf("snapshot Currency: got %q, want %q", s.Currency, "IDR")
+		}
+	})
+
+	// Idempotency: when the user took a pre-maturity snap in the same month
+	// (e.g., an end-of-prev-month carry-forward or a mid-month estimate), the
+	// Maturity upsert wins and the snapshot now reads the authoritative
+	// payout.
+	t.Run("maturity overwrites pre-existing snapshot in same month", func(t *testing.T) {
+		td2InterestRate, _ := decimal.NewFromString("4.0")
+		td2, err := r.CreateTimeDeposit(aliceCtx, repo.CreateTimeDepositParams{
+			DisplayName:    "Mandiri TD",
+			OwnershipType:  "joint",
+			NativeCurrency: "IDR",
+			RiskProfile:    "low",
+			BankName:       "Mandiri",
+			Principal:      decimal.NewFromInt(20_000_000),
+			InterestRate:   td2InterestRate,
+			TermMonths:     6,
+			PlacementDate:  time.Date(2026, time.January, 10, 0, 0, 0, 0, time.UTC),
+			MaturityDate:   time.Date(2026, time.July, 10, 0, 0, 0, 0, time.UTC),
+			RolloverPolicy: "auto_renew_principal",
+		})
+		if err != nil {
+			t.Fatalf("CreateTimeDeposit td2: %v", err)
+		}
+
+		// Pre-maturity snap dated mid-July, recording user's estimate.
+		preAccrued := decimal.NewFromInt(100_000)
+		preYM := time.Date(2026, time.July, 1, 0, 0, 0, 0, time.UTC)
+		if _, err := r.CreateInvestmentSnapshot(aliceCtx, repo.CreateInvestmentSnapshotParams{
+			InvestmentID:    td2.Investment.ID,
+			YearMonth:       preYM,
+			Amount:          decimal.NewFromInt(20_100_000),
+			Currency:        "IDR",
+			AccruedInterest: &preAccrued,
+		}); err != nil {
+			t.Fatalf("CreateInvestmentSnapshot pre-maturity: %v", err)
+		}
+
+		// Maturity in the same month: payout = principal 20M + interest 400k.
+		matP := decimal.NewFromInt(20_000_000)
+		matI := decimal.NewFromInt(400_000)
+		if _, err := r.CreateInvestmentTransaction(aliceCtx, repo.CreateInvestmentTransactionParams{
+			InvestmentID:         td2.Investment.ID,
+			TransactionType:      repo.TxnTypeMaturity,
+			TransactionDate:      time.Date(2026, time.July, 10, 0, 0, 0, 0, time.UTC),
+			Currency:             "IDR",
+			PrincipalAmount:      &matP,
+			InterestAmount:       &matI,
+			PrincipalDisposition: &cashOut,
+			InterestDisposition:  &cashOut,
+		}); err != nil {
+			t.Fatalf("CreateInvestmentTransaction maturity td2: %v", err)
+		}
+
+		snaps, err := r.ListInvestmentSnapshots(aliceCtx, td2.Investment.ID)
+		if err != nil {
+			t.Fatalf("ListInvestmentSnapshots td2: %v", err)
+		}
+		if len(snaps) != 1 {
+			t.Fatalf("td2 snapshots after maturity upsert: got %d, want 1", len(snaps))
+		}
+		wantTotal := matP.Add(matI)
+		if !snaps[0].Amount.Equal(wantTotal) {
+			t.Errorf("upserted snapshot Amount: got %s, want %s", snaps[0].Amount.String(), wantTotal.String())
+		}
+		if snaps[0].AccruedInterest == nil || !snaps[0].AccruedInterest.Equal(matI) {
+			t.Errorf("upserted snapshot AccruedInterest: got %v, want %s", snaps[0].AccruedInterest, matI.String())
+		}
+	})
+
 	t.Run("alice delete fee removes it", func(t *testing.T) {
 		if err := r.DeleteInvestmentTransaction(aliceCtx, aliceFee.ID); err != nil {
 			t.Fatalf("DeleteInvestmentTransaction: %v", err)
