@@ -1694,6 +1694,57 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
   vite build green, eslint 0 errors. Net +17/0 across 13 files.
   Backend untouched.
 
+- **Investment graphs include closed positions (M6, frontend —
+  issue #21).** The list-screen time graphs (#14 slice 14c) and the
+  Investments-home cross-subtype graphs (#14 slice 14d) were
+  active-only, which hid the historical shape of the portfolio: a
+  sold or matured position vanished from the chart as soon as its
+  lifecycle flipped, so the user saw a step-down rather than a
+  continuous curve through the months the position was actually
+  held. Fixed at the pure-aggregator layer:
+  - `lib/listAggregates.ts` — `Position` gains
+    `terminated_at: string | null`. `aggregateMonthly` walks
+    *all* positions (not just `active`) and caps each one's
+    contribution at its termination month (`month > termMonth`
+    skips). Carry-forward still works within the held window;
+    after the termination month the position drops out cleanly.
+    Headline + count remain `active`-only — closed positions
+    have no current value/cost to attribute.
+  - `lib/homeAggregates.ts` — same treatment for
+    `aggregateMonthlyByCategory` so the 100%-stacked category
+    chart also reflects the historical share. Pies stay
+    current-state (active-only); the category stack now mixes
+    all-history (closed-cap aware) with active-only pies, so the
+    `byCurrencyAll` / `byCurrencyActive` split makes the
+    convention explicit at the grouping step.
+  - All 5 list screens (`Stocks/MutualFunds/Bonds/TimeDeposits/
+    Golds`) + `InvestmentsHome` thread
+    `terminated_at: item.investment.terminated_at` into the
+    `Position` rows they build. No type changes on the wire —
+    `Investment.terminated_at` is already on every list payload.
+  - **Caveat that intersects #17.** Without auto-snapshot on
+    Maturity (#17), a position closed mid-month has its
+    pre-maturity snapshot as its last value, so the
+    termination-month bar will read inflated (the principal
+    pre-payout, not the realized 0). Once #17 lands and the
+    backend inserts a `maturity_date` snapshot at the realized
+    payout, the bar drops to 0 in the termination month, then
+    the position drops out the next month — exactly the shape
+    the user wants. This is documented in
+    `lib/listAggregates.ts`'s `aggregateMonthly` comment as a
+    known issue, not a bug to chase here.
+  - Unit tests extended: two new `listAggregates` cases (closed
+    position capped at terminated month + month-strictly-after
+    omission); the homeAggregates "excludes terminated" case
+    rewritten to assert the headline/pies-vs-series split. No
+    changes to `costBasis.ts` or to `useInvestmentBatch.ts` —
+    closed positions were already being fetched by the existing
+    batch hooks (the filter happened in the aggregator, not at
+    the fetch).
+  - Vitest 164/164 (+2 listAggregates), vite build green, eslint
+    0 errors (only pre-existing bare-JSX-text warnings remain).
+    Net +171/−24 across 10 files. Backend untouched.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

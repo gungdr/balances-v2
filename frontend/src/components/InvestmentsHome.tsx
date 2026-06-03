@@ -132,6 +132,7 @@ export function InvestmentsHome() {
         id: it.investment.id,
         currency: it.investment.native_currency,
         status: it.investment.status,
+        terminated_at: it.investment.terminated_at,
         latestValue: it.latest_snapshot
           ? Number(it.latest_snapshot.amount)
           : null,
@@ -150,6 +151,7 @@ export function InvestmentsHome() {
         id: it.investment.id,
         currency: it.investment.native_currency,
         status: it.investment.status,
+        terminated_at: it.investment.terminated_at,
         latestValue: it.latest_snapshot
           ? Number(it.latest_snapshot.amount)
           : null,
@@ -170,6 +172,7 @@ export function InvestmentsHome() {
         id: it.investment.id,
         currency: it.investment.native_currency,
         status: it.investment.status,
+        terminated_at: it.investment.terminated_at,
         latestValue: it.latest_snapshot
           ? Number(it.latest_snapshot.amount)
           : null,
@@ -190,6 +193,7 @@ export function InvestmentsHome() {
         id: it.investment.id,
         currency: it.investment.native_currency,
         status: it.investment.status,
+        terminated_at: it.investment.terminated_at,
         latestValue: it.latest_snapshot
           ? Number(it.latest_snapshot.amount)
           : null,
@@ -208,6 +212,7 @@ export function InvestmentsHome() {
         id: it.investment.id,
         currency: it.investment.native_currency,
         status: it.investment.status,
+        terminated_at: it.investment.terminated_at,
         latestValue: it.latest_snapshot
           ? Number(it.latest_snapshot.amount)
           : null,

@@ -97,6 +97,7 @@ export function StocksScreen({ onSelect }: Props) {
           id: item.investment.id,
           currency: item.investment.native_currency,
           status: item.investment.status,
+          terminated_at: item.investment.terminated_at,
           latestValue: item.latest_snapshot
             ? Number(item.latest_snapshot.amount)
             : null,

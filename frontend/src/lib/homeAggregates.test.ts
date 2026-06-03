@@ -9,6 +9,7 @@ const pos = (
 ): HomePosition => ({
   currency: 'IDR',
   status: 'active',
+  terminated_at: null,
   latestValue: 0,
   cost: 0,
   snapshots: [],
@@ -158,20 +159,27 @@ describe('aggregateHomePositions', () => {
     ])
   })
 
-  it('excludes terminated positions from every output', () => {
+  it('excludes terminated positions from headline + pies but keeps them in time + category series', () => {
+    // Issue #21: closed positions show historically up to their
+    // terminated_at month, then drop out. Pies + headline reflect
+    // current state only, so closed positions are excluded there.
     const r = aggregateHomePositions([
       pos({
         id: 'a',
         category: 'stock',
         latestValue: 100,
-        snapshots: [{ year_month: '2026-01', amount: '100' }],
+        snapshots: [
+          { year_month: '2026-01', amount: '100' },
+          { year_month: '2026-02', amount: '100' },
+        ],
       }),
       pos({
         id: 'b',
         status: 'sold',
-        category: 'stock',
+        terminated_at: '2026-01-20T00:00:00Z',
+        category: 'bond',
         latestValue: 9999,
-        snapshots: [{ year_month: '2026-01', amount: '9999' }],
+        snapshots: [{ year_month: '2026-01', amount: '300' }],
       }),
     ])
     expect(r.byCurrency).toEqual([
@@ -184,10 +192,21 @@ describe('aggregateHomePositions', () => {
       { category: 'timeDeposit', value: 0 },
       { category: 'gold', value: 0 },
     ])
+    // Category stack: Jan includes both; Feb only the active stock.
     const idr = r.categorySeriesByCurrency.get('IDR')!
     expect(idr).toEqual([
       {
         year_month: '2026-01',
+        byCategory: {
+          stock: 100,
+          mutualFund: 0,
+          bond: 300,
+          timeDeposit: 0,
+          gold: 0,
+        },
+      },
+      {
+        year_month: '2026-02',
         byCategory: {
           stock: 100,
           mutualFund: 0,

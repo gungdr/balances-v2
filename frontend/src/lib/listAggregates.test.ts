@@ -4,6 +4,7 @@ import { aggregateListPositions, type Position } from '@/lib/listAggregates'
 const pos = (overrides: Partial<Position> & { id: string }): Position => ({
   currency: 'IDR',
   status: 'active',
+  terminated_at: null,
   latestValue: 0,
   cost: 0,
   snapshots: [],
@@ -189,5 +190,82 @@ describe('aggregateListPositions — time series', () => {
     // byCurrency still records the cost; series map skips empty.
     expect(r.byCurrency).toHaveLength(1)
     expect(r.timeSeriesByCurrency.has('IDR')).toBe(false)
+  })
+
+  it('includes closed positions historically, capped at terminated_at', () => {
+    // Issue #21: a sold/matured position must still show in the
+    // time series for the months it was held, then drop out.
+    const r = aggregateListPositions([
+      pos({
+        id: 'active',
+        latestValue: 100,
+        cost: 100,
+        snapshots: [
+          { year_month: '2026-01', amount: '100' },
+          { year_month: '2026-02', amount: '100' },
+          { year_month: '2026-03', amount: '100' },
+        ],
+        costSeries: [
+          { year_month: '2026-01', cost: 100 },
+          { year_month: '2026-02', cost: 100 },
+          { year_month: '2026-03', cost: 100 },
+        ],
+      }),
+      pos({
+        id: 'sold',
+        status: 'sold',
+        // Position terminated mid-February.
+        terminated_at: '2026-02-15T00:00:00Z',
+        latestValue: 0,
+        cost: 0,
+        snapshots: [
+          { year_month: '2026-01', amount: '200' },
+          { year_month: '2026-02', amount: '0' },
+        ],
+        costSeries: [
+          { year_month: '2026-01', cost: 150 },
+          { year_month: '2026-02', cost: 0 },
+        ],
+      }),
+    ])
+    // Closed position is excluded from the headline (active-only).
+    expect(r.byCurrency).toEqual([
+      { currency: 'IDR', value: 100, cost: 100, pl: 0 },
+    ])
+    expect(r.count).toBe(1)
+    // But appears in the time series through its termination month.
+    const idr = r.timeSeriesByCurrency.get('IDR')!
+    expect(idr).toEqual([
+      { year_month: '2026-01', value: 300, cost: 250 },
+      { year_month: '2026-02', value: 100, cost: 100 },
+      // March: sold has dropped; only active remains.
+      { year_month: '2026-03', value: 100, cost: 100 },
+    ])
+  })
+
+  it('omits closed-position contribution in months strictly after terminated_at', () => {
+    const r = aggregateListPositions([
+      pos({
+        id: 'sold',
+        status: 'sold',
+        terminated_at: '2026-01-31T00:00:00Z',
+        snapshots: [{ year_month: '2026-01', amount: '500' }],
+        costSeries: [{ year_month: '2026-01', cost: 400 }],
+      }),
+      pos({
+        id: 'active',
+        latestValue: 10,
+        cost: 10,
+        snapshots: [
+          { year_month: '2026-02', amount: '10' },
+        ],
+        costSeries: [{ year_month: '2026-02', cost: 10 }],
+      }),
+    ])
+    const idr = r.timeSeriesByCurrency.get('IDR')!
+    // Jan: sold contributes 500/400; active not yet.
+    expect(idr[0]).toEqual({ year_month: '2026-01', value: 500, cost: 400 })
+    // Feb: sold dropped (Jan was termination month); only active.
+    expect(idr[1]).toEqual({ year_month: '2026-02', value: 10, cost: 10 })
   })
 })

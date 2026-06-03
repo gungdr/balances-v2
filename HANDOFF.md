@@ -284,6 +284,18 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     / `max={thisYearMonth()}` unchanged. Vitest 162/162, vite
     build green, eslint 0 errors. Net +17/0 across 13 files.
     Backend untouched.
+  - Investment graphs include closed positions (issue #21):
+    `lib/listAggregates.ts` + `lib/homeAggregates.ts` now keep
+    terminated positions in their time series, capped at the
+    position's `terminated_at` month — headline + count + pies
+    stay active-only (current state), only the historical
+    over-time views change. `Position` gains
+    `terminated_at: string | null`, threaded through all 5 list
+    screens + `InvestmentsHome`. Mid-month closures will read
+    inflated until #17 (auto-snapshot on Maturity) lands; the
+    aggregator comment notes the dependency. Vitest 164/164
+    (+2), vite build green, eslint 0 errors. Net +171/−24
+    across 10 files. Backend untouched.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

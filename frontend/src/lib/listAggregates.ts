@@ -7,16 +7,24 @@
 // existing list-screen headlines (`lib/totals.ts`). Mixed-currency
 // households get one card per currency.
 //
-// **Active-only.** Matches `activeCurrencyTotals` — terminated positions
-// drop out of both the headline and the time graph. Historical
-// inclusion of sold/matured positions in the chart is a future ask; if
-// users want it, flip a flag here.
+// **Headline + count are active-only** (`activeCurrencyTotals` parity —
+// closed positions have no current value/cost). **Time series includes
+// terminated positions historically** (issue #21): each position
+// contributes carry-forward up to and including its `terminated_at`
+// month, then drops out. Without this, a sold/matured position
+// vanishes from the chart entirely, hiding the portfolio's past
+// shape.
 
 export type Position = {
   id: string
   currency: string
-  // `'active'` | `'sold'` | `'matured'` | …  Only `'active'` rows count.
+  // `'active'` | `'sold'` | `'matured'` | …  Only `'active'` rows count
+  // toward the headline; closed rows still appear in the time series up
+  // to their `terminated_at` month.
   status: string
+  // ISO timestamp for closed positions, null for active. Caps the
+  // position's contribution to the time series at that YYYY-MM.
+  terminated_at: string | null
   latestValue: number | null
   // "As of now" cost basis. Caller computes via lib/costBasis per the
   // subtype's quirk (ledger replay for Stock/MF/Gold/Bond-secondary;
@@ -88,9 +96,11 @@ export function aggregateListPositions(
       (a, b) => b.value - a.value || a.currency.localeCompare(b.currency),
     )
 
-  // Per-currency monthly series (carry-forward).
+  // Per-currency monthly series (carry-forward). Includes closed
+  // positions historically (issue #21) — `aggregateMonthly` caps each
+  // position at its `terminated_at` month.
   const byCurrencyPositions = new Map<string, Position[]>()
-  for (const p of active) {
+  for (const p of positions) {
     if (!byCurrencyPositions.has(p.currency)) {
       byCurrencyPositions.set(p.currency, [])
     }
@@ -116,11 +126,18 @@ export function aggregateListPositions(
 // snapshot at-or-before M (carry-forward) and its cost-basis at M, then
 // sums. Cursors are per-position so the inner loop is O(1) amortized
 // across the sorted months.
+//
+// Closed positions (terminated_at set) contribute their carry-forward
+// up to and including their termination month, then 0 afterwards
+// (issue #21). Without #17 their termination-month value will be the
+// last pre-maturity snapshot rather than the realized payout; once #17
+// lands the auto-snapshot will correct that.
 function aggregateMonthly(positions: Position[]): TimePoint[] {
   type Sorted = {
     months: string[]
     values: number[]
     costs: number[]
+    termMonth: string | null
   }
   const sorted: Sorted[] = positions.map((p) => {
     // Build {month → (value, cost)} so snapshot + cost lookups merge by
@@ -145,6 +162,7 @@ function aggregateMonthly(positions: Position[]): TimePoint[] {
       months,
       values: months.map((m) => byMonth.get(m)!.value),
       costs: months.map((m) => byMonth.get(m)!.cost),
+      termMonth: p.terminated_at ? monthOf(p.terminated_at) : null,
     }
   })
 
@@ -157,6 +175,9 @@ function aggregateMonthly(positions: Position[]): TimePoint[] {
     let value = 0
     let cost = 0
     for (let i = 0; i < sorted.length; i++) {
+      if (sorted[i].termMonth !== null && month > sorted[i].termMonth!) {
+        continue
+      }
       while (
         cursors[i] + 1 < sorted[i].months.length &&
         sorted[i].months[cursors[i] + 1] <= month

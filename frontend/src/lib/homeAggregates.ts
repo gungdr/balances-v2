@@ -8,7 +8,10 @@
 // currencies are reported in their own cards (one set of 4 charts per
 // currency), so a multi-currency household sees 4 × N cards.
 //
-// Active-only. Terminated positions drop out of every output.
+// **Current-state outputs (headline, pies) are active-only**. **Time
+// series + category stack include terminated positions historically**
+// (issue #21), with each position capped at its `terminated_at` month
+// — mirroring `lib/listAggregates.ts`.
 //
 // Extends listAggregates with:
 //   - categorySeriesByCurrency: monthly value share per category, carry-
@@ -88,15 +91,15 @@ const emptyByCategory = (): Record<InvestmentCategory, number> => ({
 export function aggregateHomePositions(
   positions: HomePosition[],
 ): HomeAggregates {
-  const active = positions.filter((p) => p.status === 'active')
-
-  // Value/cost headline + per-currency time series come straight from the
-  // list aggregator. Strip the extra fields so the call is type-clean.
+  // Headline + time series come straight from the list aggregator,
+  // which already does the active-only headline + all-positions time
+  // series split. Strip the extra fields so the call is type-clean.
   const base = aggregateListPositions(
-    active.map((p) => ({
+    positions.map((p) => ({
       id: p.id,
       currency: p.currency,
       status: p.status,
+      terminated_at: p.terminated_at,
       latestValue: p.latestValue,
       cost: p.cost,
       snapshots: p.snapshots,
@@ -104,24 +107,32 @@ export function aggregateHomePositions(
     })),
   )
 
-  // Group active positions by currency for the new outputs.
-  const byCurrencyPositions = new Map<string, HomePosition[]>()
-  for (const p of active) {
-    if (!byCurrencyPositions.has(p.currency)) {
-      byCurrencyPositions.set(p.currency, [])
+  // Category stack series includes closed positions historically (capped
+  // at terminated_at). Pies are current-state only — closed positions
+  // have no current value to attribute.
+  const byCurrencyAll = new Map<string, HomePosition[]>()
+  const byCurrencyActive = new Map<string, HomePosition[]>()
+  for (const p of positions) {
+    if (!byCurrencyAll.has(p.currency)) byCurrencyAll.set(p.currency, [])
+    byCurrencyAll.get(p.currency)!.push(p)
+    if (p.status === 'active') {
+      if (!byCurrencyActive.has(p.currency))
+        byCurrencyActive.set(p.currency, [])
+      byCurrencyActive.get(p.currency)!.push(p)
     }
-    byCurrencyPositions.get(p.currency)!.push(p)
   }
 
   const categorySeriesByCurrency = new Map<string, CategoryTimePoint[]>()
   const categoryPieByCurrency = new Map<string, CategorySlice[]>()
   const riskPieByCurrency = new Map<string, RiskSlice[]>()
 
-  for (const [currency, ps] of byCurrencyPositions) {
+  for (const [currency, ps] of byCurrencyAll) {
     const series = aggregateMonthlyByCategory(ps)
     if (series.length > 0) {
       categorySeriesByCurrency.set(currency, series)
     }
+  }
+  for (const [currency, ps] of byCurrencyActive) {
     categoryPieByCurrency.set(currency, currentCategoryPie(ps))
     riskPieByCurrency.set(currency, currentRiskPie(ps))
   }
@@ -140,6 +151,9 @@ export function aggregateHomePositions(
 // aggregateMonthly. For each month and each position, picks the
 // latest-at-or-before snapshot value and attributes it to the position's
 // category. Cost is not needed here — the stacked chart is share-of-value.
+//
+// Closed positions contribute carry-forward up to their `terminated_at`
+// month, then drop out (issue #21), matching listAggregates.
 function aggregateMonthlyByCategory(
   positions: HomePosition[],
 ): CategoryTimePoint[] {
@@ -147,6 +161,7 @@ function aggregateMonthlyByCategory(
     category: InvestmentCategory
     months: string[]
     values: number[]
+    termMonth: string | null
   }
   const sorted: Sorted[] = positions.map((p) => {
     const byMonth = new Map<string, number>()
@@ -158,6 +173,7 @@ function aggregateMonthlyByCategory(
       category: p.category,
       months,
       values: months.map((m) => byMonth.get(m)!),
+      termMonth: p.terminated_at ? monthOf(p.terminated_at) : null,
     }
   })
 
@@ -169,6 +185,9 @@ function aggregateMonthlyByCategory(
   for (const month of allMonths) {
     const byCategory = emptyByCategory()
     for (let i = 0; i < sorted.length; i++) {
+      if (sorted[i].termMonth !== null && month > sorted[i].termMonth!) {
+        continue
+      }
       while (
         cursors[i] + 1 < sorted[i].months.length &&
         sorted[i].months[cursors[i] + 1] <= month
