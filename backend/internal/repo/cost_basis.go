@@ -27,30 +27,37 @@ func costBasisFromLedger(txns []db.InvestmentTransaction) decimal.Decimal {
 	cost := decimal.Zero
 	qty := decimal.Zero
 	for _, tx := range txns {
-		switch tx.TransactionType {
-		case "buy":
-			if tx.Amount != nil && tx.Quantity != nil {
-				cost = cost.Add(*tx.Amount)
-				qty = qty.Add(*tx.Quantity)
-			}
-		case "sell":
-			if tx.Quantity == nil || !qty.IsPositive() {
-				continue
-			}
-			sellQty := *tx.Quantity
-			if sellQty.GreaterThan(qty) {
-				sellQty = qty
-			}
-			// reduce cost proportionally: cost*sellQty/qty
-			cost = cost.Sub(cost.Mul(sellQty).Div(qty))
-			qty = qty.Sub(sellQty)
-		case "fee":
-			if tx.Amount != nil {
-				cost = cost.Add(*tx.Amount)
-			}
-		}
+		applyLedgerTxn(&cost, &qty, tx)
 	}
 	return cost
+}
+
+// applyLedgerTxn advances the running (cost, qty) by one transaction per the
+// avg-cost rules above. Shared by costBasisFromLedger (terminal figure) and
+// costSeriesAtMonths (per-month series) so the two never drift.
+func applyLedgerTxn(cost, qty *decimal.Decimal, tx db.InvestmentTransaction) {
+	switch tx.TransactionType {
+	case "buy":
+		if tx.Amount != nil && tx.Quantity != nil {
+			*cost = cost.Add(*tx.Amount)
+			*qty = qty.Add(*tx.Quantity)
+		}
+	case "sell":
+		if tx.Quantity == nil || !qty.IsPositive() {
+			return
+		}
+		sellQty := *tx.Quantity
+		if sellQty.GreaterThan(*qty) {
+			sellQty = *qty
+		}
+		// reduce cost proportionally: cost*sellQty/qty
+		*cost = cost.Sub(cost.Mul(sellQty).Div(*qty))
+		*qty = qty.Sub(sellQty)
+	case "fee":
+		if tx.Amount != nil {
+			*cost = cost.Add(*tx.Amount)
+		}
+	}
 }
 
 // ledgerHasBuy reports whether the ledger holds at least one buy transaction.

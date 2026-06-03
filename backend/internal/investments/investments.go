@@ -112,6 +112,11 @@ func (h *Handlers) Mount(r chi.Router) {
 			})
 		})
 
+		// Per-position monthly value + cost series for the list/home time
+		// graphs (issue #22). Static single segment, so no clash with the
+		// two-segment /{id}/… routes below.
+		r.Get("/time-series", h.handleInvestmentTimeSeries)
+
 		r.Route("/{id}/snapshots", func(r chi.Router) {
 			r.Post("/", h.handleCreateSnapshot)
 			r.Get("/", h.handleListSnapshots)
@@ -138,6 +143,18 @@ func (h *Handlers) Mount(r chi.Router) {
 			r.Patch("/", h.handleUpdateLifecycle)
 		})
 	})
+}
+
+// handleInvestmentTimeSeries returns the per-position monthly value + cost
+// series for every investment in the household (issue #22), feeding the
+// list/home time graphs without a per-position fan-out.
+func (h *Handlers) handleInvestmentTimeSeries(w http.ResponseWriter, r *http.Request) {
+	series, err := h.repo.InvestmentTimeSeries(r.Context())
+	if err != nil {
+		httperr.WriteRepo(w, "investment time series", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, series)
 }
 
 // ----- helpers shared across handlers -------------------------------------

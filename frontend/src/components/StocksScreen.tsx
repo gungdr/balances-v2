@@ -11,15 +11,11 @@ import {
   type RiskProfileFilterValue,
 } from '@/components/RiskProfileFilter'
 import { useStocks } from '@/hooks/useInvestments'
-import {
-  useInvestmentBatchSnapshots,
-  useInvestmentBatchTransactions,
-} from '@/hooks/useInvestmentBatch'
+import { useInvestmentTimeSeries } from '@/hooks/useInvestmentTimeSeries'
 import { useTableSort, type ColumnSort } from '@/hooks/useTableSort'
 import { CreateStockDialog } from '@/components/CreateStockDialog'
 import { StockListRow } from '@/components/StockListRow'
 import { isActiveStatus, statusLabel } from '@/lib/lifecycle'
-import { costBasisSeries } from '@/lib/costBasis'
 import { aggregateListPositions, type Position } from '@/lib/listAggregates'
 import { byNumberNullsLast, byText } from '@/lib/sort'
 import type { StockListItem } from '@/api/types'
@@ -78,22 +74,14 @@ export function StocksScreen({ onSelect }: Props) {
     tiebreak: tiebreakByName,
   })
 
-  // The headline cost basis now rides on the list payload (item.cost_basis,
-  // issue #18) — robust even if the transactions batch below fails. The
-  // batch survives only to feed the time graph's per-month cost *series*
-  // (costBasisSeries); a monthly-series endpoint would let it drop too.
-  const ids = useMemo(
-    () => (data ?? []).map((it) => it.investment.id),
-    [data],
-  )
-  const snapshotsBatch = useInvestmentBatchSnapshots(ids)
-  const transactionsBatch = useInvestmentBatchTransactions(ids)
-
+  // Headline reads item.cost_basis + item.latest_snapshot off the list
+  // payload (#18). The time graph's per-month value + cost series come from
+  // one household-scoped fetch (#22) instead of a per-position fan-out.
+  const timeSeries = useInvestmentTimeSeries()
   const positions = useMemo<Position[]>(
     () =>
       (data ?? []).map((item) => {
-        const snaps = snapshotsBatch.byId.get(item.investment.id) ?? []
-        const txns = transactionsBatch.byId.get(item.investment.id) ?? []
+        const ts = timeSeries.byId.get(item.investment.id)
         return {
           id: item.investment.id,
           currency: item.investment.native_currency,
@@ -103,11 +91,11 @@ export function StocksScreen({ onSelect }: Props) {
             ? Number(item.latest_snapshot.amount)
             : null,
           cost: Number(item.cost_basis),
-          snapshots: snaps,
-          costSeries: costBasisSeries(snaps, txns),
+          snapshots: ts?.snapshots ?? [],
+          costSeries: ts?.costSeries ?? [],
         }
       }),
-    [data, snapshotsBatch.byId, transactionsBatch.byId],
+    [data, timeSeries.byId],
   )
   const aggregates = useMemo(
     () => aggregateListPositions(positions),

@@ -11,15 +11,11 @@ import {
   type RiskProfileFilterValue,
 } from '@/components/RiskProfileFilter'
 import { useBonds } from '@/hooks/useInvestments'
-import {
-  useInvestmentBatchSnapshots,
-  useInvestmentBatchTransactions,
-} from '@/hooks/useInvestmentBatch'
+import { useInvestmentTimeSeries } from '@/hooks/useInvestmentTimeSeries'
 import { useTableSort, type ColumnSort } from '@/hooks/useTableSort'
 import { CreateBondDialog } from '@/components/CreateBondDialog'
 import { BondListRow } from '@/components/BondListRow'
 import { isActiveStatus, statusLabel } from '@/lib/lifecycle'
-import { costBasisSeries, flatCostSeries } from '@/lib/costBasis'
 import { aggregateListPositions, type Position } from '@/lib/listAggregates'
 import { byNumberNullsLast, byText } from '@/lib/sort'
 import type { BondListItem } from '@/api/types'
@@ -75,29 +71,14 @@ export function BondsScreen({ onSelect }: Props) {
     tiebreak: tiebreakByName,
   })
 
-  const ids = useMemo(
-    () => (data ?? []).map((it) => it.investment.id),
-    [data],
-  )
-  const snapshotsBatch = useInvestmentBatchSnapshots(ids)
-  const transactionsBatch = useInvestmentBatchTransactions(ids)
-  // Bonds branch on hasBuys: secondary-market bonds have real Buy txns
-  // and use ledger replay; govt-primary bonds carry face_value on
-  // bond_details (no Buy txn recorded) and fall back to flat cost.
-  // Same rule as BondDetail.tsx.
+  // Headline cost from the list payload (#18); the time-graph value + cost
+  // series come from one household-scoped fetch (#22) — the backend handles
+  // the bond hasBuys → ledger | face_value branch, so no client replay here.
+  const timeSeries = useInvestmentTimeSeries()
   const positions = useMemo<Position[]>(
     () =>
       (data ?? []).map((item) => {
-        const snaps = snapshotsBatch.byId.get(item.investment.id) ?? []
-        const txns = transactionsBatch.byId.get(item.investment.id) ?? []
-        // Backend already branches hasBuys → ledger | face_value for the
-        // headline cost (issue #18); the frontend only re-derives the
-        // per-month cost *series* the time graph needs.
-        const hasBuys = txns.some((tx) => tx.transaction_type === 'buy')
-        const cost = Number(item.cost_basis)
-        const costSeries = hasBuys
-          ? costBasisSeries(snaps, txns)
-          : flatCostSeries(snaps, Number(item.details.face_value))
+        const ts = timeSeries.byId.get(item.investment.id)
         return {
           id: item.investment.id,
           currency: item.investment.native_currency,
@@ -106,12 +87,12 @@ export function BondsScreen({ onSelect }: Props) {
           latestValue: item.latest_snapshot
             ? Number(item.latest_snapshot.amount)
             : null,
-          cost,
-          snapshots: snaps,
-          costSeries,
+          cost: Number(item.cost_basis),
+          snapshots: ts?.snapshots ?? [],
+          costSeries: ts?.costSeries ?? [],
         }
       }),
-    [data, snapshotsBatch.byId, transactionsBatch.byId],
+    [data, timeSeries.byId],
   )
   const aggregates = useMemo(
     () => aggregateListPositions(positions),

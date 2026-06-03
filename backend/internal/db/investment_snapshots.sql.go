@@ -125,6 +125,53 @@ func (q *Queries) GetInvestmentSnapshotByID(ctx context.Context, arg GetInvestme
 	return i, err
 }
 
+const listInvestmentSnapshotsByInvestmentIDs = `-- name: ListInvestmentSnapshotsByInvestmentIDs :many
+SELECT id, investment_id, year_month, amount, currency, quantity, price_per_unit, accrued_interest, as_of_date, description, created_by, created_at, updated_by, updated_at, deleted_at
+FROM investment_snapshots
+WHERE investment_id = ANY($1::uuid[]) AND deleted_at IS NULL
+ORDER BY investment_id, year_month
+`
+
+// Batch fetch of every (non-deleted) snapshot across many investments, for the
+// list/home time-graph value + cost series (issue #22). Household-scoped IDs
+// supplied by the caller (mirrors ListLatestInvestmentSnapshotsByInvestmentIDs).
+// Ascending by year_month so the repo can build each series in order.
+func (q *Queries) ListInvestmentSnapshotsByInvestmentIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]InvestmentSnapshot, error) {
+	rows, err := q.db.Query(ctx, listInvestmentSnapshotsByInvestmentIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []InvestmentSnapshot
+	for rows.Next() {
+		var i InvestmentSnapshot
+		if err := rows.Scan(
+			&i.ID,
+			&i.InvestmentID,
+			&i.YearMonth,
+			&i.Amount,
+			&i.Currency,
+			&i.Quantity,
+			&i.PricePerUnit,
+			&i.AccruedInterest,
+			&i.AsOfDate,
+			&i.Description,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.UpdatedBy,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listInvestmentSnapshotsForInvestment = `-- name: ListInvestmentSnapshotsForInvestment :many
 SELECT s.id, s.investment_id, s.year_month, s.amount, s.currency, s.quantity, s.price_per_unit, s.accrued_interest, s.as_of_date, s.description, s.created_by, s.created_at, s.updated_by, s.updated_at, s.deleted_at
 FROM investment_snapshots s

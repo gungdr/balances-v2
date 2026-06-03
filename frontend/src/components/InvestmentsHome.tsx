@@ -14,10 +14,9 @@
 // **Active-only.** Terminated positions drop out of every output, same
 // as `aggregateListPositions`.
 //
-// Headline cost basis rides on each list payload now (item.cost_basis,
-// issue #18). The remaining N-parallel transactions batch only feeds the
-// per-month cost *series* the time graphs plot — a monthly-series endpoint
-// would retire it.
+// Headline cost basis rides on each list payload (item.cost_basis, #18); the
+// per-month value + cost series for the charts come from one household-scoped
+// fetch (`useInvestmentTimeSeries`, #22) — no per-position fan-out.
 
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -42,14 +41,7 @@ import {
   useStocks,
   useTimeDeposits,
 } from '@/hooks/useInvestments'
-import {
-  useInvestmentBatchSnapshots,
-  useInvestmentBatchTransactions,
-} from '@/hooks/useInvestmentBatch'
-import {
-  costBasisSeries,
-  flatCostSeries,
-} from '@/lib/costBasis'
+import { useInvestmentTimeSeries } from '@/hooks/useInvestmentTimeSeries'
 import {
   aggregateHomePositions,
   INVESTMENT_CATEGORIES,
@@ -58,6 +50,15 @@ import {
   type InvestmentCategory,
   type InvestmentRiskProfile,
 } from '@/lib/homeAggregates'
+import type { Investment, InvestmentSnapshot } from '@/api/types'
+
+// The common subset of every subtype's *ListItem the home aggregation reads —
+// lets one `push` helper map all five lists (each adds its own `details`).
+type HomeListItem = {
+  investment: Investment
+  latest_snapshot: InvestmentSnapshot | null
+  cost_basis: string
+}
 
 // Mirror of CATEGORY_FILLS in CategoryStackChartImpl so the pie matches
 // the stacked area visually. Kept duplicated rather than re-exported so
@@ -91,139 +92,40 @@ export function InvestmentsHome() {
   const noun = t('investments:list.noun')
   const nounPlural = t('investments:list.nounPlural')
 
-  const allIds = useMemo<string[]>(
-    () => [
-      ...(stocks.data ?? []).map((it) => it.investment.id),
-      ...(mutualFunds.data ?? []).map((it) => it.investment.id),
-      ...(bonds.data ?? []).map((it) => it.investment.id),
-      // TD doesn't need snapshots for cost basis (flat principal) but
-      // it does need snapshots for the value time series; include it
-      // in the snapshot batch.
-      ...(timeDeposits.data ?? []).map((it) => it.investment.id),
-      ...(golds.data ?? []).map((it) => it.investment.id),
-    ],
-    [stocks.data, mutualFunds.data, bonds.data, timeDeposits.data, golds.data],
-  )
+  const timeSeries = useInvestmentTimeSeries()
 
-  // Transactions feed the time-graph cost *series* for stock / MF / gold
-  // and the Bond hasBuys branch (the headline cost now comes from
-  // item.cost_basis). TD has no transaction-derived series. Query keys are
-  // shared with the detail pages so the cache hits later.
-  const txnIds = useMemo<string[]>(
-    () => [
-      ...(stocks.data ?? []).map((it) => it.investment.id),
-      ...(mutualFunds.data ?? []).map((it) => it.investment.id),
-      ...(bonds.data ?? []).map((it) => it.investment.id),
-      ...(golds.data ?? []).map((it) => it.investment.id),
-    ],
-    [stocks.data, mutualFunds.data, bonds.data, golds.data],
-  )
-
-  const snapshotsBatch = useInvestmentBatchSnapshots(allIds)
-  const transactionsBatch = useInvestmentBatchTransactions(txnIds)
-
+  // Each subtype's list items map to the same HomePosition shape — headline
+  // cost from item.cost_basis (#18), value + cost series from the time-series
+  // fetch (#22). Only the category literal differs.
   const positions = useMemo<HomePosition[]>(() => {
     const out: HomePosition[] = []
-
-    for (const it of stocks.data ?? []) {
-      const snaps = snapshotsBatch.byId.get(it.investment.id) ?? []
-      const txns = transactionsBatch.byId.get(it.investment.id) ?? []
-      out.push({
-        id: it.investment.id,
-        currency: it.investment.native_currency,
-        status: it.investment.status,
-        terminated_at: it.investment.terminated_at,
-        latestValue: it.latest_snapshot
-          ? Number(it.latest_snapshot.amount)
-          : null,
-        cost: Number(it.cost_basis),
-        snapshots: snaps,
-        costSeries: costBasisSeries(snaps, txns),
-        category: 'stock',
-        riskProfile: it.investment.risk_profile,
-      })
+    const push = (
+      items: HomeListItem[] | undefined,
+      category: InvestmentCategory,
+    ) => {
+      for (const it of items ?? []) {
+        const ts = timeSeries.byId.get(it.investment.id)
+        out.push({
+          id: it.investment.id,
+          currency: it.investment.native_currency,
+          status: it.investment.status,
+          terminated_at: it.investment.terminated_at,
+          latestValue: it.latest_snapshot
+            ? Number(it.latest_snapshot.amount)
+            : null,
+          cost: Number(it.cost_basis),
+          snapshots: ts?.snapshots ?? [],
+          costSeries: ts?.costSeries ?? [],
+          category,
+          riskProfile: it.investment.risk_profile,
+        })
+      }
     }
-
-    for (const it of mutualFunds.data ?? []) {
-      const snaps = snapshotsBatch.byId.get(it.investment.id) ?? []
-      const txns = transactionsBatch.byId.get(it.investment.id) ?? []
-      out.push({
-        id: it.investment.id,
-        currency: it.investment.native_currency,
-        status: it.investment.status,
-        terminated_at: it.investment.terminated_at,
-        latestValue: it.latest_snapshot
-          ? Number(it.latest_snapshot.amount)
-          : null,
-        cost: Number(it.cost_basis),
-        snapshots: snaps,
-        costSeries: costBasisSeries(snaps, txns),
-        category: 'mutualFund',
-        riskProfile: it.investment.risk_profile,
-      })
-    }
-
-    for (const it of bonds.data ?? []) {
-      const snaps = snapshotsBatch.byId.get(it.investment.id) ?? []
-      const txns = transactionsBatch.byId.get(it.investment.id) ?? []
-      const hasBuys = txns.some((tx) => tx.transaction_type === 'buy')
-      const faceValue = Number(it.details.face_value)
-      out.push({
-        id: it.investment.id,
-        currency: it.investment.native_currency,
-        status: it.investment.status,
-        terminated_at: it.investment.terminated_at,
-        latestValue: it.latest_snapshot
-          ? Number(it.latest_snapshot.amount)
-          : null,
-        cost: Number(it.cost_basis),
-        snapshots: snaps,
-        costSeries: hasBuys
-          ? costBasisSeries(snaps, txns)
-          : flatCostSeries(snaps, faceValue),
-        category: 'bond',
-        riskProfile: it.investment.risk_profile,
-      })
-    }
-
-    for (const it of timeDeposits.data ?? []) {
-      const snaps = snapshotsBatch.byId.get(it.investment.id) ?? []
-      const principal = Number(it.details.principal)
-      out.push({
-        id: it.investment.id,
-        currency: it.investment.native_currency,
-        status: it.investment.status,
-        terminated_at: it.investment.terminated_at,
-        latestValue: it.latest_snapshot
-          ? Number(it.latest_snapshot.amount)
-          : null,
-        cost: Number(it.cost_basis),
-        snapshots: snaps,
-        costSeries: flatCostSeries(snaps, principal),
-        category: 'timeDeposit',
-        riskProfile: it.investment.risk_profile,
-      })
-    }
-
-    for (const it of golds.data ?? []) {
-      const snaps = snapshotsBatch.byId.get(it.investment.id) ?? []
-      const txns = transactionsBatch.byId.get(it.investment.id) ?? []
-      out.push({
-        id: it.investment.id,
-        currency: it.investment.native_currency,
-        status: it.investment.status,
-        terminated_at: it.investment.terminated_at,
-        latestValue: it.latest_snapshot
-          ? Number(it.latest_snapshot.amount)
-          : null,
-        cost: Number(it.cost_basis),
-        snapshots: snaps,
-        costSeries: costBasisSeries(snaps, txns),
-        category: 'gold',
-        riskProfile: it.investment.risk_profile,
-      })
-    }
-
+    push(stocks.data, 'stock')
+    push(mutualFunds.data, 'mutualFund')
+    push(bonds.data, 'bond')
+    push(timeDeposits.data, 'timeDeposit')
+    push(golds.data, 'gold')
     return out
   }, [
     stocks.data,
@@ -231,8 +133,7 @@ export function InvestmentsHome() {
     bonds.data,
     timeDeposits.data,
     golds.data,
-    snapshotsBatch.byId,
-    transactionsBatch.byId,
+    timeSeries.byId,
   ])
 
   const aggregates = useMemo(

@@ -67,6 +67,16 @@ FROM investment_snapshots
 WHERE investment_id = ANY($1::uuid[]) AND deleted_at IS NULL
 ORDER BY investment_id, year_month DESC;
 
+-- Batch fetch of every (non-deleted) snapshot across many investments, for the
+-- list/home time-graph value + cost series (issue #22). Household-scoped IDs
+-- supplied by the caller (mirrors ListLatestInvestmentSnapshotsByInvestmentIDs).
+-- Ascending by year_month so the repo can build each series in order.
+-- name: ListInvestmentSnapshotsByInvestmentIDs :many
+SELECT *
+FROM investment_snapshots
+WHERE investment_id = ANY($1::uuid[]) AND deleted_at IS NULL
+ORDER BY investment_id, year_month;
+
 -- name: SoftDeleteInvestmentSnapshot :execrows
 UPDATE investment_snapshots s
 SET deleted_at = now(),

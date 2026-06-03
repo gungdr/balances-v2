@@ -321,6 +321,15 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     headline (robust to a failed txn batch); the txn batch survives only
     for the time-graph cost series — full removal tracked in **#22**
     (monthly cost-basis series endpoint).
+  - Monthly cost-basis series endpoint (issue #22): new
+    `GET /api/investments/time-series` returns every position's monthly
+    `value_series` + `cost_series` in one household-scoped call (Go
+    `InvestmentTimeSeries`, cost sampled at snapshot months to mirror
+    `lib/costBasis.ts`). Retires the per-position `useInvestmentBatch*`
+    fan-out: all 6 list/home screens now drive their time graphs from one
+    `useInvestmentTimeSeries` fetch; the old hook + all client-side
+    `costBasisSeries`/`flatCostSeries` on the list screens are gone
+    (detail screens keep `lib/costBasis.ts`). Closes the #18 follow-up.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

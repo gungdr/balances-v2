@@ -11,12 +11,11 @@ import {
   type RiskProfileFilterValue,
 } from '@/components/RiskProfileFilter'
 import { useTimeDeposits } from '@/hooks/useInvestments'
-import { useInvestmentBatchSnapshots } from '@/hooks/useInvestmentBatch'
+import { useInvestmentTimeSeries } from '@/hooks/useInvestmentTimeSeries'
 import { useTableSort, type ColumnSort } from '@/hooks/useTableSort'
 import { CreateTimeDepositDialog } from '@/components/CreateTimeDepositDialog'
 import { TimeDepositListRow } from '@/components/TimeDepositListRow'
 import { isActiveStatus, statusLabel } from '@/lib/lifecycle'
-import { flatCostSeries } from '@/lib/costBasis'
 import { aggregateListPositions, type Position } from '@/lib/listAggregates'
 import { byNumberNullsLast, byText } from '@/lib/sort'
 import type { TimeDepositListItem } from '@/api/types'
@@ -72,19 +71,14 @@ export function TimeDepositsScreen({ onSelect }: Props) {
     tiebreak: tiebreakByName,
   })
 
-  // Time deposits carry cost on `details.principal`; ledger has only
-  // Maturity (terminal). So no transactions fetch — snapshots-only batch
-  // for the time-graph series.
-  const ids = useMemo(
-    () => (data ?? []).map((it) => it.investment.id),
-    [data],
-  )
-  const snapshotsBatch = useInvestmentBatchSnapshots(ids)
+  // Headline cost from the list payload (#18); the time-graph value + cost
+  // series come from one household-scoped fetch (#22) — the backend emits a
+  // flat principal cost series for TDs (ledger has only terminal Maturity).
+  const timeSeries = useInvestmentTimeSeries()
   const positions = useMemo<Position[]>(
     () =>
       (data ?? []).map((item) => {
-        const snaps = snapshotsBatch.byId.get(item.investment.id) ?? []
-        const principal = Number(item.details.principal)
+        const ts = timeSeries.byId.get(item.investment.id)
         return {
           id: item.investment.id,
           currency: item.investment.native_currency,
@@ -94,11 +88,11 @@ export function TimeDepositsScreen({ onSelect }: Props) {
             ? Number(item.latest_snapshot.amount)
             : null,
           cost: Number(item.cost_basis),
-          snapshots: snaps,
-          costSeries: flatCostSeries(snaps, principal),
+          snapshots: ts?.snapshots ?? [],
+          costSeries: ts?.costSeries ?? [],
         }
       }),
-    [data, snapshotsBatch.byId],
+    [data, timeSeries.byId],
   )
   const aggregates = useMemo(
     () => aggregateListPositions(positions),

@@ -11,15 +11,11 @@ import {
   type RiskProfileFilterValue,
 } from '@/components/RiskProfileFilter'
 import { useGolds } from '@/hooks/useInvestments'
-import {
-  useInvestmentBatchSnapshots,
-  useInvestmentBatchTransactions,
-} from '@/hooks/useInvestmentBatch'
+import { useInvestmentTimeSeries } from '@/hooks/useInvestmentTimeSeries'
 import { useTableSort, type ColumnSort } from '@/hooks/useTableSort'
 import { CreateGoldDialog } from '@/components/CreateGoldDialog'
 import { GoldListRow } from '@/components/GoldListRow'
 import { isActiveStatus, statusLabel } from '@/lib/lifecycle'
-import { costBasisSeries } from '@/lib/costBasis'
 import { aggregateListPositions, type Position } from '@/lib/listAggregates'
 import { byNumberNullsLast, byText } from '@/lib/sort'
 import type { GoldListItem } from '@/api/types'
@@ -75,17 +71,13 @@ export function GoldsScreen({ onSelect }: Props) {
     tiebreak: tiebreakByName,
   })
 
-  const ids = useMemo(
-    () => (data ?? []).map((it) => it.investment.id),
-    [data],
-  )
-  const snapshotsBatch = useInvestmentBatchSnapshots(ids)
-  const transactionsBatch = useInvestmentBatchTransactions(ids)
+  // Headline from the list payload (#18); time-graph series from one
+  // household-scoped fetch (#22).
+  const timeSeries = useInvestmentTimeSeries()
   const positions = useMemo<Position[]>(
     () =>
       (data ?? []).map((item) => {
-        const snaps = snapshotsBatch.byId.get(item.investment.id) ?? []
-        const txns = transactionsBatch.byId.get(item.investment.id) ?? []
+        const ts = timeSeries.byId.get(item.investment.id)
         return {
           id: item.investment.id,
           currency: item.investment.native_currency,
@@ -95,11 +87,11 @@ export function GoldsScreen({ onSelect }: Props) {
             ? Number(item.latest_snapshot.amount)
             : null,
           cost: Number(item.cost_basis),
-          snapshots: snaps,
-          costSeries: costBasisSeries(snaps, txns),
+          snapshots: ts?.snapshots ?? [],
+          costSeries: ts?.costSeries ?? [],
         }
       }),
-    [data, snapshotsBatch.byId, transactionsBatch.byId],
+    [data, timeSeries.byId],
   )
   const aggregates = useMemo(
     () => aggregateListPositions(positions),

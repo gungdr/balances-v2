@@ -1862,6 +1862,51 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     build green; vitest 164/164; Playwright E2E 16/16. Net +249/−42
     across 20 files + 1 new.
 
+- **Monthly cost-basis series endpoint — retires the list-screen fan-out
+  (M6, backend + frontend — issue #22, the #18 follow-up).** #18 made the
+  list *headline* self-contained but the time graphs still plotted a
+  per-month cost *line* from each position's full ledger, so
+  `useInvestmentBatchTransactions` (+ `useInvestmentBatchSnapshots`)
+  lived on as an N-parallel `useQueries` fan-out. This adds a single
+  household-scoped endpoint that returns every position's monthly value +
+  cost series, and rewires all six list/home screens onto it.
+  - `backend/queries/investment_snapshots.sql` — new
+    `ListInvestmentSnapshotsByInvestmentIDs :many` (all non-deleted
+    snapshots across the household-scoped ID set, ascending by
+    `investment_id, year_month`), mirroring the latest-only batch above.
+    `sqlc generate` regenerated.
+  - `backend/internal/repo/investment_time_series.go` (new) —
+    `InvestmentTimeSeries` lists every household investment once, batch
+    fetches snapshots + transactions + bond/TD details, and builds per
+    position a `value_series` (snapshot amounts) + `cost_series`. Cost is
+    sampled **at snapshot months** (`costSeriesAtMonths`) — the exact
+    mirror of `lib/costBasis.ts#costBasisSeries` — so every cost point
+    shares a month with a value point and the value carry-forward in
+    `aggregateMonthly` stays correct. Stock/MF/Gold replay the ledger;
+    Bond branches `ledgerHasBuy ? replay : flat face_value`; TD is flat
+    principal. `cost_basis.go` refactored to share one `applyLedgerTxn`
+    step between the terminal figure (#18) and the series so they can't
+    drift.
+  - `backend/internal/investments/investments.go` — new
+    `GET /investments/time-series` route + `handleInvestmentTimeSeries`
+    (a single static segment, no clash with the two-segment `/{id}/…`
+    routes). Two handler tests: a full Stock ledger series (Jan buy →
+    1,000,000, Feb buy → 1,500,000, carried into Mar) and the TD flat
+    principal series.
+  - Frontend: new `hooks/useInvestmentTimeSeries.ts` (one
+    `['investment-time-series']` query, pre-mapped to a
+    `Map<id, {snapshots, costSeries}>`) replaces `useInvestmentBatch.ts`
+    (deleted). All five subtype list screens + `InvestmentsHome` drop the
+    `useInvestmentBatch*` calls and the per-screen
+    `costBasisSeries`/`flatCostSeries`/`computeCostBasis` replay — the
+    Bond `hasBuys` branch and the TD `principal`/flat logic move
+    server-side. `InvestmentsHome` collapses its five per-subtype loops
+    into one `push(items, category)` helper over a shared `HomeListItem`
+    shape. Detail screens are untouched and keep `lib/costBasis.ts`.
+  - All green: backend suite + `go vet` + gofmt + golangci-lint 0 issues;
+    ESLint 0 errors; vite build green; vitest 164/164; Playwright E2E
+    16/16.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:
