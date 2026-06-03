@@ -125,6 +125,7 @@ export function CreateReceivableDialog() {
               <Input
                 id="due_date"
                 type="date"
+                max="9999-12-31"
                 value={form.due_date}
                 onChange={(e) =>
                   setForm({ ...form, due_date: e.target.value })

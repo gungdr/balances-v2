@@ -136,6 +136,7 @@ export function TerminatePositionDialog({
                 id="lifecycle_terminated_at"
                 type="date"
                 required
+                max="9999-12-31"
                 value={terminatedAt}
                 onChange={(e) => setTerminatedAt(e.target.value)}
               />

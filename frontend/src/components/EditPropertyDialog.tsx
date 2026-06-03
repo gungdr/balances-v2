@@ -125,6 +125,7 @@ export function EditPropertyDialog({ open, onOpenChange, property }: Props) {
               <Input
                 id="edit_p_acq_date"
                 type="date"
+                max="9999-12-31"
                 value={form.acquisition_date}
                 onChange={(e) =>
                   setForm({ ...form, acquisition_date: e.target.value })

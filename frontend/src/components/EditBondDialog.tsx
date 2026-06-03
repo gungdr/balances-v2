@@ -238,6 +238,7 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
                 id="edit_bond_maturity"
                 required
                 type="date"
+                max="9999-12-31"
                 value={form.maturity_date}
                 onChange={(e) =>
                   setForm({ ...form, maturity_date: e.target.value })

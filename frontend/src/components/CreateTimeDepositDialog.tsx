@@ -243,6 +243,7 @@ export function CreateTimeDepositDialog() {
                   id="td_placement_date"
                   required
                   type="date"
+                  max="9999-12-31"
                   value={form.placement_date}
                   onChange={(e) => setPlacement(e.target.value)}
                 />
@@ -255,6 +256,7 @@ export function CreateTimeDepositDialog() {
                   id="td_maturity_date"
                   required
                   type="date"
+                  max="9999-12-31"
                   value={form.maturity_date}
                   onChange={(e) =>
                     setForm({ ...form, maturity_date: e.target.value })

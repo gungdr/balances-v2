@@ -1677,6 +1677,23 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     Playwright E2E deferred per the
     no-Playwright-while-experimenting workflow note.
 
+- **Date inputs capped at 4-digit year (M6, frontend — issue #15).**
+  HTML `<input type="date">` will happily accept a 6-digit year
+  (e.g. `203045-01-01`) when no `max` is set — surfaced first on the
+  Create Bond dialog's `maturity_date`, but the same bug existed on
+  every unbounded date input. Added `max="9999-12-31"` to all 17 sites
+  across 13 dialogs that didn't already have a tighter cap: bond
+  maturity (Create + Edit), TD placement + maturity (Create + Edit),
+  liability start + maturity (Create + Edit), receivable due (Create +
+  Edit), income date (Create + Edit), property acquisition_date
+  (Create + Edit), and `TerminatePositionDialog.terminated_at`. The
+  existing `max={todayDate()}` / `max={thisYearMonth()}` past-only
+  caps on snapshot + transaction dialogs (5+5 snapshot + 7
+  transaction sites) already exclude the 6-digit case as a side
+  effect of clamping to today, so they're unchanged. Vitest 162/162,
+  vite build green, eslint 0 errors. Net +17/0 across 13 files.
+  Backend untouched.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

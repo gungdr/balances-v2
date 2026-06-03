@@ -149,6 +149,7 @@ export function CreatePropertyDialog() {
               <Input
                 id="acquisition_date"
                 type="date"
+                max="9999-12-31"
                 value={form.acquisition_date}
                 onChange={(e) =>
                   setForm({ ...form, acquisition_date: e.target.value })

@@ -152,6 +152,7 @@ export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
               <Input
                 id="edit_l_start"
                 type="date"
+                max="9999-12-31"
                 value={form.start_date}
                 onChange={(e) =>
                   setForm({ ...form, start_date: e.target.value })
@@ -165,6 +166,7 @@ export function EditLiabilityDialog({ open, onOpenChange, liability }: Props) {
               <Input
                 id="edit_l_maturity"
                 type="date"
+                max="9999-12-31"
                 value={form.maturity_date}
                 onChange={(e) =>
                   setForm({ ...form, maturity_date: e.target.value })

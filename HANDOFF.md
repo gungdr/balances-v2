@@ -275,6 +275,15 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     162/162 (+9 new), vite build green (3 new lazy chunks:
     CategoryStackChartImpl, InvestmentPieChartImpl, AreaChart),
     eslint 0 errors on new code. Backend untouched.
+  - Date inputs 4-digit year cap (issue #15): `max="9999-12-31"`
+    added to 17 unbounded `<input type="date">` sites across 13
+    dialogs (bond/TD maturity, TD placement, liability start +
+    maturity, receivable due, income date, property acquisition,
+    terminated_at) so the picker no longer accepts a 6-digit
+    year. Past-only inputs already capped via `max={todayDate()}`
+    / `max={thisYearMonth()}` unchanged. Vitest 162/162, vite
+    build green, eslint 0 errors. Net +17/0 across 13 files.
+    Backend untouched.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

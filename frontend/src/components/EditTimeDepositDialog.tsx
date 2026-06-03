@@ -191,6 +191,7 @@ export function EditTimeDepositDialog({
                   id="edit_td_placement_date"
                   required
                   type="date"
+                  max="9999-12-31"
                   value={form.placement_date}
                   onChange={(e) =>
                     setForm({ ...form, placement_date: e.target.value })
@@ -205,6 +206,7 @@ export function EditTimeDepositDialog({
                   id="edit_td_maturity_date"
                   required
                   type="date"
+                  max="9999-12-31"
                   value={form.maturity_date}
                   onChange={(e) =>
                     setForm({ ...form, maturity_date: e.target.value })

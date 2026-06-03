@@ -87,6 +87,7 @@ export function EditIncomeDialog({ open, onOpenChange, income }: Props) {
                 id="edit_income_date"
                 type="date"
                 required
+                max="9999-12-31"
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
               />
