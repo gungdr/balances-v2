@@ -3,18 +3,28 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { SortableHeader } from '@/components/SortableHeader'
-import { ListHeadline } from '@/components/ListHeadline'
+import { InvestmentListHeadline } from '@/components/InvestmentListHeadline'
+import { ListTimeGraph } from '@/components/ListTimeGraph'
 import { ShowInactiveToggle } from '@/components/ShowInactiveToggle'
 import {
   RiskProfileFilter,
   type RiskProfileFilterValue,
 } from '@/components/RiskProfileFilter'
 import { useBonds } from '@/hooks/useInvestments'
+import {
+  useInvestmentBatchSnapshots,
+  useInvestmentBatchTransactions,
+} from '@/hooks/useInvestmentBatch'
 import { useTableSort, type ColumnSort } from '@/hooks/useTableSort'
 import { CreateBondDialog } from '@/components/CreateBondDialog'
 import { BondListRow } from '@/components/BondListRow'
 import { isActiveStatus, statusLabel } from '@/lib/lifecycle'
-import { activeCurrencyTotals } from '@/lib/totals'
+import {
+  computeCostBasis,
+  costBasisSeries,
+  flatCostSeries,
+} from '@/lib/costBasis'
+import { aggregateListPositions, type Position } from '@/lib/listAggregates'
 import { byNumberNullsLast, byText } from '@/lib/sort'
 import type { BondListItem } from '@/api/types'
 
@@ -69,12 +79,45 @@ export function BondsScreen({ onSelect }: Props) {
     tiebreak: tiebreakByName,
   })
 
-  const { totals, count } = useMemo(
+  const ids = useMemo(
+    () => (data ?? []).map((it) => it.investment.id),
+    [data],
+  )
+  const snapshotsBatch = useInvestmentBatchSnapshots(ids)
+  const transactionsBatch = useInvestmentBatchTransactions(ids)
+  // Bonds branch on hasBuys: secondary-market bonds have real Buy txns
+  // and use ledger replay; govt-primary bonds carry face_value on
+  // bond_details (no Buy txn recorded) and fall back to flat cost.
+  // Same rule as BondDetail.tsx.
+  const positions = useMemo<Position[]>(
     () =>
-      activeCurrencyTotals(
-        rows.map((r) => ({ status: r.status, snapshot: r.item.latest_snapshot })),
-      ),
-    [rows],
+      (data ?? []).map((item) => {
+        const snaps = snapshotsBatch.byId.get(item.investment.id) ?? []
+        const txns = transactionsBatch.byId.get(item.investment.id) ?? []
+        const hasBuys = txns.some((tx) => tx.transaction_type === 'buy')
+        const cost = hasBuys
+          ? computeCostBasis(txns).cost
+          : Number(item.details.face_value)
+        const costSeries = hasBuys
+          ? costBasisSeries(snaps, txns)
+          : flatCostSeries(snaps, Number(item.details.face_value))
+        return {
+          id: item.investment.id,
+          currency: item.investment.native_currency,
+          status: item.investment.status,
+          latestValue: item.latest_snapshot
+            ? Number(item.latest_snapshot.amount)
+            : null,
+          cost,
+          snapshots: snaps,
+          costSeries,
+        }
+      }),
+    [data, snapshotsBatch.byId, transactionsBatch.byId],
+  )
+  const aggregates = useMemo(
+    () => aggregateListPositions(positions),
+    [positions],
   )
 
   const terminatedCount = rows.filter((r) => !isActiveStatus(r.status)).length
@@ -99,14 +142,15 @@ export function BondsScreen({ onSelect }: Props) {
         <CreateBondDialog />
       </div>
 
-      <ListHeadline
-        totals={totals}
-        count={count}
-        label={t('investments:list.totalValue')}
+      <InvestmentListHeadline
+        aggregates={aggregates.byCurrency}
+        count={aggregates.count}
         noun={noun}
         nounPlural={nounPlural}
         testId="bonds-total"
       />
+
+      <ListTimeGraph timeSeriesByCurrency={aggregates.timeSeriesByCurrency} />
 
       {isPending && (
         <p className="text-sm text-muted-foreground">{t('common:loading')}</p>

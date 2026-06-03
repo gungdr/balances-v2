@@ -189,6 +189,29 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     `bond.totalCouponsLabel`/`totalFeesLabel` populated EN+ID. Net
     +345/−183 across 11 files; vitest 127/127, vite build green,
     eslint 0 errors.
+  - Investment screens enhancements (issue #14, slice 14c of 4):
+    list-screen headline now shows aggregate Value / Cost / P/L per
+    currency (`InvestmentListHeadline` swaps the existing
+    `ListHeadline` on all 5 investment list screens), and a new
+    `ListTimeGraph` renders one card per currency with the
+    SnapshotChart's value-Area + cost-Line. New
+    `lib/listAggregates.ts` (10 unit tests) sums per-currency
+    {value, cost, pl} and builds carry-forward monthly series.
+    New `hooks/useInvestmentBatch.ts` (`useInvestmentBatchSnapshots`
+    + `useInvestmentBatchTransactions`) wraps `useQueries` with
+    the same per-position query keys as the detail-screen hooks
+    so the cache is shared. Stock/MF/Gold use ledger replay
+    (`computeCostBasis`); Bond branches on `hasBuys` (ledger or
+    flat face_value); TD always uses flat principal (no
+    transactions fetch — TD ledger has only Maturity). New keys
+    `investments.list.{totalCost,unrealizedPL,chartTitle,
+    chartDescription}` EN+ID. Multi-currency households see one
+    chart card per currency (no FX, matching the no-FX list
+    convention); the structural fix for the per-list N parallel
+    fetches is tracked in **#18** (backend cost_basis aggregate
+    on each subtype's ListItem). Net +600/−16 across 12 files
+    (7 modified + 5 new); vitest 153/153 (+10 new), vite build
+    green, eslint 0 errors. Backend untouched.
   - Investment screens enhancements (issue #14, slice 14b of 4):
     cost-basis line on the detail-screen time graphs + headline
     `Total cost` / `Unrealized P/L` row beneath each H1. New pure
@@ -487,6 +510,15 @@ invite-form relocation, the `users.nickname` build, vitest setup) — is preserv
 - **Component tests (RTL + MSW + jsdom).** Deferred until component tests begin (ADR-0021). Vitest
   covers `lib/*` today. Do **not** add Playwright/E2E to the coverage metric — it's a behavioural
   net, not a coverage instrument.
+- **Backend cost_basis aggregate on investment ListItems (issue #18).** Filed during the #14 slice
+  14c grilling. Each subtype's list query gains a derived `cost_basis` column so the list payload is
+  self-contained — today the 5 list screens fan out N parallel `useQueries` (snapshots +
+  transactions) per subtype to compute cost on the client. Bond / TimeDeposit get easy wins
+  (`face_value`, `principal` already in the row); Stock / MF / Gold need a SQL ledger replay or a
+  simpler "cumulative buys − cumulative sells at avg" approximation (document the divergence vs
+  `lib/costBasis.ts`'s precise replay). Once landed, drop `hooks/useInvestmentBatch.ts`'s
+  transactions batch (snapshots batch still needed for the time graph until a parallel monthly-
+  series endpoint exists).
 - **Auto-snapshot on Maturity transaction (issue #17).** Filed during the #14 slice 14b grilling.
   When a TD / bond matures mid-month, the user's end-of-month snapshot reads value=0 (cash already
   paid out) and would produce a misleading −100% P/L on the detail-screen headline. Slice 14b ships

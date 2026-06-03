@@ -3,18 +3,21 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { SortableHeader } from '@/components/SortableHeader'
-import { ListHeadline } from '@/components/ListHeadline'
+import { InvestmentListHeadline } from '@/components/InvestmentListHeadline'
+import { ListTimeGraph } from '@/components/ListTimeGraph'
 import { ShowInactiveToggle } from '@/components/ShowInactiveToggle'
 import {
   RiskProfileFilter,
   type RiskProfileFilterValue,
 } from '@/components/RiskProfileFilter'
 import { useTimeDeposits } from '@/hooks/useInvestments'
+import { useInvestmentBatchSnapshots } from '@/hooks/useInvestmentBatch'
 import { useTableSort, type ColumnSort } from '@/hooks/useTableSort'
 import { CreateTimeDepositDialog } from '@/components/CreateTimeDepositDialog'
 import { TimeDepositListRow } from '@/components/TimeDepositListRow'
 import { isActiveStatus, statusLabel } from '@/lib/lifecycle'
-import { activeCurrencyTotals } from '@/lib/totals'
+import { flatCostSeries } from '@/lib/costBasis'
+import { aggregateListPositions, type Position } from '@/lib/listAggregates'
 import { byNumberNullsLast, byText } from '@/lib/sort'
 import type { TimeDepositListItem } from '@/api/types'
 
@@ -69,12 +72,36 @@ export function TimeDepositsScreen({ onSelect }: Props) {
     tiebreak: tiebreakByName,
   })
 
-  const { totals, count } = useMemo(
+  // Time deposits carry cost on `details.principal`; ledger has only
+  // Maturity (terminal). So no transactions fetch — snapshots-only batch
+  // for the time-graph series.
+  const ids = useMemo(
+    () => (data ?? []).map((it) => it.investment.id),
+    [data],
+  )
+  const snapshotsBatch = useInvestmentBatchSnapshots(ids)
+  const positions = useMemo<Position[]>(
     () =>
-      activeCurrencyTotals(
-        rows.map((r) => ({ status: r.status, snapshot: r.item.latest_snapshot })),
-      ),
-    [rows],
+      (data ?? []).map((item) => {
+        const snaps = snapshotsBatch.byId.get(item.investment.id) ?? []
+        const principal = Number(item.details.principal)
+        return {
+          id: item.investment.id,
+          currency: item.investment.native_currency,
+          status: item.investment.status,
+          latestValue: item.latest_snapshot
+            ? Number(item.latest_snapshot.amount)
+            : null,
+          cost: principal,
+          snapshots: snaps,
+          costSeries: flatCostSeries(snaps, principal),
+        }
+      }),
+    [data, snapshotsBatch.byId],
+  )
+  const aggregates = useMemo(
+    () => aggregateListPositions(positions),
+    [positions],
   )
 
   const terminatedCount = rows.filter((r) => !isActiveStatus(r.status)).length
@@ -99,14 +126,15 @@ export function TimeDepositsScreen({ onSelect }: Props) {
         <CreateTimeDepositDialog />
       </div>
 
-      <ListHeadline
-        totals={totals}
-        count={count}
-        label={t('investments:list.totalValue')}
+      <InvestmentListHeadline
+        aggregates={aggregates.byCurrency}
+        count={aggregates.count}
         noun={noun}
         nounPlural={nounPlural}
         testId="time-deposits-total"
       />
+
+      <ListTimeGraph timeSeriesByCurrency={aggregates.timeSeriesByCurrency} />
 
       {isPending && (
         <p className="text-sm text-muted-foreground">{t('common:loading')}</p>

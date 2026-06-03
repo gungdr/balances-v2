@@ -1491,6 +1491,86 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     `lib/costBasis.test.ts`). Playwright E2E deferred per the
     no-Playwright-while-experimenting workflow note.
 
+- **Investment screens enhancements — slice 14c (M6, frontend —
+  issue #14, slice 3 of 4).** List-screen aggregate headline +
+  per-currency time graph across all 5 investment list screens.
+  The detail-screen value-vs-cost view from 14b ports up to the
+  collection level; a user landing on `/investments/stocks`
+  immediately sees the total they put in, the total it's worth,
+  the unrealized P/L, and the monthly trajectory of both lines.
+  - **`lib/listAggregates.ts` (10 unit tests).** Pure aggregator:
+    `aggregateListPositions(positions) → { byCurrency,
+    timeSeriesByCurrency, count }`. Per-currency totals (value +
+    cost + P/L) for the headline; per-currency monthly time series
+    with carry-forward for the graph. Active-only — matches the
+    existing `activeCurrencyTotals` convention so terminated
+    positions drop out of both views consistently. Currencies stay
+    separate (no FX) per the no-FX list-screen convention from
+    `lib/totals.ts`; multi-currency households get one card per
+    currency. Time-series walk uses per-position cursors so each
+    month step is O(1) amortized — sort once, walk the union of
+    months, sum value + cost using "latest snapshot at-or-before
+    month" carry-forward.
+  - **`hooks/useInvestmentBatch.ts`.**
+    `useInvestmentBatchSnapshots(ids)` and
+    `useInvestmentBatchTransactions(ids)` wrap `useQueries` with
+    the same `['investment-snapshots', id]` /
+    `['investment-transactions', id]` keys as the existing
+    per-position hooks, so the React Query cache is **shared
+    with the detail screens**: clicking a list row hydrates the
+    detail page instantly (snapshots + transactions already in
+    cache). The structural follow-up (backend cost_basis aggregate
+    on each subtype's ListItem) is tracked in **issue #18** —
+    once that lands the transactions batch can drop; the
+    snapshots batch stays until a parallel monthly-series
+    endpoint exists too.
+  - **`InvestmentListHeadline` (new, swaps `ListHeadline` on the
+    5 investment screens).** Single card, three rows
+    (Value / Cost / P/L) with a per-currency dot separator on
+    each row + a 4th line with the active-count noun. P/L tone
+    mirrors the detail-screen `InvestmentHeadline` (emerald gain
+    / destructive loss / muted zero, "−" U+2212 minus glyph) and
+    fans across currencies — each segment gets its own color
+    independently. Mixed-currency household sees e.g.
+    "Value: Rp 50M · $ 5K" / "Cost: Rp 40M · $ 4K" /
+    "P/L: +Rp 10M (+25%) · +$ 1K (+25%)" all stacked in one
+    card. Non-investment list screens keep using the existing
+    `ListHeadline` unchanged.
+  - **`ListTimeGraph` (new).** Maps over
+    `timeSeriesByCurrency.entries()` and renders one `<Card>` per
+    currency containing the lazy `<SnapshotChart>`. Reuses the
+    existing chart's `costSeries` prop from 14b — converts each
+    `TimePoint` into the snapshot-like `{year_month, amount}`
+    shape plus the parallel `{year_month, cost}` shape. The
+    chart wrapper's own length-2 minimum handles the "not enough
+    data" case per currency. `data-testid="list-time-graph-
+    {currency}"` for spec hooks.
+  - **Per-subtype wiring in the 5 list screens.** Stock / MF /
+    Gold use `computeCostBasis(transactions)` + `costBasisSeries`
+    (ledger replay). Bond branches on `hasBuys`: secondary
+    markets use ledger; govt-primary falls back to flat
+    `face_value` via `flatCostSeries` (same rule as 14b's
+    `BondDetail`). TimeDeposit always uses
+    `flatCostSeries(principal)` and skips the transactions batch
+    entirely — the TD ledger only carries Maturity (terminal),
+    no buys, no fees, so the snapshots-only batch is enough.
+  - **i18n keys.** New `investments.list.{totalCost,
+    unrealizedPL, chartTitle, chartDescription}` (EN+ID). ID
+    copy reuses the `Modal` (cost basis) + `Untung/rugi`
+    (P/L) terms from 14b's glossary additions. Chart description
+    interpolates currency code: "Sum of value and cost across
+    active positions (IDR)." / "Total nilai dan modal seluruh
+    posisi aktif (IDR).".
+  - **Tests + lint clean.** Vitest **153/153** (+10 new
+    `lib/listAggregates.test.ts` cases), vite build green,
+    eslint 0 errors (13 pre-existing "Bare JSX text" warnings
+    unchanged from the issue-#13 baseline). Backend untouched.
+    Net +600/−16 across 12 files (7 modified + 5 new:
+    `InvestmentListHeadline.tsx`, `ListTimeGraph.tsx`,
+    `useInvestmentBatch.ts`, `lib/listAggregates.ts`,
+    `lib/listAggregates.test.ts`). Playwright E2E deferred per
+    the no-Playwright-while-experimenting workflow note.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

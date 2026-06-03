@@ -3,18 +3,24 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { SortableHeader } from '@/components/SortableHeader'
-import { ListHeadline } from '@/components/ListHeadline'
+import { InvestmentListHeadline } from '@/components/InvestmentListHeadline'
+import { ListTimeGraph } from '@/components/ListTimeGraph'
 import { ShowInactiveToggle } from '@/components/ShowInactiveToggle'
 import {
   RiskProfileFilter,
   type RiskProfileFilterValue,
 } from '@/components/RiskProfileFilter'
 import { useStocks } from '@/hooks/useInvestments'
+import {
+  useInvestmentBatchSnapshots,
+  useInvestmentBatchTransactions,
+} from '@/hooks/useInvestmentBatch'
 import { useTableSort, type ColumnSort } from '@/hooks/useTableSort'
 import { CreateStockDialog } from '@/components/CreateStockDialog'
 import { StockListRow } from '@/components/StockListRow'
 import { isActiveStatus, statusLabel } from '@/lib/lifecycle'
-import { activeCurrencyTotals } from '@/lib/totals'
+import { computeCostBasis, costBasisSeries } from '@/lib/costBasis'
+import { aggregateListPositions, type Position } from '@/lib/listAggregates'
 import { byNumberNullsLast, byText } from '@/lib/sort'
 import type { StockListItem } from '@/api/types'
 
@@ -72,12 +78,38 @@ export function StocksScreen({ onSelect }: Props) {
     tiebreak: tiebreakByName,
   })
 
-  const { totals, count } = useMemo(
+  // Cost basis + per-currency time series need transactions + snapshots
+  // per position. Per #18: this round-trips N parallel fetches; backend
+  // aggregate will replace once that lands.
+  const ids = useMemo(
+    () => (data ?? []).map((it) => it.investment.id),
+    [data],
+  )
+  const snapshotsBatch = useInvestmentBatchSnapshots(ids)
+  const transactionsBatch = useInvestmentBatchTransactions(ids)
+
+  const positions = useMemo<Position[]>(
     () =>
-      activeCurrencyTotals(
-        rows.map((r) => ({ status: r.status, snapshot: r.item.latest_snapshot })),
-      ),
-    [rows],
+      (data ?? []).map((item) => {
+        const snaps = snapshotsBatch.byId.get(item.investment.id) ?? []
+        const txns = transactionsBatch.byId.get(item.investment.id) ?? []
+        return {
+          id: item.investment.id,
+          currency: item.investment.native_currency,
+          status: item.investment.status,
+          latestValue: item.latest_snapshot
+            ? Number(item.latest_snapshot.amount)
+            : null,
+          cost: computeCostBasis(txns).cost,
+          snapshots: snaps,
+          costSeries: costBasisSeries(snaps, txns),
+        }
+      }),
+    [data, snapshotsBatch.byId, transactionsBatch.byId],
+  )
+  const aggregates = useMemo(
+    () => aggregateListPositions(positions),
+    [positions],
   )
 
   const terminatedCount = rows.filter((r) => !isActiveStatus(r.status)).length
@@ -102,14 +134,15 @@ export function StocksScreen({ onSelect }: Props) {
         <CreateStockDialog />
       </div>
 
-      <ListHeadline
-        totals={totals}
-        count={count}
-        label={t('investments:list.totalValue')}
+      <InvestmentListHeadline
+        aggregates={aggregates.byCurrency}
+        count={aggregates.count}
         noun={noun}
         nounPlural={nounPlural}
         testId="stocks-total"
       />
+
+      <ListTimeGraph timeSeriesByCurrency={aggregates.timeSeriesByCurrency} />
 
       {isPending && (
         <p className="text-sm text-muted-foreground">{t('common:loading')}</p>

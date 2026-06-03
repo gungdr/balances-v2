@@ -1,6 +1,10 @@
 {
   "list": {
     "totalValue": "Total value",
+    "totalCost": "Cost:",
+    "unrealizedPL": "P/L:",
+    "chartTitle": "Aggregated value over time",
+    "chartDescription": "Sum of value and cost across active positions ({{currency}}).",
     "noun": "position",
     "nounPlural": "positions"
   },
