@@ -6,11 +6,10 @@
 // so the cache is shared with the detail screens (clicking a list row
 // hydrates the detail page instantly).
 //
-// Backend follow-up: issue #18 plans to fold `cost_basis` into each
-// subtype's ListItem aggregate. Once that lands, transactions fetching
-// can drop entirely; this hook becomes a snapshots-only batch (still
-// needed for the time graph until a separate monthly-series endpoint
-// exists too).
+// Issue #18 folded `cost_basis` into each subtype's ListItem, so the
+// headline no longer needs this batch. Transactions fetching survives only
+// to build the time graph's per-month cost *series*; a separate
+// monthly-series endpoint would let it drop and leave a snapshots-only batch.
 
 import { useQueries } from '@tanstack/react-query'
 import { api } from '@/api/client'

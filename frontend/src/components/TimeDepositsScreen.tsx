@@ -93,7 +93,7 @@ export function TimeDepositsScreen({ onSelect }: Props) {
           latestValue: item.latest_snapshot
             ? Number(item.latest_snapshot.amount)
             : null,
-          cost: principal,
+          cost: Number(item.cost_basis),
           snapshots: snaps,
           costSeries: flatCostSeries(snaps, principal),
         }

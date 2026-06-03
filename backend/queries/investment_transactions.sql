@@ -33,6 +33,17 @@ WHERE t.investment_id = $1
   AND t.deleted_at IS NULL
 ORDER BY t.transaction_date DESC, t.created_at DESC;
 
+-- Batch fetch of all (non-deleted) transactions across many investments, for
+-- list-view cost-basis aggregates (issue #18). The caller supplies only
+-- Household-scoped IDs (built from ListInvestmentsByHousehold), so this mirrors
+-- ListLatestInvestmentSnapshotsByInvestmentIDs and skips the household JOIN.
+-- Ascending by date so the repo can replay the avg-cost ledger in order.
+-- name: ListInvestmentTransactionsByInvestmentIDs :many
+SELECT *
+FROM investment_transactions
+WHERE investment_id = ANY($1::uuid[]) AND deleted_at IS NULL
+ORDER BY investment_id, transaction_date, created_at;
+
 -- name: GetInvestmentTransactionByID :one
 SELECT t.*
 FROM investment_transactions t

@@ -60,6 +60,10 @@ func TestMutualFundHandlers_Create(t *testing.T) {
 func TestMutualFundHandlers_List(t *testing.T) {
 	h := newHarness(t)
 	created := h.createMutualFund(t, "Listed MF")
+	h.postTxn(t, created.Investment.ID, map[string]any{
+		"transaction_type": "buy", "transaction_date": "2026-01-01", "currency": "IDR",
+		"amount": "2000000", "quantity": "1000", "price_per_unit": "2000",
+	})
 
 	rec := h.do(t, "GET", "/investments/mutual-funds", nil)
 	requireStatus(t, rec, http.StatusOK)
@@ -70,6 +74,7 @@ func TestMutualFundHandlers_List(t *testing.T) {
 	if list[0].Investment.ID != created.Investment.ID {
 		t.Errorf("list[0] id mismatch")
 	}
+	requireCostBasis(t, list[0].CostBasis, "2000000")
 }
 
 func TestMutualFundHandlers_Get(t *testing.T) {

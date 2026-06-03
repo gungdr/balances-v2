@@ -138,6 +138,57 @@ func (q *Queries) GetInvestmentTransactionByID(ctx context.Context, arg GetInves
 	return i, err
 }
 
+const listInvestmentTransactionsByInvestmentIDs = `-- name: ListInvestmentTransactionsByInvestmentIDs :many
+SELECT id, investment_id, transaction_type, transaction_date, currency, description, amount, quantity, price_per_unit, principal_amount, interest_amount, principal_disposition, interest_disposition, created_by, created_at, updated_by, updated_at, deleted_at
+FROM investment_transactions
+WHERE investment_id = ANY($1::uuid[]) AND deleted_at IS NULL
+ORDER BY investment_id, transaction_date, created_at
+`
+
+// Batch fetch of all (non-deleted) transactions across many investments, for
+// list-view cost-basis aggregates (issue #18). The caller supplies only
+// Household-scoped IDs (built from ListInvestmentsByHousehold), so this mirrors
+// ListLatestInvestmentSnapshotsByInvestmentIDs and skips the household JOIN.
+// Ascending by date so the repo can replay the avg-cost ledger in order.
+func (q *Queries) ListInvestmentTransactionsByInvestmentIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]InvestmentTransaction, error) {
+	rows, err := q.db.Query(ctx, listInvestmentTransactionsByInvestmentIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []InvestmentTransaction
+	for rows.Next() {
+		var i InvestmentTransaction
+		if err := rows.Scan(
+			&i.ID,
+			&i.InvestmentID,
+			&i.TransactionType,
+			&i.TransactionDate,
+			&i.Currency,
+			&i.Description,
+			&i.Amount,
+			&i.Quantity,
+			&i.PricePerUnit,
+			&i.PrincipalAmount,
+			&i.InterestAmount,
+			&i.PrincipalDisposition,
+			&i.InterestDisposition,
+			&i.CreatedBy,
+			&i.CreatedAt,
+			&i.UpdatedBy,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listInvestmentTransactionsForInvestment = `-- name: ListInvestmentTransactionsForInvestment :many
 SELECT t.id, t.investment_id, t.transaction_type, t.transaction_date, t.currency, t.description, t.amount, t.quantity, t.price_per_unit, t.principal_amount, t.interest_amount, t.principal_disposition, t.interest_disposition, t.created_by, t.created_at, t.updated_by, t.updated_at, t.deleted_at
 FROM investment_transactions t

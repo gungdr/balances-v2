@@ -109,6 +109,8 @@ func TestBondHandlers_List(t *testing.T) {
 	if len(list) != 1 {
 		t.Fatalf("list length: want 1, got %d", len(list))
 	}
+	// govt_primary bond has no buy txn — cost basis is the face_value.
+	requireCostBasis(t, list[0].CostBasis, "10000000")
 }
 
 func TestBondHandlers_Get(t *testing.T) {

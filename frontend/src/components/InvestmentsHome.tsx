@@ -14,9 +14,10 @@
 // **Active-only.** Terminated positions drop out of every output, same
 // as `aggregateListPositions`.
 //
-// The N-parallel-fetch pattern is the same one used by the per-list
-// screens; the structural fix (backend cost_basis aggregate) lives in
-// issue #18 — applies here multiplied by 5 subtypes.
+// Headline cost basis rides on each list payload now (item.cost_basis,
+// issue #18). The remaining N-parallel transactions batch only feeds the
+// per-month cost *series* the time graphs plot — a monthly-series endpoint
+// would retire it.
 
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -46,7 +47,6 @@ import {
   useInvestmentBatchTransactions,
 } from '@/hooks/useInvestmentBatch'
 import {
-  computeCostBasis,
   costBasisSeries,
   flatCostSeries,
 } from '@/lib/costBasis'
@@ -105,10 +105,10 @@ export function InvestmentsHome() {
     [stocks.data, mutualFunds.data, bonds.data, timeDeposits.data, golds.data],
   )
 
-  // Transactions are needed for ledger-based cost basis on stock / MF /
-  // gold and for the Bond hasBuys branch. TD positions don't consume
-  // their transactions but the same query keys are shared with the
-  // detail pages so the cache hits later.
+  // Transactions feed the time-graph cost *series* for stock / MF / gold
+  // and the Bond hasBuys branch (the headline cost now comes from
+  // item.cost_basis). TD has no transaction-derived series. Query keys are
+  // shared with the detail pages so the cache hits later.
   const txnIds = useMemo<string[]>(
     () => [
       ...(stocks.data ?? []).map((it) => it.investment.id),
@@ -136,7 +136,7 @@ export function InvestmentsHome() {
         latestValue: it.latest_snapshot
           ? Number(it.latest_snapshot.amount)
           : null,
-        cost: computeCostBasis(txns).cost,
+        cost: Number(it.cost_basis),
         snapshots: snaps,
         costSeries: costBasisSeries(snaps, txns),
         category: 'stock',
@@ -155,7 +155,7 @@ export function InvestmentsHome() {
         latestValue: it.latest_snapshot
           ? Number(it.latest_snapshot.amount)
           : null,
-        cost: computeCostBasis(txns).cost,
+        cost: Number(it.cost_basis),
         snapshots: snaps,
         costSeries: costBasisSeries(snaps, txns),
         category: 'mutualFund',
@@ -176,7 +176,7 @@ export function InvestmentsHome() {
         latestValue: it.latest_snapshot
           ? Number(it.latest_snapshot.amount)
           : null,
-        cost: hasBuys ? computeCostBasis(txns).cost : faceValue,
+        cost: Number(it.cost_basis),
         snapshots: snaps,
         costSeries: hasBuys
           ? costBasisSeries(snaps, txns)
@@ -197,7 +197,7 @@ export function InvestmentsHome() {
         latestValue: it.latest_snapshot
           ? Number(it.latest_snapshot.amount)
           : null,
-        cost: principal,
+        cost: Number(it.cost_basis),
         snapshots: snaps,
         costSeries: flatCostSeries(snaps, principal),
         category: 'timeDeposit',
@@ -216,7 +216,7 @@ export function InvestmentsHome() {
         latestValue: it.latest_snapshot
           ? Number(it.latest_snapshot.amount)
           : null,
-        cost: computeCostBasis(txns).cost,
+        cost: Number(it.cost_basis),
         snapshots: snaps,
         costSeries: costBasisSeries(snaps, txns),
         category: 'gold',

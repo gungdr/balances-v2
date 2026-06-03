@@ -23,6 +23,9 @@ type GoldListItem struct {
 	Investment     db.Investment          `json:"investment"`
 	Details        db.GoldDetail          `json:"details"`
 	LatestSnapshot *db.InvestmentSnapshot `json:"latest_snapshot"`
+	// CostBasis is the avg-cost ledger replay (issue #18). See
+	// costBasisFromLedger.
+	CostBasis decimal.Decimal `json:"cost_basis"`
 }
 
 type CreateGoldParams struct {
@@ -156,9 +159,19 @@ func (r *InvestmentRepo) ListGolds(ctx context.Context) ([]GoldListItem, error) 
 		snapByID[s.InvestmentID] = s
 	}
 
+	txns, err := r.q.ListInvestmentTransactionsByInvestmentIDs(ctx, ids)
+	if err != nil {
+		return nil, fmt.Errorf("list investment transactions: %w", err)
+	}
+	txnByID := groupTransactionsByInvestment(txns)
+
 	out := make([]GoldListItem, 0, len(invs))
 	for _, x := range invs {
-		item := GoldListItem{Investment: x, Details: detailByID[x.ID]}
+		item := GoldListItem{
+			Investment: x,
+			Details:    detailByID[x.ID],
+			CostBasis:  costBasisFromLedger(txnByID[x.ID]),
+		}
 		if s, ok := snapByID[x.ID]; ok {
 			s := s
 			item.LatestSnapshot = &s

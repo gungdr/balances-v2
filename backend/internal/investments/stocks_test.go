@@ -5,9 +5,25 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 
 	"github.com/kerti/balances-v2/backend/internal/repo"
 )
+
+// postTxn posts an investment transaction and asserts it was created.
+func (h *handlerHarness) postTxn(t *testing.T, invID uuid.UUID, body map[string]any) {
+	t.Helper()
+	rec := h.do(t, "POST", "/investments/"+invID.String()+"/transactions", body)
+	requireStatus(t, rec, http.StatusCreated)
+}
+
+// requireCostBasis fails unless the decimal equals want (RequireFromString).
+func requireCostBasis(t *testing.T, got decimal.Decimal, want string) {
+	t.Helper()
+	if !got.Equal(decimal.RequireFromString(want)) {
+		t.Errorf("cost_basis: want %s, got %s", want, got.String())
+	}
+}
 
 func (h *handlerHarness) createStock(t *testing.T, displayName string) *repo.Stock {
 	t.Helper()
@@ -95,6 +111,41 @@ func TestStockHandlers_List(t *testing.T) {
 	if list[0].Investment.ID != created.Investment.ID {
 		t.Errorf("list[0] id: want %s, got %s", created.Investment.ID, list[0].Investment.ID)
 	}
+}
+
+// TestStockHandlers_List_CostBasis exercises the full avg-cost ledger replay
+// folded into the list payload (issue #18): two buys, a partial sell at avg
+// cost, and a capitalised fee. cost = 2,000,000 (buys) − 1,000,000 (sell of
+// half the 200 held) + 50,000 (fee) = 1,050,000.
+func TestStockHandlers_List_CostBasis(t *testing.T) {
+	h := newHarness(t)
+	stock := h.createStock(t, "Cost-basis stock")
+	id := stock.Investment.ID
+
+	h.postTxn(t, id, map[string]any{
+		"transaction_type": "buy", "transaction_date": "2026-01-01", "currency": "IDR",
+		"amount": "1000000", "quantity": "100", "price_per_unit": "10000",
+	})
+	h.postTxn(t, id, map[string]any{
+		"transaction_type": "buy", "transaction_date": "2026-02-01", "currency": "IDR",
+		"amount": "1000000", "quantity": "100", "price_per_unit": "10000",
+	})
+	h.postTxn(t, id, map[string]any{
+		"transaction_type": "sell", "transaction_date": "2026-03-01", "currency": "IDR",
+		"amount": "1200000", "quantity": "100", "price_per_unit": "12000",
+	})
+	h.postTxn(t, id, map[string]any{
+		"transaction_type": "fee", "transaction_date": "2026-03-02", "currency": "IDR",
+		"amount": "50000",
+	})
+
+	rec := h.do(t, "GET", "/investments/stocks", nil)
+	requireStatus(t, rec, http.StatusOK)
+	list := decodeBody[[]repo.StockListItem](t, rec)
+	if len(list) != 1 {
+		t.Fatalf("list length: want 1, got %d", len(list))
+	}
+	requireCostBasis(t, list[0].CostBasis, "1050000")
 }
 
 func TestStockHandlers_Get(t *testing.T) {

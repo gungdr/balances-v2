@@ -312,6 +312,14 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     snap). Backend tests + golangci-lint green; vitest
     164/164; vite build + ESLint 0 errors. Net +148/−22 across
     5 files.
+  - Backend `cost_basis` aggregate on investment ListItems (issue #18):
+    each subtype's `*ListItem` now carries a `cost_basis decimal` so the
+    list headline P/L is self-contained — Go ledger replay
+    (`costBasisFromLedger`, mirroring `lib/costBasis.ts`) over a new batch
+    query, Bond branching ledger-vs-face_value, TD flat principal. All 6
+    list screens + `InvestmentsHome` read `item.cost_basis` for the
+    headline (robust to a failed txn batch); the txn batch survives only
+    for the time-graph cost series.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

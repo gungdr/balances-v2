@@ -24,6 +24,10 @@ type BondListItem struct {
 	Investment     db.Investment          `json:"investment"`
 	Details        db.BondDetail          `json:"details"`
 	LatestSnapshot *db.InvestmentSnapshot `json:"latest_snapshot"`
+	// CostBasis is the avg-cost ledger replay when the bond was bought on
+	// the secondary market, or the face_value when held from primary
+	// issuance (no buy txn) — mirroring lib/costBasis.ts (issue #18).
+	CostBasis decimal.Decimal `json:"cost_basis"`
 }
 
 type CreateBondParams struct {
@@ -172,9 +176,24 @@ func (r *InvestmentRepo) ListBonds(ctx context.Context) ([]BondListItem, error) 
 		snapByID[s.InvestmentID] = s
 	}
 
+	txns, err := r.q.ListInvestmentTransactionsByInvestmentIDs(ctx, ids)
+	if err != nil {
+		return nil, fmt.Errorf("list investment transactions: %w", err)
+	}
+	txnByID := groupTransactionsByInvestment(txns)
+
 	out := make([]BondListItem, 0, len(invs))
 	for _, x := range invs {
-		item := BondListItem{Investment: x, Details: detailByID[x.ID]}
+		ledger := txnByID[x.ID]
+		costBasis := detailByID[x.ID].FaceValue
+		if ledgerHasBuy(ledger) {
+			costBasis = costBasisFromLedger(ledger)
+		}
+		item := BondListItem{
+			Investment: x,
+			Details:    detailByID[x.ID],
+			CostBasis:  costBasis,
+		}
 		if s, ok := snapByID[x.ID]; ok {
 			s := s
 			item.LatestSnapshot = &s

@@ -19,7 +19,7 @@ import { useTableSort, type ColumnSort } from '@/hooks/useTableSort'
 import { CreateStockDialog } from '@/components/CreateStockDialog'
 import { StockListRow } from '@/components/StockListRow'
 import { isActiveStatus, statusLabel } from '@/lib/lifecycle'
-import { computeCostBasis, costBasisSeries } from '@/lib/costBasis'
+import { costBasisSeries } from '@/lib/costBasis'
 import { aggregateListPositions, type Position } from '@/lib/listAggregates'
 import { byNumberNullsLast, byText } from '@/lib/sort'
 import type { StockListItem } from '@/api/types'
@@ -78,9 +78,10 @@ export function StocksScreen({ onSelect }: Props) {
     tiebreak: tiebreakByName,
   })
 
-  // Cost basis + per-currency time series need transactions + snapshots
-  // per position. Per #18: this round-trips N parallel fetches; backend
-  // aggregate will replace once that lands.
+  // The headline cost basis now rides on the list payload (item.cost_basis,
+  // issue #18) — robust even if the transactions batch below fails. The
+  // batch survives only to feed the time graph's per-month cost *series*
+  // (costBasisSeries); a monthly-series endpoint would let it drop too.
   const ids = useMemo(
     () => (data ?? []).map((it) => it.investment.id),
     [data],
@@ -101,7 +102,7 @@ export function StocksScreen({ onSelect }: Props) {
           latestValue: item.latest_snapshot
             ? Number(item.latest_snapshot.amount)
             : null,
-          cost: computeCostBasis(txns).cost,
+          cost: Number(item.cost_basis),
           snapshots: snaps,
           costSeries: costBasisSeries(snaps, txns),
         }

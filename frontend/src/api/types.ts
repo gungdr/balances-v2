@@ -255,6 +255,9 @@ export type StockListItem = {
   investment: Investment
   details: StockDetails
   latest_snapshot: InvestmentSnapshot | null
+  // Avg-cost ledger replay folded into the list payload (issue #18) — the
+  // headline P/L reads this instead of replaying transactions client-side.
+  cost_basis: string
 }
 
 export type MutualFundDetails = {
@@ -272,6 +275,9 @@ export type MutualFundListItem = {
   investment: Investment
   details: MutualFundDetails
   latest_snapshot: InvestmentSnapshot | null
+  // Avg-cost ledger replay folded into the list payload (issue #18) — the
+  // headline P/L reads this instead of replaying transactions client-side.
+  cost_basis: string
 }
 
 export type GoldDetails = {
@@ -289,6 +295,9 @@ export type GoldListItem = {
   investment: Investment
   details: GoldDetails
   latest_snapshot: InvestmentSnapshot | null
+  // Avg-cost ledger replay folded into the list payload (issue #18) — the
+  // headline P/L reads this instead of replaying transactions client-side.
+  cost_basis: string
 }
 
 export type BondType = 'govt_primary' | 'secondary_market'
@@ -318,6 +327,9 @@ export type BondListItem = {
   investment: Investment
   details: BondDetails
   latest_snapshot: InvestmentSnapshot | null
+  // Avg-cost ledger replay folded into the list payload (issue #18) — the
+  // headline P/L reads this instead of replaying transactions client-side.
+  cost_basis: string
 }
 
 export type RolloverPolicy =
@@ -345,6 +357,9 @@ export type TimeDepositListItem = {
   investment: Investment
   details: TimeDepositDetails
   latest_snapshot: InvestmentSnapshot | null
+  // Avg-cost ledger replay folded into the list payload (issue #18) — the
+  // headline P/L reads this instead of replaying transactions client-side.
+  cost_basis: string
 }
 
 // ----- investment transaction (M4.4) ------------------------------------

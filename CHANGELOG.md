@@ -1809,6 +1809,59 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     pre-existing bare-JSX-text warnings). Net +148/−22 across 5
     files.
 
+- **Backend `cost_basis` aggregate on investment ListItems (M6,
+  backend + frontend — issue #18).** Structural follow-up flagged
+  during #14 slice 14c grilling: the list-screen headline P/L needs
+  each position's cost basis, but Stock / MutualFund / Gold carry it
+  only in the transaction ledger, so 14c worked around it with a
+  per-position `useQueries` batch (N parallel fetches per list). This
+  folds a derived `cost_basis` decimal into each subtype's `*ListItem`
+  so the headline reads a single self-contained number. Implemented as
+  a Go ledger replay rather than the SQL avg-cost CTE the issue
+  sketched — avg-cost-on-sell isn't trivially expressible in standard
+  SQL, and replaying in Go gives **exact parity** with the frontend's
+  documented `lib/costBasis.ts` convention (zero divergence to
+  document) while matching the existing batch-query idiom in
+  `ListStocks`.
+  - `backend/queries/investment_transactions.sql` — new
+    `ListInvestmentTransactionsByInvestmentIDs :many` (one batched
+    fetch of every non-deleted txn across the household-scoped ID set,
+    ascending by `investment_id, transaction_date, created_at`). Mirrors
+    `ListLatestInvestmentSnapshotsByInvestmentIDs` and skips the
+    household JOIN because the caller supplies only IDs already resolved
+    by `ListInvestmentsByHousehold`. `sqlc generate` regenerated.
+  - `backend/internal/repo/cost_basis.go` (new) —
+    `costBasisFromLedger` replays the avg-cost ledger in
+    `shopspring/decimal`: buy adds amount + qty, sell reduces cost
+    proportionally (`cost*sellQty/qty`, sellQty clamped to held) and
+    qty, fee capitalises into cost, coupon/dividend/distribution and
+    maturity ignored — the exact rules from `lib/costBasis.ts`.
+    `ledgerHasBuy` + `groupTransactionsByInvestment` helpers.
+  - The 5 repo `List*` methods set `CostBasis`: Stock / MutualFund /
+    Gold replay the ledger; Bond branches `ledgerHasBuy ? replay :
+    face_value` (govt-primary bonds book cost as face value, no buy
+    txn); TimeDeposit takes `details.Principal` directly with no txn
+    fetch (its ledger holds only the terminal Maturity row). New
+    `cost_basis` JSON field on all 5 `*ListItem` structs.
+  - Per-subtype round-trip tests: a full Stock ledger
+    (buy + buy + partial-sell-at-avg + fee → 1,050,000), Gold/MF single
+    buys, Bond face_value path, TD principal. Shared `postTxn` +
+    `requireCostBasis` test helpers.
+  - Frontend: `cost_basis: string` added to all 5 `*ListItem` types
+    (`shopspring` decimals serialise as JSON strings here). All 6 list
+    screens (`Stocks/MutualFunds/Bonds/TimeDeposits/Golds` +
+    `InvestmentsHome`) now source the per-position headline `cost` from
+    `Number(item.cost_basis)` instead of replaying transactions — a
+    robustness win too: the headline P/L stays correct even if the
+    transactions batch errors. The snapshots + transactions batch
+    survives only to build the time graph's per-month cost *series*
+    (`costBasisSeries` / `flatCostSeries`); dropping it entirely waits
+    on a separate monthly-series endpoint (the issue's acknowledged
+    follow-up). `computeCostBasis` import removed where it became unused.
+  - All green: backend suite + `go vet` + gofmt; ESLint 0 errors; vite
+    build green; vitest 164/164; Playwright E2E 16/16. Net +249/−42
+    across 20 files + 1 new.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

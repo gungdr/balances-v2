@@ -19,7 +19,7 @@ import { useTableSort, type ColumnSort } from '@/hooks/useTableSort'
 import { CreateMutualFundDialog } from '@/components/CreateMutualFundDialog'
 import { MutualFundListRow } from '@/components/MutualFundListRow'
 import { isActiveStatus, statusLabel } from '@/lib/lifecycle'
-import { computeCostBasis, costBasisSeries } from '@/lib/costBasis'
+import { costBasisSeries } from '@/lib/costBasis'
 import { aggregateListPositions, type Position } from '@/lib/listAggregates'
 import { byNumberNullsLast, byText } from '@/lib/sort'
 import type { MutualFundListItem } from '@/api/types'
@@ -94,7 +94,7 @@ export function MutualFundsScreen({ onSelect }: Props) {
           latestValue: item.latest_snapshot
             ? Number(item.latest_snapshot.amount)
             : null,
-          cost: computeCostBasis(txns).cost,
+          cost: Number(item.cost_basis),
           snapshots: snaps,
           costSeries: costBasisSeries(snaps, txns),
         }

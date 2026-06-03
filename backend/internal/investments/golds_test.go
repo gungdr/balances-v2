@@ -68,7 +68,11 @@ func TestGoldHandlers_Create(t *testing.T) {
 
 func TestGoldHandlers_List(t *testing.T) {
 	h := newHarness(t)
-	h.createGold(t, "Listed gold")
+	gold := h.createGold(t, "Listed gold")
+	h.postTxn(t, gold.Investment.ID, map[string]any{
+		"transaction_type": "buy", "transaction_date": "2026-01-01", "currency": "IDR",
+		"amount": "5000000", "quantity": "100", "price_per_unit": "50000",
+	})
 
 	rec := h.do(t, "GET", "/investments/golds", nil)
 	requireStatus(t, rec, http.StatusOK)
@@ -76,6 +80,7 @@ func TestGoldHandlers_List(t *testing.T) {
 	if len(list) != 1 {
 		t.Fatalf("list length: want 1, got %d", len(list))
 	}
+	requireCostBasis(t, list[0].CostBasis, "5000000")
 }
 
 func TestGoldHandlers_Get(t *testing.T) {

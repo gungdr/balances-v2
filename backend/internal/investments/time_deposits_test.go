@@ -114,6 +114,8 @@ func TestTimeDepositHandlers_List(t *testing.T) {
 	if len(list) != 1 {
 		t.Fatalf("list length: want 1, got %d", len(list))
 	}
+	// TD cost basis is the principal — the ledger holds only Maturity.
+	requireCostBasis(t, list[0].CostBasis, "100000000")
 }
 
 func TestTimeDepositHandlers_Get(t *testing.T) {

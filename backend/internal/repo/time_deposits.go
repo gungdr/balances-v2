@@ -24,6 +24,9 @@ type TimeDepositListItem struct {
 	Investment     db.Investment          `json:"investment"`
 	Details        db.TimeDepositDetail   `json:"details"`
 	LatestSnapshot *db.InvestmentSnapshot `json:"latest_snapshot"`
+	// CostBasis is the principal directly — a TD ledger holds only the
+	// terminal Maturity transaction, never buys (issue #18).
+	CostBasis decimal.Decimal `json:"cost_basis"`
 }
 
 type CreateTimeDepositParams struct {
@@ -174,7 +177,11 @@ func (r *InvestmentRepo) ListTimeDeposits(ctx context.Context) ([]TimeDepositLis
 
 	out := make([]TimeDepositListItem, 0, len(invs))
 	for _, x := range invs {
-		item := TimeDepositListItem{Investment: x, Details: detailByID[x.ID]}
+		item := TimeDepositListItem{
+			Investment: x,
+			Details:    detailByID[x.ID],
+			CostBasis:  detailByID[x.ID].Principal,
+		}
 		if s, ok := snapByID[x.ID]; ok {
 			s := s
 			item.LatestSnapshot = &s

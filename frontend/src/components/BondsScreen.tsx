@@ -19,11 +19,7 @@ import { useTableSort, type ColumnSort } from '@/hooks/useTableSort'
 import { CreateBondDialog } from '@/components/CreateBondDialog'
 import { BondListRow } from '@/components/BondListRow'
 import { isActiveStatus, statusLabel } from '@/lib/lifecycle'
-import {
-  computeCostBasis,
-  costBasisSeries,
-  flatCostSeries,
-} from '@/lib/costBasis'
+import { costBasisSeries, flatCostSeries } from '@/lib/costBasis'
 import { aggregateListPositions, type Position } from '@/lib/listAggregates'
 import { byNumberNullsLast, byText } from '@/lib/sort'
 import type { BondListItem } from '@/api/types'
@@ -94,10 +90,11 @@ export function BondsScreen({ onSelect }: Props) {
       (data ?? []).map((item) => {
         const snaps = snapshotsBatch.byId.get(item.investment.id) ?? []
         const txns = transactionsBatch.byId.get(item.investment.id) ?? []
+        // Backend already branches hasBuys → ledger | face_value for the
+        // headline cost (issue #18); the frontend only re-derives the
+        // per-month cost *series* the time graph needs.
         const hasBuys = txns.some((tx) => tx.transaction_type === 'buy')
-        const cost = hasBuys
-          ? computeCostBasis(txns).cost
-          : Number(item.details.face_value)
+        const cost = Number(item.cost_basis)
         const costSeries = hasBuys
           ? costBasisSeries(snaps, txns)
           : flatCostSeries(snaps, Number(item.details.face_value))
