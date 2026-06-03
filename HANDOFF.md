@@ -319,7 +319,8 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     query, Bond branching ledger-vs-face_value, TD flat principal. All 6
     list screens + `InvestmentsHome` read `item.cost_basis` for the
     headline (robust to a failed txn batch); the txn batch survives only
-    for the time-graph cost series.
+    for the time-graph cost series — full removal tracked in **#22**
+    (monthly cost-basis series endpoint).
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

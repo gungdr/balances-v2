@@ -1856,8 +1856,8 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     transactions batch errors. The snapshots + transactions batch
     survives only to build the time graph's per-month cost *series*
     (`costBasisSeries` / `flatCostSeries`); dropping it entirely waits
-    on a separate monthly-series endpoint (the issue's acknowledged
-    follow-up). `computeCostBasis` import removed where it became unused.
+    on a separate monthly cost-basis series endpoint, filed as **#22**.
+    `computeCostBasis` import removed where it became unused.
   - All green: backend suite + `go vet` + gofmt; ESLint 0 errors; vite
     build green; vitest 164/164; Playwright E2E 16/16. Net +249/−42
     across 20 files + 1 new.
