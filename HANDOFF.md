@@ -242,6 +242,39 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     Net +290/−12 across 15 files (12 modified + 3 new); vitest
     143/143 (+16 new), vite build green, eslint 0 errors. Backend
     untouched.
+  - Investment screens enhancements (issue #14, slice 14d of 4 —
+    closes the issue): `/investments` landing rebuilt from
+    placeholder to a cross-subtype dashboard. Aggregates all 5
+    subtypes into one `InvestmentListHeadline` (Value / Cost /
+    P/L) plus, per currency, four chart cards: value+cost over
+    time (reuses `SnapshotChart`), 100%-stacked category share
+    over time (new `CategoryStackChart` — recharts AreaChart
+    with `stackOffset="expand"`), and two pies (current
+    category mix + risk-profile mix, new shared
+    `InvestmentPieChart`). New pure `lib/homeAggregates.ts`
+    (9 unit tests) wraps `aggregateListPositions` and layers
+    monthly carry-forward category breakdown + current pies;
+    `INVESTMENT_CATEGORIES` + `INVESTMENT_RISK_PROFILES`
+    arrays provide stable ordering. Per-subtype cost-basis
+    sources unchanged from 14b/14c: Stock/MF/Gold ledger-replay,
+    Bond branches on `hasBuys`, TD flat principal. Single
+    batched `useInvestmentBatchSnapshots`/`Transactions` across
+    all subtypes (shares cache with detail screens and per-list
+    screens). **No FX**, matching the 14c list convention:
+    multi-currency households see one set of 4 cards per
+    currency. **Color choices** documented in
+    `CategoryStackChartImpl.tsx` + `InvestmentsHome.tsx`: 5
+    distinct Tailwind 500-level hues for categories (cyan /
+    violet / blue / emerald / yellow — gold gets a literal
+    gold/yellow), traffic-light emerald/amber/red for risk
+    (matches existing P/L tone language). New keys
+    `investments.home.{subtitle,valueCostChart*,
+    categoryStack*,categoryPie*,riskPie*,categoryLabel.*}`
+    EN+ID; risk pie reuses existing `riskProfile.badge*` labels.
+    Net +744/−6 across 9 files (3 modified + 6 new); vitest
+    162/162 (+9 new), vite build green (3 new lazy chunks:
+    CategoryStackChartImpl, InvestmentPieChartImpl, AreaChart),
+    eslint 0 errors on new code. Backend untouched.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

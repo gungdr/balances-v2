@@ -1571,6 +1571,112 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     `lib/listAggregates.test.ts`). Playwright E2E deferred per
     the no-Playwright-while-experimenting workflow note.
 
+- **Investment screens enhancements — slice 14d (M6, frontend —
+  issue #14, slice 4 of 4 — closes the issue).** The
+  `/investments` landing rebuilt from a placeholder page into a
+  cross-subtype dashboard. The list-screen aggregate idea from
+  14c ports up one level: a user landing on `/investments`
+  immediately sees the total value they hold across all 5
+  subtypes, what those positions cost, the unrealized P/L, plus
+  the trend lines, category mix, and risk mix that make
+  rebalancing decisions readable at a glance.
+  - **`lib/homeAggregates.ts` (9 unit tests).** Pure
+    cross-subtype aggregator: takes positions tagged with
+    `category` (`'stock' | 'mutualFund' | 'bond' |
+    'timeDeposit' | 'gold'`) and `riskProfile` and emits a
+    `HomeAggregates` shape that extends 14c's `ListAggregates`
+    with three additional outputs — `categorySeriesByCurrency`
+    (monthly carry-forward breakdown by category, for the
+    100%-stacked chart), `categoryPieByCurrency`, and
+    `riskPieByCurrency`. Internally calls
+    `aggregateListPositions` for the headline + value/cost
+    series so the home and per-list-screen views agree
+    automatically. Active-only, no FX, currencies separate —
+    matches 14c. `INVESTMENT_CATEGORIES` +
+    `INVESTMENT_RISK_PROFILES` constants exported for stable
+    legend ordering across charts.
+  - **`CategoryStackChart` / `CategoryStackChartImpl` (new).**
+    Lazy boundary + recharts `AreaChart` with
+    `stackOffset="expand"` — recharts' built-in 100%-stacked
+    mode. Y-axis labelled as percentages; tooltip recomputes
+    per-row totals so it shows the share even though recharts
+    feeds it the raw value. One `<Area>` per category, dropping
+    any category that's zero across every month so a household
+    holding only stocks + bonds doesn't get a 5-stack legend
+    with three flat lines.
+  - **`InvestmentPieChart` / `InvestmentPieChartImpl` (new).**
+    Generic shared pie used twice — once for category mix, once
+    for risk mix — so the page doesn't duplicate two
+    near-identical chart files. Accepts a
+    `{ key, label, value, color }[]` and renders recharts
+    `PieChart` + `Pie` + `Cell` with shadcn `ChartLegend` +
+    `ChartTooltip`. Donut shape (`innerRadius={48}`) so the
+    legend has room beneath without crowding the slices.
+    Tooltip formats as `{label}: {currency value} ({pct}%)`
+    using the same `formatCurrency` helper as the rest of the
+    app. Empty slices are filtered out at the impl boundary so
+    the legend stays tight; the wrapper short-circuits to
+    `null` if the total is zero (e.g. a household with
+    investments but no snapshots yet).
+  - **`InvestmentsHome.tsx` (rewrite).** Fetches all 5 list
+    endpoints via the existing per-subtype hooks, concatenates
+    the IDs, and runs a single
+    `useInvestmentBatchSnapshots(allIds)` +
+    `useInvestmentBatchTransactions(txnIds)` pair. Per-subtype
+    cost-basis branching (Stock/MF/Gold ledger replay; Bond
+    `hasBuys` branch; TD flat principal) mirrors the existing
+    list screens — kept inline rather than abstracted because
+    each subtype reads slightly different fields off its
+    `details`, and a single abstraction would obscure that.
+    Layout: headline → for each currency a vertical stack of
+    (value+cost card, category-stack card, 2-col grid of the
+    two pies). Multi-currency households get one stack per
+    currency. **No FX** — same convention as the per-list
+    screens. The N+1-fetches structural fix is **issue #18**,
+    multiplied by 5 here; same out-of-scope rationale.
+  - **Color choices.** The shadcn theme ships
+    `--chart-1`..`--chart-5` but all five sit in the cyan
+    family — a stacked / pie split using them would read as
+    one blob. Categories use 5 distinct Tailwind 500-level
+    hues instead, picked for legibility against both light
+    and dark backgrounds: stock `#06b6d4` (cyan), mutualFund
+    `#8b5cf6` (violet), bond `#3b82f6` (blue), timeDeposit
+    `#10b981` (emerald), gold `#eab308` (yellow — literal
+    gold connotation). Risk uses a semantic traffic-light
+    palette per the user decision: low `#059669` (emerald-600,
+    matches the existing P/L gain tone), medium `#f59e0b`
+    (amber-500), high `#dc2626` (red-600, stable static
+    equivalent of the OKLCH `--destructive` token that recharts
+    needs a hex for). The palette duplication between
+    `CategoryStackChartImpl.tsx` and `InvestmentsHome.tsx` is
+    deliberate — keeps the lazy chunks self-contained — and
+    documented inline at both sites.
+  - **i18n keys.** New `investments.home.{subtitle,
+    valueCostChartTitle, valueCostChartDescription,
+    categoryStackTitle, categoryStackDescription,
+    categoryPieTitle, categoryPieDescription, riskPieTitle,
+    riskPieDescription, categoryLabel.{stock,mutualFund,
+    bond,timeDeposit,gold}}` (EN+ID). ID category labels pulled
+    from the glossary (Saham / Reksa Dana / Obligasi /
+    Deposito / Emas). Risk pie legend reuses the existing
+    `investments.riskProfile.badge{Low,Medium,High}` keys — no
+    new copy needed there.
+  - **Tests + lint clean.** Vitest **162/162** (+9 new
+    `lib/homeAggregates.test.ts` cases), vite build green
+    (three new lazy chunks: `CategoryStackChartImpl`,
+    `InvestmentPieChartImpl`, plus recharts' own
+    `AreaChart`), eslint 0 errors on the new code (the 13
+    pre-existing "Bare JSX text" warnings from the
+    issue-#13 baseline remain unchanged). Backend untouched.
+    Net +744/−6 across 9 files (3 modified —
+    `InvestmentsHome.tsx`, `locales/en/investments.json`,
+    `locales/id/investments.json`; 6 new —
+    `lib/homeAggregates.ts`, `lib/homeAggregates.test.ts`,
+    `CategoryStackChart.tsx`, `CategoryStackChartImpl.tsx`,
+    `InvestmentPieChart.tsx`, `InvestmentPieChartImpl.tsx`).
+    Playwright E2E deferred per the
+    no-Playwright-while-experimenting workflow note.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

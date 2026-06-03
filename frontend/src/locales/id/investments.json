@@ -8,6 +8,24 @@
     "noun": "posisi",
     "nounPlural": "posisi"
   },
+  "home": {
+    "subtitle": "Komposisi dan tren seluruh lima subtipe.",
+    "valueCostChartTitle": "Total nilai dan modal dari waktu ke waktu",
+    "valueCostChartDescription": "Total seluruh investasi aktif ({{currency}}).",
+    "categoryStackTitle": "Proporsi kategori dari waktu ke waktu",
+    "categoryStackDescription": "Persentase total nilai per kategori per bulan ({{currency}}).",
+    "categoryPieTitle": "Komposisi kategori saat ini",
+    "categoryPieDescription": "Proporsi nilai saat ini per kategori ({{currency}}).",
+    "riskPieTitle": "Komposisi profil risiko saat ini",
+    "riskPieDescription": "Proporsi nilai saat ini per profil risiko ({{currency}}).",
+    "categoryLabel": {
+      "stock": "Saham",
+      "mutualFund": "Reksa Dana",
+      "bond": "Obligasi",
+      "timeDeposit": "Deposito",
+      "gold": "Emas"
+    }
+  },
   "transactionType": {
     "buy": "Beli",
     "sell": "Jual",

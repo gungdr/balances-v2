@@ -8,6 +8,24 @@
     "noun": "position",
     "nounPlural": "positions"
   },
+  "home": {
+    "subtitle": "Composition and trend across all five subtypes.",
+    "valueCostChartTitle": "Total value and cost over time",
+    "valueCostChartDescription": "Sum across all active investments ({{currency}}).",
+    "categoryStackTitle": "Category share over time",
+    "categoryStackDescription": "Percentage of total value by category, month-by-month ({{currency}}).",
+    "categoryPieTitle": "Current category mix",
+    "categoryPieDescription": "Share of current value by category ({{currency}}).",
+    "riskPieTitle": "Current risk-profile mix",
+    "riskPieDescription": "Share of current value by risk profile ({{currency}}).",
+    "categoryLabel": {
+      "stock": "Stocks",
+      "mutualFund": "Mutual funds",
+      "bond": "Bonds",
+      "timeDeposit": "Time deposits",
+      "gold": "Gold"
+    }
+  },
   "transactionType": {
     "buy": "Buy",
     "sell": "Sell",
