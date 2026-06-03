@@ -1393,6 +1393,104 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     eyeball before/after the next slice. Net +345/−183 across 11
     files (10 modified + 1 new helper).
 
+- **Investment screens enhancements — slice 14b (M6, frontend —
+  issue #14, slice 2 of 4).** Cost-basis line on the detail-screen
+  time graphs + headline `Total cost` / `Unrealized P/L` row
+  beneath each H1. The gap between the value Area and the cost
+  Line is the chart's one-glance P/L signal; the headline gives the
+  same number as a precise readout under the H1.
+  - **`lib/costBasis.ts` (3 exports + 16 unit tests).**
+    `computeCostBasis(transactions) → { cost, heldQty }` is the
+    avg-cost FIFO-ish replay: buys add `amount` + `quantity`, sells
+    reduce both by `(cost / qty) × sellQty` (pre-sell ratio), fees
+    capitalize into cost, coupon / dividend / distribution /
+    maturity ignored. `costBasisSeries(snapshots, transactions)`
+    is the per-snapshot-month parallel — sorts txns once, walks
+    snapshot months in ascending order with a single cursor for
+    O(n+m). `flatCostSeries(snapshots, cost)` emits a constant
+    series for the subtypes whose cost lives outside the ledger
+    (TD principal, bond govt-primary face value). All three accept
+    either bare `"YYYY-MM"` or the API's `"YYYY-MM-DDT..."` form
+    (slice-7 prefix match).
+  - **Why ignore maturity.** Maturity is terminal — after it, the
+    user typically stops snapshotting and the chart simply ends.
+    At the maturity-month snapshot itself, value = principal +
+    final interest and cost = unchanged principal, so the gap
+    reads as the realized gain ("+5M on a 100M TD"). If we zeroed
+    cost at maturity, the same gap would mis-read as "+105M".
+    Sells already reduce cost proportionally so voluntary
+    liquidations are correct without special-casing maturity.
+  - **`SnapshotChart` + `SnapshotChartImpl` gain `costSeries?`.**
+    When provided, the impl merges `cost` into each chart datum
+    by year_month prefix, extends `chartConfig` with a `cost`
+    entry (`color: var(--muted-foreground)`), and renders a
+    second series as a recharts `<Line>` (thin solid stroke, no
+    dot, animation off) layered on top of the existing value
+    `<Area>` (kept with its fill). A `<ChartLegend>` shows up
+    only when cost is present — wasteful chrome otherwise. The
+    non-investment detail screens (BankAccount / Property /
+    Vehicle / Liability / Receivable / Dashboard) omit the prop
+    and render exactly as before — 10 unchanged callsites.
+  - **Per-subtype cost source.** `StockDetail` / `MutualFundDetail`
+    / `GoldDetail` use `costBasisSeries(snapshots, transactions ??
+    [])` straight from the ledger. `BondDetail` branches on
+    `hasBuys = transactions.some(t => t.transaction_type === 'buy')`:
+    secondary-market bonds with real Buy txns use the ledger;
+    govt-primary held-to-maturity (no Buy recorded — face value IS
+    the cost) falls back to `flatCostSeries(face_value)`. The
+    headline's `bondTotalCost` mirrors the same branch.
+    `TimeDepositDetail` always uses `flatCostSeries(principal)` —
+    TD ledger carries only Maturity (terminal), so the principal
+    field on `time_deposit_details` is authoritative.
+  - **`InvestmentHeadline` component.** Single shared row under
+    each detail H1 (`data-testid="investment-headline"`), inside
+    the left column of the header flex so action buttons re-center
+    to the row. Renders `Total cost: X` always, then either
+    `Unrealized P/L: ±Y (±Z%)` (active positions) or the
+    closed-status short-circuit (see below). P/L tone via
+    `plColor`: positive → `text-emerald-600`, negative →
+    `text-destructive`, zero → `text-muted-foreground`. Sign uses
+    the typographic minus glyph "−" (U+2212), matching the
+    revaluation helper for visual alignment with "+". When
+    `Math.abs(totalCost) === 0` the percentage is suppressed (no
+    div-by-zero); when `latestValue === null` the P/L value cell
+    shows the `unrealizedPLEmpty` em-dash.
+  - **Closed-position short-circuit (the matured-mid-month
+    problem).** Surfaced during grilling: when a TD or bond
+    matures mid-month and the user snapshots end-of-month as
+    they always do, the snapshot reads value=0 (cash already
+    paid out). The P/L block would then show −100% (cost was
+    100M, value is 0). For positions with `status !== 'active'`
+    AND `terminated_at` set, the component swaps the P/L block
+    for a `Matured on {date}` / `Sold on {date}` line driven by
+    `headline.closed.<status>` with `default` fallback. Filed
+    as separate **issue #17 (backend auto-snapshot on
+    Maturity)** for the structural fix — when that lands, this
+    short-circuit can be removed. The closed-status block is
+    `data-testid="investment-headline-closed"`; the P/L number
+    when present is `data-testid="investment-headline-pl"` for
+    spec hooks.
+  - **i18n.** New `dashboard.chart.costLegend` ("Cost" / "Modal")
+    + `investments.headline.{totalCost,unrealizedPL,
+    unrealizedPLEmpty,closed.{matured,sold,default}}` in EN+ID.
+    ID copy follows `docs/glossary-id.md`: "Total modal" (cost
+    basis — retail-friendly Indonesian; the accounting-formal
+    "Biaya perolehan" reads jargon-y for the household
+    audience), "Untung/rugi belum direalisasi" (full form, not
+    the abbreviated "L/R", because non-technical users don't
+    parse the abbreviation), "Jatuh tempo / Dijual / Ditutup
+    pada". Glossary gets three new rows: Cost/Modal, Unrealized
+    P/L, Fee (the third disambiguates `biaya` as fee vs `modal`
+    as cost basis on the same screens).
+  - **Tests + lint clean.** Vitest **143/143** (+16 new
+    `lib/costBasis.test.ts` cases), vite build green, eslint 0
+    errors (13 pre-existing "Bare JSX text" warnings unchanged
+    from the issue-#13 baseline). Backend untouched. Net
+    +290/−12 across 15 files (12 modified + 3 new:
+    `InvestmentHeadline.tsx`, `lib/costBasis.ts`,
+    `lib/costBasis.test.ts`). Playwright E2E deferred per the
+    no-Playwright-while-experimenting workflow note.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

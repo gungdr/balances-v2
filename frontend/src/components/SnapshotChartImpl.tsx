@@ -1,7 +1,16 @@
 import { useTranslation } from 'react-i18next'
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Line,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import {
   ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
@@ -20,23 +29,47 @@ type SnapshotLike = {
   amount: string
 }
 
+type CostPoint = {
+  year_month: string
+  cost: number
+}
+
 type Props = {
   snapshots: SnapshotLike[]
   currency: string
+  costSeries?: CostPoint[]
 }
 
-function toChartData(snapshots: SnapshotLike[]) {
+function toChartData(snapshots: SnapshotLike[], costSeries?: CostPoint[]) {
+  // Cost lookup by year_month prefix — caller passes either the bare
+  // "YYYY-MM" or the API's "YYYY-MM-DDT..." shape, both reduce to the
+  // same key via slice(0, 7).
+  const costByMonth = new Map<string, number>()
+  for (const c of costSeries ?? []) {
+    costByMonth.set(c.year_month.slice(0, 7), c.cost)
+  }
   return [...snapshots]
     .sort((a, b) => a.year_month.localeCompare(b.year_month))
-    .map((s) => ({
-      month: formatChartMonth(new Date(s.year_month)),
-      amount: Number(s.amount),
-    }))
+    .map((s) => {
+      const month = formatChartMonth(new Date(s.year_month))
+      const ym = s.year_month.slice(0, 7)
+      const point: { month: string; amount: number; cost?: number } = {
+        month,
+        amount: Number(s.amount),
+      }
+      if (costByMonth.has(ym)) point.cost = costByMonth.get(ym)
+      return point
+    })
 }
 
-export default function SnapshotChartImpl({ snapshots, currency }: Props) {
+export default function SnapshotChartImpl({
+  snapshots,
+  currency,
+  costSeries,
+}: Props) {
   const { t } = useTranslation('dashboard')
-  const data = toChartData(snapshots)
+  const data = toChartData(snapshots, costSeries)
+  const hasCost = (costSeries ?? []).length > 0
   // ChartConfig is built per-render so the legend label picks up the active
   // locale. Cheap — single key, no per-row computation.
   const chartConfig = {
@@ -44,6 +77,15 @@ export default function SnapshotChartImpl({ snapshots, currency }: Props) {
       label: t('chart.amountLegend'),
       color: 'var(--chart-1)',
     },
+    ...(hasCost && {
+      cost: {
+        label: t('chart.costLegend'),
+        // Muted-slate baseline (issue #14 decision): cost is a reference
+        // line; gain / loss reads from the gap between value and cost,
+        // not from the cost line's own color cue.
+        color: 'var(--muted-foreground)',
+      },
+    }),
   } satisfies ChartConfig
 
   return (
@@ -83,6 +125,18 @@ export default function SnapshotChartImpl({ snapshots, currency }: Props) {
           stroke="var(--color-amount)"
           strokeWidth={2}
         />
+        {hasCost && (
+          <Line
+            dataKey="cost"
+            type="monotone"
+            stroke="var(--color-cost)"
+            strokeWidth={1.5}
+            dot={false}
+            activeDot={false}
+            isAnimationActive={false}
+          />
+        )}
+        {hasCost && <ChartLegend content={<ChartLegendContent />} />}
       </AreaChart>
     </ChartContainer>
   )

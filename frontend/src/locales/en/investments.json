@@ -187,6 +187,16 @@
     "searchPlaceholder": "Search transactions…",
     "searchEmpty": "No transactions match your search."
   },
+  "headline": {
+    "totalCost": "Total cost:",
+    "unrealizedPL": "Unrealized P/L:",
+    "unrealizedPLEmpty": "—",
+    "closed": {
+      "matured": "Matured on:",
+      "sold": "Sold on:",
+      "default": "Closed on:"
+    }
+  },
   "stock": {
     "listTitle": "Stocks",
     "listSubtitle": "Listed equities — tracked by ticker and exchange, with monthly quantity-and-price snapshots.",

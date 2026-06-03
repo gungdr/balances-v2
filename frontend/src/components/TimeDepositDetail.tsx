@@ -52,6 +52,8 @@ import { formatCurrency, formatDate } from '@/lib/format'
 import { maturityClass, maturityInfo } from '@/lib/maturity'
 import { ownershipLabel } from '@/lib/ownership'
 import { matchesTxnSearch } from '@/lib/transactionSearch'
+import { flatCostSeries } from '@/lib/costBasis'
+import { InvestmentHeadline } from '@/components/InvestmentHeadline'
 
 type Props = {
   investmentId: string
@@ -171,6 +173,17 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
               months: td.details.term_months,
             })}
           </p>
+          <InvestmentHeadline
+            currency={td.investment.native_currency}
+            latestValue={
+              snapshots && snapshots.length > 0
+                ? Number(snapshots[0].amount)
+                : null
+            }
+            totalCost={Number(td.details.principal)}
+            status={td.investment.status}
+            terminatedAt={td.investment.terminated_at}
+          />
         </div>
         <div className="flex gap-2">
           {isActiveStatus(td.investment.status) && (
@@ -274,6 +287,10 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
             <SnapshotChart
               snapshots={snapshots}
               currency={td.investment.native_currency}
+              costSeries={flatCostSeries(
+                snapshots,
+                Number(td.details.principal),
+              )}
             />
           </CardContent>
         </Card>

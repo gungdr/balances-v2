@@ -88,6 +88,9 @@ the choice is non-obvious.
 | Quantity | Jumlah | Reserved for counts (shares, units, grams). Don't reuse for monetary amount — that's Nominal. |
 | Price per Unit | Harga per Unit | — |
 | Accrued Interest | Bunga Berjalan | Canonical retail-bond term. _Avoid_: Bunga Akrual (technically correct but reads textbook-y). |
+| Cost / Cost Basis | Modal | Money put into a position. Retail-friendly; "Biaya perolehan" is the accounting term but reads jargon-y for the household audience. _Avoid_: Harga Pokok (stockbroker-specific). |
+| Unrealized P/L | Untung/rugi belum direalisasi | Gap between current value and cost basis. Long-form deliberate — abbreviation "L/R" (laba/rugi) reads too report-y for non-technical users. |
+| Fee | Biaya | Transaction fee. Distinct from Modal (cost basis) by context. |
 
 ## Time and dates
 

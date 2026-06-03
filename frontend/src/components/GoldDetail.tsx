@@ -50,6 +50,8 @@ import { formatGoldPurity } from '@/lib/gold'
 import { ownershipLabel } from '@/lib/ownership'
 import { reconcileQuantity } from '@/lib/reconciliation'
 import { matchesTxnSearch } from '@/lib/transactionSearch'
+import { computeCostBasis, costBasisSeries } from '@/lib/costBasis'
+import { InvestmentHeadline } from '@/components/InvestmentHeadline'
 
 type Props = {
   investmentId: string
@@ -158,6 +160,13 @@ export function GoldDetail({ investmentId, onBack }: Props) {
           <p className="text-sm text-muted-foreground">
             {formLabel} · {formatGoldPurity(gold.details.purity)}
           </p>
+          <InvestmentHeadline
+            currency={gold.investment.native_currency}
+            latestValue={latestSnapshot ? Number(latestSnapshot.amount) : null}
+            totalCost={computeCostBasis(transactions ?? []).cost}
+            status={gold.investment.status}
+            terminatedAt={gold.investment.terminated_at}
+          />
         </div>
         <div className="flex gap-2">
           {isActiveStatus(gold.investment.status) && (
@@ -231,6 +240,7 @@ export function GoldDetail({ investmentId, onBack }: Props) {
             <SnapshotChart
               snapshots={snapshots}
               currency={gold.investment.native_currency}
+              costSeries={costBasisSeries(snapshots, transactions ?? [])}
             />
           </CardContent>
         </Card>

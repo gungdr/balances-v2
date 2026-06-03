@@ -28,7 +28,8 @@
   },
   "chart": {
     "title": "Net worth over time",
-    "amountLegend": "Amount"
+    "amountLegend": "Amount",
+    "costLegend": "Cost"
   },
   "breakdown": {
     "title": "Where it's held",

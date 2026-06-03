@@ -187,6 +187,16 @@
     "searchPlaceholder": "Cari transaksi…",
     "searchEmpty": "Tidak ada transaksi yang cocok dengan pencarian."
   },
+  "headline": {
+    "totalCost": "Total modal:",
+    "unrealizedPL": "Untung/rugi belum direalisasi:",
+    "unrealizedPLEmpty": "—",
+    "closed": {
+      "matured": "Jatuh tempo pada:",
+      "sold": "Dijual pada:",
+      "default": "Ditutup pada:"
+    }
+  },
   "stock": {
     "listTitle": "Saham",
     "listSubtitle": "Saham terdaftar — dilacak berdasarkan kode dan bursa, dengan snapshot jumlah-dan-harga bulanan.",

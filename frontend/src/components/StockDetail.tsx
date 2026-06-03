@@ -50,6 +50,8 @@ import { useSession } from '@/hooks/useSession'
 import { ownershipLabel } from '@/lib/ownership'
 import { reconcileQuantity } from '@/lib/reconciliation'
 import { matchesTxnSearch } from '@/lib/transactionSearch'
+import { computeCostBasis, costBasisSeries } from '@/lib/costBasis'
+import { InvestmentHeadline } from '@/components/InvestmentHeadline'
 
 type Props = {
   investmentId: string
@@ -157,6 +159,13 @@ export function StockDetail({ investmentId, onBack }: Props) {
           <p className="text-sm text-muted-foreground">
             {stock.details.ticker} · {stock.details.exchange}
           </p>
+          <InvestmentHeadline
+            currency={stock.investment.native_currency}
+            latestValue={latestSnapshot ? Number(latestSnapshot.amount) : null}
+            totalCost={computeCostBasis(transactions ?? []).cost}
+            status={stock.investment.status}
+            terminatedAt={stock.investment.terminated_at}
+          />
         </div>
         <div className="flex gap-2">
           {isActiveStatus(stock.investment.status) && (
@@ -230,6 +239,7 @@ export function StockDetail({ investmentId, onBack }: Props) {
             <SnapshotChart
               snapshots={snapshots}
               currency={stock.investment.native_currency}
+              costSeries={costBasisSeries(snapshots, transactions ?? [])}
             />
           </CardContent>
         </Card>

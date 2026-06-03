@@ -189,6 +189,36 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     `bond.totalCouponsLabel`/`totalFeesLabel` populated EN+ID. Net
     +345/−183 across 11 files; vitest 127/127, vite build green,
     eslint 0 errors.
+  - Investment screens enhancements (issue #14, slice 14b of 4):
+    cost-basis line on the detail-screen time graphs + headline
+    `Total cost` / `Unrealized P/L` row beneath each H1. New pure
+    helper `lib/costBasis.ts` exports `computeCostBasis`,
+    `costBasisSeries`, `flatCostSeries` — avg-cost FIFO-ish (buys
+    add cost + qty, sells reduce both proportionally, standalone
+    fees capitalize, income/maturity ignored); 16 unit tests cover
+    oversell, missing data, date-order independence, mid-month
+    snapshot attribution. `SnapshotChart` (+ `Impl`) gain an
+    optional `costSeries` prop and render a muted-slate `<Line>`
+    under the value `<Area>` with a `<ChartLegend>`; non-investment
+    detail screens omit the prop and render unchanged. Per-subtype
+    cost-basis source: Stock/MF/Gold/Bond-secondary derive from the
+    ledger via `costBasisSeries`; Bond govt-primary (no Buy txn)
+    falls back to `flatCostSeries(face_value)`; TD always uses
+    `flatCostSeries(principal)`. New `InvestmentHeadline`
+    component (mounted under each detail H1) renders `Total cost: X`
+    + `Unrealized P/L: ±Y (±Z%)` with emerald/destructive/muted P/L
+    tone and `−` U+2212 minus glyph; suppresses the P/L line when
+    `status !== 'active'` and surfaces `Matured on {date}` /
+    `Sold on {date}` instead (works around the end-of-month-snap-
+    at-0 problem for matured/sold positions — see #17 for the
+    backend auto-snapshot follow-up). New keys
+    `investments.headline.{totalCost,unrealizedPL,
+    unrealizedPLEmpty,closed.{matured,sold,default}}` +
+    `dashboard.chart.costLegend` (EN+ID); glossary gains
+    Cost/Modal + Unrealized P/L + Fee/Biaya rows with rationale.
+    Net +290/−12 across 15 files (12 modified + 3 new); vitest
+    143/143 (+16 new), vite build green, eslint 0 errors. Backend
+    untouched.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
@@ -457,6 +487,14 @@ invite-form relocation, the `users.nickname` build, vitest setup) — is preserv
 - **Component tests (RTL + MSW + jsdom).** Deferred until component tests begin (ADR-0021). Vitest
   covers `lib/*` today. Do **not** add Playwright/E2E to the coverage metric — it's a behavioural
   net, not a coverage instrument.
+- **Auto-snapshot on Maturity transaction (issue #17).** Filed during the #14 slice 14b grilling.
+  When a TD / bond matures mid-month, the user's end-of-month snapshot reads value=0 (cash already
+  paid out) and would produce a misleading −100% P/L on the detail-screen headline. Slice 14b ships
+  a short-circuit (suppress P/L + show "Matured on {date}" / "Sold on {date}") as a stop-gap. The
+  structural fix is backend: have `CreateInvestmentTransaction` insert a snapshot at `maturity_date`
+  with `amount = principal_amount + interest_amount` (and `accrued_interest = interest_amount` for
+  the accrued shape) in the same Tx that flips lifecycle to `matured`. Once landed, remove the
+  closed-status short-circuit in `InvestmentHeadline.tsx`.
 
 ## Updating this document
 

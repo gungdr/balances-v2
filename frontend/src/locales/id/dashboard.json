@@ -28,7 +28,8 @@
   },
   "chart": {
     "title": "Kekayaan bersih dari waktu ke waktu",
-    "amountLegend": "Nominal"
+    "amountLegend": "Nominal",
+    "costLegend": "Modal"
   },
   "breakdown": {
     "title": "Di mana disimpan",

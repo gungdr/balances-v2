@@ -52,6 +52,8 @@ import { formatCurrency, formatDate } from '@/lib/format'
 import { maturityClass, maturityInfo } from '@/lib/maturity'
 import { ownershipLabel } from '@/lib/ownership'
 import { matchesTxnSearch } from '@/lib/transactionSearch'
+import { computeCostBasis, costBasisSeries, flatCostSeries } from '@/lib/costBasis'
+import { InvestmentHeadline } from '@/components/InvestmentHeadline'
 
 type Props = {
   investmentId: string
@@ -152,6 +154,18 @@ export function BondDetail({ investmentId, onBack }: Props) {
     )
   const totalCoupons = txnSum('coupon')
   const totalFees = txnSum('fee')
+  // Cost basis fallback for govt-primary bonds: no Buy transaction is
+  // recorded because face value IS the cost. Secondary-market bonds have
+  // real Buy txns; the ledger drives them.
+  const hasBuys = (transactions ?? []).some((tx) => tx.transaction_type === 'buy')
+  const bondCostSeries = hasBuys
+    ? costBasisSeries(snapshots ?? [], transactions ?? [])
+    : flatCostSeries(snapshots ?? [], Number(bond.details.face_value))
+  const bondTotalCost = hasBuys
+    ? computeCostBasis(transactions ?? []).cost
+    : Number(bond.details.face_value)
+  const bondLatestSnapshot =
+    snapshots && snapshots.length > 0 ? snapshots[0] : null
   // Maturity is uniquely terminal: posting it flips the position to 'matured'
   // (backend hard guard, ADR-0009), after which the transaction-create row is
   // gated off entirely by isActiveStatus below.
@@ -189,6 +203,15 @@ export function BondDetail({ investmentId, onBack }: Props) {
           <p className="text-sm text-muted-foreground">
             {subtitleBits.join(' · ')}
           </p>
+          <InvestmentHeadline
+            currency={bond.investment.native_currency}
+            latestValue={
+              bondLatestSnapshot ? Number(bondLatestSnapshot.amount) : null
+            }
+            totalCost={bondTotalCost}
+            status={bond.investment.status}
+            terminatedAt={bond.investment.terminated_at}
+          />
         </div>
         <div className="flex gap-2">
           {isActiveStatus(bond.investment.status) && (
@@ -289,6 +312,7 @@ export function BondDetail({ investmentId, onBack }: Props) {
             <SnapshotChart
               snapshots={snapshots}
               currency={bond.investment.native_currency}
+              costSeries={bondCostSeries}
             />
           </CardContent>
         </Card>
