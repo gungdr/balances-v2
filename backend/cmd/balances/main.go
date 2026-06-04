@@ -175,7 +175,7 @@ func serveCmd() error {
 	select {
 	case <-ctx.Done():
 		slog.Info("shutting down")
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 		defer cancel()
 		return httpSrv.Shutdown(shutdownCtx)
 	case err := <-errCh:

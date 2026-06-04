@@ -392,6 +392,16 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     `maturityRolloverPrefill` short-circuits when `rolled_to` is set. Hand-created successors stay
     unlinked (accepted scope). TD detail gained a **Rollover card** linking the immediate chain
     neighbours (predecessor + successor) via a router-unaware `onSelectTimeDeposit` callback.
+  - Faster dev-server restart (issue #30): `make restart` now polls real readiness instead of
+    blind `sleep 1`s — stops wait for the process to exit (SIGTERM → graceful, then SIGKILL
+    escalation), starts poll backend `/healthz` + vite's `Local:` line. ~3s of dead sleep → ~1.6s
+    and the command only returns once both servers actually serve. Shutdown grace period made
+    adjustable via `SHUTDOWN_TIMEOUT` (config, default `10s`). Also detached the backgrounded
+    jobs from the caller's stdout (`( cd DIR && exec nohup CMD ) > LOG 2>&1 < /dev/null &`) so a
+    *piped* `make restart` (agent shell tools, `| tee`) no longer blocks for minutes on a pipe
+    the lingering recipe sub-shell kept open — terminal use never saw it, captured callers did.
+    `nohup` is retained (its `SIG_IGN` survives `go run`'s fork+exec to the real server) so the
+    servers still outlive a closed terminal; verified by direct SIGHUP to the listening pid.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

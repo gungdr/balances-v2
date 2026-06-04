@@ -12,6 +12,11 @@ type Config struct {
 	Port        int    `env:"PORT" envDefault:"8080"`
 	LogFormat   string `env:"LOG_FORMAT" envDefault:"text"`
 
+	// ShutdownTimeout bounds how long graceful shutdown waits for in-flight
+	// requests to drain before forcing the server closed. Adjustable so dev
+	// restarts can use a short grace period; production keeps a longer one.
+	ShutdownTimeout time.Duration `env:"SHUTDOWN_TIMEOUT" envDefault:"10s"`
+
 	GoogleClientID     string        `env:"GOOGLE_CLIENT_ID"`
 	GoogleClientSecret string        `env:"GOOGLE_CLIENT_SECRET"`
 	OIDCIssuerURL      string        `env:"OIDC_ISSUER_URL" envDefault:"https://accounts.google.com"`

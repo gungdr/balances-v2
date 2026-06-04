@@ -2200,6 +2200,53 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     resolves `RolledFrom` back to the source → cleanup. vitest 182/182,
     backend suite + golangci-lint green, vite build + ESLint 0 errors.
 
+- **Faster dev-server restart (issue #30).** `make restart` (and the per-side
+  `backend-restart` / `frontend-restart`) dropped from ~3s of blind `sleep 1`s
+  to ~1.6s, and now blocks on *actual* readiness rather than a fixed delay that
+  didn't even guarantee the server was up.
+  - **Diagnosis.** Measured each stage: warm `go build` is 0.1–0.5s, and both
+    servers reach ready ~0.3s after spawn (backend = migrations + OIDC discovery
+    + pgxpool; frontend = vite). So neither `go run` nor the 10s graceful-shutdown
+    timeout was the cost — in dev `http.Server.Shutdown` returns instantly (no
+    connections draining). The entire delay was three hardcoded `@sleep 1`s
+    (backend-stop, backend-start, frontend-start).
+  - **Stops wait for exit, not a clock.** `backend-stop` / `frontend-stop` poll
+    `pgrep` until the process is actually gone (cap 5s), then escalate to
+    `pkill -9` — so a slow graceful drain is tolerated without a fixed penalty,
+    and a wedged process is still killed.
+  - **Starts poll for readiness.** `backend-restart` polls
+    `curl /healthz` on `$(BACKEND_PORT)` (new Makefile var, `$(or $(PORT),8080)`);
+    `frontend-restart` truncates the log then greps for vite's `Local:` line
+    (port-agnostic). Both cap at 10–15s.
+  - **Adjustable grace period.** Per the issue's literal ask, the previously
+    hardcoded `10*time.Second` shutdown timeout in `cmd/balances/main.go` is now
+    `cfg.ShutdownTimeout`, a new `SHUTDOWN_TIMEOUT` config field
+    (`envDefault:"10s"`). Doesn't change dev speed (Shutdown already returns
+    instantly there) but lets a deploy tune drain time without a recompile.
+  - **Detached the bg jobs from the caller's stdout.** Separately surfaced while
+    testing: when `make restart` runs with its output *piped* (a captured
+    subprocess — e.g. an agent's shell tool, `make restart | tee`), the command
+    appeared to hang for minutes even though the Makefile finished in ~1.3s. The
+    old `nohup cmd > LOG 2>&1 &` reassigned the *job's* fd1/fd2 to the log, but
+    the recipe **sub-shell** wrapping it kept fd1 = make's inherited stdout. Piped,
+    that's the pipe's write-end, and it stays open as long as the server runs — so
+    the pipe reader never gets EOF and blocks until the server dies. (Interactive
+    terminal use never showed it: fd1 there is the tty, not a pipe.) Fix: wrap each
+    start in `( cd DIR && exec nohup CMD ) > LOG 2>&1 < /dev/null &` so the
+    redirection covers the whole sub-shell and `exec` leaves no extra shell layer
+    holding the descriptor. `lsof` confirms every lingering bg process now has
+    fd1 → its log, never a pipe; `make restart | cat` returns in ~0.6s.
+  - **`nohup` retained, deliberately.** The group redirect alone would drop SIGHUP
+    protection, so the dev servers would die when the terminal that launched them
+    closed. `exec nohup CMD` keeps it: `nohup`'s `SIGHUP=SIG_IGN` is preserved
+    across `go run`'s fork+exec down to the real server binary (verified by sending
+    SIGHUP directly to the listening pid — server survived). Because the group
+    redirect already points stdout at a regular file, `nohup` writes no stray
+    `nohup.out`.
+  - **Verified.** `make restart` → ~1.3s wall (piped, ~0.6s); `/healthz` 200 +
+    frontend 200 afterwards. Backend suite + golangci-lint (`0 issues`) green;
+    backend builds.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

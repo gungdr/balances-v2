@@ -7,6 +7,10 @@ export
 BACKEND_LOG  := /tmp/balances-backend.log
 FRONTEND_LOG := /tmp/balances-frontend.log
 
+# Port the backend serves on (matches config default); used by the readiness
+# poll in `backend-restart`. Override by setting PORT in .env.
+BACKEND_PORT := $(or $(PORT),8080)
+
 # E2E (ADR-0024): a dedicated database in the same Postgres container, plus the
 # backend pointed at it. PG_CONTAINER / PG_USER match docker-compose defaults.
 # E2E_DATABASE_URL is DATABASE_URL with the db name swapped to balances_e2e, so
@@ -67,26 +71,47 @@ frontend-build:
 # Useful after schema/migration changes (backend re-runs goose on serve)
 # or when iterating on env vars. Per-side variants exist for partial
 # restarts; `servers-status` shows what's running.
+#
+# Stops wait for the process to actually exit (SIGTERM → graceful shutdown,
+# bounded by SHUTDOWN_TIMEOUT, then SIGKILL escalation) and starts poll for
+# real readiness (backend /healthz; vite's "Local:" line) instead of a blind
+# `sleep` — both servers come up in well under a second, so fixed sleeps were
+# pure dead time. See issue #30.
 
 backend-stop:
 	@pkill -f 'go run ./cmd/balances' 2>/dev/null || true
 	@pkill -x balances 2>/dev/null || true
-	@sleep 1
+	@for i in $$(seq 1 50); do \
+	  pgrep -x balances >/dev/null 2>&1 || pgrep -f 'go run ./cmd/balances' >/dev/null 2>&1 || break; \
+	  sleep 0.1; \
+	done
+	@pkill -9 -x balances 2>/dev/null || true
 	@echo "backend: stopped"
 
 backend-restart: backend-stop
-	@cd backend && nohup go run ./cmd/balances serve > $(BACKEND_LOG) 2>&1 &
-	@sleep 1
+	@( cd backend && exec nohup go run ./cmd/balances serve ) > $(BACKEND_LOG) 2>&1 < /dev/null &
+	@for i in $$(seq 1 100); do \
+	  curl -fsS http://localhost:$(BACKEND_PORT)/healthz >/dev/null 2>&1 && break; \
+	  sleep 0.1; \
+	done
 	@echo "backend: started (log: $(BACKEND_LOG))"
 
 frontend-stop:
 	@pkill -f 'frontend/node_modules/.bin/vite' 2>/dev/null || true
 	@pkill -f 'npm run dev' 2>/dev/null || true
+	@for i in $$(seq 1 50); do \
+	  pgrep -f 'frontend/node_modules/.bin/vite' >/dev/null 2>&1 || break; \
+	  sleep 0.1; \
+	done
 	@echo "frontend: stopped"
 
 frontend-restart: frontend-stop
-	@cd frontend && nohup npm run dev > $(FRONTEND_LOG) 2>&1 &
-	@sleep 1
+	@: > $(FRONTEND_LOG)
+	@( cd frontend && exec nohup npm run dev ) > $(FRONTEND_LOG) 2>&1 < /dev/null &
+	@for i in $$(seq 1 150); do \
+	  grep -q 'Local:' $(FRONTEND_LOG) 2>/dev/null && break; \
+	  sleep 0.1; \
+	done
 	@echo "frontend: started (log: $(FRONTEND_LOG))"
 
 restart: backend-restart frontend-restart
