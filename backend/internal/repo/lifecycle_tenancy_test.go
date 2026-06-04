@@ -351,24 +351,24 @@ func TestInvestmentLifecycle_CloseSnapshot(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ListInvestmentSnapshots: %v", err)
 		}
-		var close *db.InvestmentSnapshot
+		var closeSnap *db.InvestmentSnapshot
 		for i := range snaps {
 			if snaps[i].YearMonth.Equal(termMonth) {
-				close = &snaps[i]
+				closeSnap = &snaps[i]
 			}
 		}
-		if close == nil {
+		if closeSnap == nil {
 			t.Fatalf("no close snapshot at termination month; got %d snapshots", len(snaps))
 		}
-		if !close.Amount.IsZero() {
-			t.Errorf("close Amount: got %s, want 0", close.Amount)
+		if !closeSnap.Amount.IsZero() {
+			t.Errorf("close Amount: got %s, want 0", closeSnap.Amount)
 		}
 		// Stock shape: quantity + price present (0), accrued nil.
-		if close.Quantity == nil || !close.Quantity.IsZero() || close.PricePerUnit == nil || !close.PricePerUnit.IsZero() {
-			t.Errorf("close quantity/price: got q=%v p=%v, want 0/0", close.Quantity, close.PricePerUnit)
+		if closeSnap.Quantity == nil || !closeSnap.Quantity.IsZero() || closeSnap.PricePerUnit == nil || !closeSnap.PricePerUnit.IsZero() {
+			t.Errorf("close quantity/price: got q=%v p=%v, want 0/0", closeSnap.Quantity, closeSnap.PricePerUnit)
 		}
-		if close.AccruedInterest != nil {
-			t.Errorf("close AccruedInterest should be nil for stock shape; got %v", close.AccruedInterest)
+		if closeSnap.AccruedInterest != nil {
+			t.Errorf("close AccruedInterest should be nil for stock shape; got %v", closeSnap.AccruedInterest)
 		}
 	})
 
