@@ -45,6 +45,7 @@ import { EditStockDialog } from '@/components/EditStockDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { QuantityPriceSnapshotRow } from '@/components/QuantityPriceSnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
+import { HelpTourButton, type TourStep } from '@/components/HelpTourButton'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useSession } from '@/hooks/useSession'
 import { ownershipLabel } from '@/lib/ownership'
@@ -141,6 +142,44 @@ export function StockDetail({ investmentId, onBack }: Props) {
     effectiveTxnPage * PAGE_SIZE,
   )
 
+  const tourSteps: TourStep[] = [
+    {
+      element: '[data-testid="tour-overview"]',
+      title: t('investments:stock.tour.overviewTitle'),
+      description: t('investments:stock.tour.overviewBody'),
+    },
+    {
+      element: '[data-testid="investment-headline"]',
+      title: t('investments:stock.tour.headlineTitle'),
+      description: t('investments:stock.tour.headlineBody'),
+    },
+    {
+      element: '[data-testid="tour-actions"]',
+      title: t('investments:stock.tour.actionsTitle'),
+      description: t('investments:stock.tour.actionsBody'),
+    },
+    {
+      element: '[data-testid="tour-details"]',
+      title: t('investments:stock.tour.detailsTitle'),
+      description: t('investments:stock.tour.detailsBody'),
+    },
+    {
+      element: '[data-testid="tour-chart"]',
+      title: t('investments:stock.tour.chartTitle'),
+      description: t('investments:stock.tour.chartBody'),
+    },
+    {
+      element: '[data-testid="tour-snapshots"]',
+      title: t('investments:stock.tour.snapshotsTitle'),
+      description: t('investments:stock.tour.snapshotsBody'),
+    },
+    {
+      element: '[data-testid="tour-transactions"]',
+      title: t('investments:stock.tour.transactionsTitle'),
+      description: t('investments:stock.tour.transactionsBody'),
+    },
+  ]
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -153,7 +192,7 @@ export function StockDetail({ investmentId, onBack }: Props) {
           >
             {t('common:actions.back')}
           </Button>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 data-testid="tour-overview" className="text-2xl font-semibold tracking-tight">
             {stock.investment.display_name}
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -167,7 +206,8 @@ export function StockDetail({ investmentId, onBack }: Props) {
             terminatedAt={stock.investment.terminated_at}
           />
         </div>
-        <div className="flex gap-2">
+        <div data-testid="tour-actions" className="flex gap-2">
+          <HelpTourButton steps={tourSteps} />
           {isActiveStatus(stock.investment.status) && (
             <>
               <CreateQuantityPriceSnapshotDialog
@@ -202,7 +242,7 @@ export function StockDetail({ investmentId, onBack }: Props) {
         </div>
       </div>
 
-      <Card>
+      <Card data-testid="tour-details">
         <CardHeader>
           <CardTitle>{t('investments:stock.detailsCardTitle')}</CardTitle>
           <CardDescription>
@@ -226,7 +266,7 @@ export function StockDetail({ investmentId, onBack }: Props) {
       </Card>
 
       {snapshots && snapshots.length >= 2 && (
-        <Card>
+        <Card data-testid="tour-chart">
           <CardHeader>
             <CardTitle>{t('investments:snapshotsCard.chartTitle')}</CardTitle>
             <CardDescription>
@@ -245,7 +285,7 @@ export function StockDetail({ investmentId, onBack }: Props) {
         </Card>
       )}
 
-      <Card>
+      <Card data-testid="tour-snapshots">
         <CardHeader>
           <CardTitle>{t('investments:snapshotsCard.title')}</CardTitle>
           <CardDescription>
@@ -296,7 +336,7 @@ export function StockDetail({ investmentId, onBack }: Props) {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card data-testid="tour-transactions">
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
             <div>

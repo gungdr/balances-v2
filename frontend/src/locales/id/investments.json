@@ -252,6 +252,22 @@
       "ticker": "BBCA",
       "exchange": "IDX",
       "currency": "IDR"
+    },
+    "tour": {
+      "overviewTitle": "Sekilas tentang saham Anda",
+      "overviewBody": "Semua hal tentang satu kepemilikan saham — nilainya saat ini, jumlah yang Anda bayar, serta setiap transaksi dan dividen.",
+      "headlineTitle": "Modal dan untung/rugi",
+      "headlineBody": "“Total modal” dihitung dari transaksi Beli dan Jual Anda. Untung atau rugi membandingkannya dengan nilai terakhir yang dicatat.",
+      "actionsTitle": "Perbarui nilainya",
+      "actionsBody": "Ketuk “+ Snapshot baru” untuk mencatat nilai bulan ini (jumlah saham × harga), atau “Impor dari spreadsheet” untuk menambah beberapa bulan sekaligus.",
+      "detailsTitle": "Detail kepemilikan",
+      "detailsBody": "Kode saham dan info dasar ditetapkan saat Anda menambahkannya. Gunakan “Ubah” untuk mengubahnya.",
+      "chartTitle": "Nilai sepanjang waktu",
+      "chartBody": "Area berarsir adalah nilai yang dicatat tiap bulan; garis di bawahnya adalah modal Anda. Selisih keduanya adalah keuntungan Anda.",
+      "snapshotsTitle": "Nilai bulanan",
+      "snapshotsBody": "Setiap baris mencatat jumlah saham dan harga satu bulan. Tambahkan snapshot setiap kali ada laporan terbaru.",
+      "transactionsTitle": "Transaksi dan dividen",
+      "transactionsBody": "Catat setiap Beli dan Jual — itu menentukan modal Anda — beserta dividen yang diterima dan biaya apa pun."
     }
   },
   "mutualFund": {
@@ -289,6 +305,22 @@
       "fundCode": "MNDR-PU",
       "fundManager": "Mandiri Investasi",
       "currency": "IDR"
+    },
+    "tour": {
+      "overviewTitle": "Sekilas tentang reksa dana Anda",
+      "overviewBody": "Semua hal tentang satu kepemilikan reksa dana — nilainya, jumlah yang Anda investasikan, serta setiap transaksi dan distribusi.",
+      "headlineTitle": "Modal dan untung/rugi",
+      "headlineBody": "“Total modal” dihitung dari transaksi Beli dan Jual Anda. Untung atau rugi membandingkannya dengan nilai terakhir yang dicatat.",
+      "actionsTitle": "Perbarui nilainya",
+      "actionsBody": "Ketuk “+ Snapshot baru” untuk mencatat nilai bulan ini (jumlah unit × NAB), atau “Impor dari spreadsheet” untuk menambah beberapa bulan sekaligus.",
+      "detailsTitle": "Detail reksa dana",
+      "detailsBody": "Info dasar reksa dana ditetapkan saat Anda menambahkannya. Gunakan “Ubah” untuk mengubahnya.",
+      "chartTitle": "Nilai sepanjang waktu",
+      "chartBody": "Area berarsir adalah nilai yang dicatat tiap bulan; garis di bawahnya adalah modal Anda. Selisih keduanya adalah keuntungan Anda.",
+      "snapshotsTitle": "Nilai bulanan",
+      "snapshotsBody": "Setiap baris mencatat jumlah unit dan NAB satu bulan. Tambahkan snapshot setiap kali ada laporan terbaru.",
+      "transactionsTitle": "Transaksi dan distribusi",
+      "transactionsBody": "Catat setiap Beli dan Jual — itu menentukan modal Anda — beserta distribusi yang diterima dan biaya apa pun."
     }
   },
   "bond": {
@@ -353,6 +385,22 @@
       "currency": "IDR",
       "faceValue": "mis. 50000000 untuk 50 lot @ IDR 1.000.000",
       "couponRate": "6.25"
+    },
+    "tour": {
+      "overviewTitle": "Sekilas tentang obligasi Anda",
+      "overviewBody": "Halaman ini memuat semua hal tentang satu obligasi — nilainya saat ini, jumlah yang Anda bayar, dan setiap pembayaran yang diterimanya.",
+      "headlineTitle": "Modal dan untung/rugi",
+      "headlineBody": "“Total modal” adalah biaya perolehan obligasi. Untuk obligasi pemerintah yang dibeli saat penerbitan, itu sama dengan nilai nominalnya; begitu Anda mencatat transaksi Beli dan Jual, modal dihitung dari transaksi tersebut. Untung atau rugi adalah nilai terakhir yang dicatat dikurangi modal itu.",
+      "actionsTitle": "Perbarui nilainya",
+      "actionsBody": "Ketuk “+ Snapshot baru” untuk mencatat nilai obligasi bulan ini, atau “Impor dari spreadsheet” untuk memasukkan beberapa bulan sekaligus.",
+      "detailsTitle": "Ketentuan obligasi",
+      "detailsBody": "Nilai nominal, suku bunga kupon, dan tanggal jatuh tempo ditetapkan saat Anda menambahkan obligasi. Gunakan “Ubah” untuk mengubahnya.",
+      "chartTitle": "Nilai sepanjang waktu",
+      "chartBody": "Area berarsir adalah nilai obligasi yang dicatat tiap bulan; garis di bawahnya adalah modal Anda. Saat garis berada di bawah area, selisihnya adalah keuntungan Anda — untung atau rugi sepanjang waktu.",
+      "snapshotsTitle": "Nilai bulanan",
+      "snapshotsBody": "Setiap baris adalah nilai satu bulan yang dicatat. Tambahkan snapshot setiap kali Anda menerima laporan terbaru — dan saat obligasi jatuh tempo, snapshot penutup ditambahkan secara otomatis.",
+      "transactionsTitle": "Pembayaran, transaksi, dan jatuh tempo",
+      "transactionsBody": "Catat kupon yang Anda terima dan biaya apa pun — total di atas menjumlahkan pemasukan Anda hingga kini. Catat Beli atau Jual tambahan jika Anda bertransaksi di pasar sekunder. Saat obligasi jatuh tempo, buat entri Jatuh Tempo: ini mencatat pembayaran terakhir, menyimpan snapshot penutup secara otomatis, dan menandai obligasi sebagai selesai."
     }
   },
   "timeDeposit": {
@@ -405,6 +453,22 @@
       "principal": "50000000",
       "interestRate": "4.5",
       "termMonths": "12"
+    },
+    "tour": {
+      "overviewTitle": "Sekilas tentang deposito Anda",
+      "overviewBody": "Semua hal tentang satu deposito — nilainya, pokok yang Anda tempatkan, dan jatuh temponya.",
+      "headlineTitle": "Modal dan untung/rugi",
+      "headlineBody": "“Total modal” adalah pokok yang Anda tempatkan. Untung atau rugi adalah nilai terakhir yang dicatat — pokok plus bunga yang diperoleh — dikurangi modal itu.",
+      "actionsTitle": "Perbarui nilainya",
+      "actionsBody": "Ketuk “+ Snapshot baru” untuk mencatat nilai bulan ini termasuk bunga yang sudah diperoleh, atau “Impor dari spreadsheet” untuk beberapa bulan.",
+      "detailsTitle": "Ketentuan deposito",
+      "detailsBody": "Pokok, suku bunga, dan tanggal jatuh tempo ditetapkan saat Anda membuka deposito. Gunakan “Ubah” untuk mengubahnya.",
+      "chartTitle": "Nilai sepanjang waktu",
+      "chartBody": "Area berarsir adalah nilai yang dicatat tiap bulan; garis di bawahnya adalah pokok Anda. Selisih keduanya adalah bunga yang diperoleh.",
+      "snapshotsTitle": "Nilai bulanan",
+      "snapshotsBody": "Setiap baris mencatat nilai satu bulan — pokok plus bunga yang berjalan hingga saat itu.",
+      "transactionsTitle": "Jatuh tempo",
+      "transactionsBody": "Deposito punya satu transaksi: saat jatuh tempo, buat entri Jatuh Tempo untuk pembayarannya, dan pilih apakah dicairkan atau digulung ke deposito baru."
     }
   },
   "gold": {
@@ -447,6 +511,22 @@
       "displayName": "Emas batangan Antam 10g",
       "currency": "IDR",
       "purity": "0.9999 = 24K"
+    },
+    "tour": {
+      "overviewTitle": "Sekilas tentang emas Anda",
+      "overviewBody": "Semua hal tentang satu kepemilikan emas — nilainya, jumlah yang Anda bayar, serta setiap pembelian dan penjualan.",
+      "headlineTitle": "Modal dan untung/rugi",
+      "headlineBody": "“Total modal” dihitung dari transaksi Beli dan Jual Anda. Untung atau rugi membandingkannya dengan nilai terakhir yang dicatat.",
+      "actionsTitle": "Perbarui nilainya",
+      "actionsBody": "Ketuk “+ Snapshot baru” untuk mencatat nilai bulan ini (berat × harga), atau “Impor dari spreadsheet” untuk menambah beberapa bulan sekaligus.",
+      "detailsTitle": "Detail kepemilikan",
+      "detailsBody": "Berat dan kemurnian ditetapkan saat Anda menambahkannya. Gunakan “Ubah” untuk mengubahnya.",
+      "chartTitle": "Nilai sepanjang waktu",
+      "chartBody": "Area berarsir adalah nilai yang dicatat tiap bulan; garis di bawahnya adalah modal Anda. Selisih keduanya adalah keuntungan Anda.",
+      "snapshotsTitle": "Nilai bulanan",
+      "snapshotsBody": "Setiap baris mencatat berat dan harga satu bulan. Tambahkan snapshot setiap kali harga berubah atau Anda membeli lagi.",
+      "transactionsTitle": "Pembelian dan penjualan",
+      "transactionsBody": "Catat setiap Beli dan Jual, beserta biaya apa pun — itu menentukan modal Anda. Emas tidak memiliki dividen atau kupon."
     }
   }
 }

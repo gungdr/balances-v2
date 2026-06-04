@@ -37,6 +37,7 @@ import { EditBankAccountDialog } from '@/components/EditBankAccountDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { SnapshotRow } from '@/components/SnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
+import { HelpTourButton, type TourStep } from '@/components/HelpTourButton'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useSession } from '@/hooks/useSession'
 import { ownershipLabel } from '@/lib/ownership'
@@ -106,6 +107,34 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
     effectivePage * PAGE_SIZE,
   )
 
+  const tourSteps: TourStep[] = [
+    {
+      element: '[data-testid="tour-overview"]',
+      title: t('assets:bankAccount.tour.overviewTitle'),
+      description: t('assets:bankAccount.tour.overviewBody'),
+    },
+    {
+      element: '[data-testid="tour-actions"]',
+      title: t('assets:bankAccount.tour.actionsTitle'),
+      description: t('assets:bankAccount.tour.actionsBody'),
+    },
+    {
+      element: '[data-testid="tour-details"]',
+      title: t('assets:bankAccount.tour.detailsTitle'),
+      description: t('assets:bankAccount.tour.detailsBody'),
+    },
+    {
+      element: '[data-testid="tour-chart"]',
+      title: t('assets:bankAccount.tour.chartTitle'),
+      description: t('assets:bankAccount.tour.chartBody'),
+    },
+    {
+      element: '[data-testid="tour-snapshots"]',
+      title: t('assets:bankAccount.tour.snapshotsTitle'),
+      description: t('assets:bankAccount.tour.snapshotsBody'),
+    },
+  ]
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -118,7 +147,7 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
           >
             {t('common:actions.back')}
           </Button>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 data-testid="tour-overview" className="text-2xl font-semibold tracking-tight">
             {asset.display_name}
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -131,7 +160,8 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
             })}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div data-testid="tour-actions" className="flex gap-2">
+          <HelpTourButton steps={tourSteps} />
           {isActiveStatus(asset.status) && (
             <>
               <CreateSnapshotDialog
@@ -166,7 +196,7 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
         </div>
       </div>
 
-      <Card>
+      <Card data-testid="tour-details">
         <CardHeader>
           <CardTitle>{t('assets:bankAccount.detailsCardTitle')}</CardTitle>
           <CardDescription>
@@ -185,7 +215,7 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
       </Card>
 
       {snapshots && snapshots.length >= 2 && (
-        <Card>
+        <Card data-testid="tour-chart">
           <CardHeader>
             <CardTitle>{t('assets:bankAccount.chartTitle')}</CardTitle>
             <CardDescription>
@@ -203,7 +233,7 @@ export function BankAccountDetail({ assetId, onBack }: Props) {
         </Card>
       )}
 
-      <Card>
+      <Card data-testid="tour-snapshots">
         <CardHeader>
           <CardTitle>{t('assets:bankAccount.snapshotsTitle')}</CardTitle>
           <CardDescription>

@@ -34,6 +34,7 @@ import { EditVehicleDialog } from '@/components/EditVehicleDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { SnapshotRow } from '@/components/SnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
+import { HelpTourButton, type TourStep } from '@/components/HelpTourButton'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useSession } from '@/hooks/useSession'
 import { ownershipLabel } from '@/lib/ownership'
@@ -109,6 +110,34 @@ export function VehicleDetail({ assetId, onBack }: Props) {
     details.plate_number,
   ].filter(Boolean)
 
+  const tourSteps: TourStep[] = [
+    {
+      element: '[data-testid="tour-overview"]',
+      title: t('assets:vehicle.tour.overviewTitle'),
+      description: t('assets:vehicle.tour.overviewBody'),
+    },
+    {
+      element: '[data-testid="tour-actions"]',
+      title: t('assets:vehicle.tour.actionsTitle'),
+      description: t('assets:vehicle.tour.actionsBody'),
+    },
+    {
+      element: '[data-testid="tour-details"]',
+      title: t('assets:vehicle.tour.detailsTitle'),
+      description: t('assets:vehicle.tour.detailsBody'),
+    },
+    {
+      element: '[data-testid="tour-chart"]',
+      title: t('assets:vehicle.tour.chartTitle'),
+      description: t('assets:vehicle.tour.chartBody'),
+    },
+    {
+      element: '[data-testid="tour-snapshots"]',
+      title: t('assets:vehicle.tour.snapshotsTitle'),
+      description: t('assets:vehicle.tour.snapshotsBody'),
+    },
+  ]
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -121,14 +150,15 @@ export function VehicleDetail({ assetId, onBack }: Props) {
           >
             {t('common:actions.back')}
           </Button>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 data-testid="tour-overview" className="text-2xl font-semibold tracking-tight">
             {asset.display_name}
           </h1>
           <p className="text-sm text-muted-foreground">
             {subtitleParts.join(' · ')}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div data-testid="tour-actions" className="flex gap-2">
+          <HelpTourButton steps={tourSteps} />
           {isActiveStatus(asset.status) && (
             <>
               <CreateSnapshotDialog
@@ -174,7 +204,7 @@ export function VehicleDetail({ assetId, onBack }: Props) {
         </div>
       </div>
 
-      <Card>
+      <Card data-testid="tour-details">
         <CardHeader>
           <CardTitle>{t('assets:vehicle.detailsCardTitle')}</CardTitle>
           <CardDescription>
@@ -203,7 +233,7 @@ export function VehicleDetail({ assetId, onBack }: Props) {
       </Card>
 
       {snapshots && snapshots.length >= 2 && (
-        <Card>
+        <Card data-testid="tour-chart">
           <CardHeader>
             <CardTitle>{t('assets:vehicle.chartTitle')}</CardTitle>
             <CardDescription>
@@ -221,7 +251,7 @@ export function VehicleDetail({ assetId, onBack }: Props) {
         </Card>
       )}
 
-      <Card>
+      <Card data-testid="tour-snapshots">
         <CardHeader>
           <CardTitle>{t('assets:vehicle.snapshotsTitle')}</CardTitle>
           <CardDescription>

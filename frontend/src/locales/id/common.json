@@ -155,5 +155,12 @@
     "importN_one": "Impor {{count}} bulan",
     "importN_other": "Impor {{count}} bulan",
     "importPlain": "Impor"
+  },
+  "tour": {
+    "help": "Bantuan",
+    "next": "Lanjut",
+    "back": "Kembali",
+    "done": "Selesai",
+    "progress": "{{current}} dari {{total}}"
   }
 }

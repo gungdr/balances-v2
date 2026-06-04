@@ -39,6 +39,18 @@
       "displayName": "BCA Savings",
       "bankName": "BCA",
       "currency": "IDR"
+    },
+    "tour": {
+      "overviewTitle": "Your account at a glance",
+      "overviewBody": "Track this account's balance over time — record it each month to keep your net worth current.",
+      "actionsTitle": "Keep its balance current",
+      "actionsBody": "Tap “+ New snapshot” to record this month's balance, or “Import from spreadsheet” to add several months at once.",
+      "detailsTitle": "The account's details",
+      "detailsBody": "Bank, account type, and owner were set when you added the account. Use “Edit” to change them.",
+      "chartTitle": "Balance over time",
+      "chartBody": "Each point is a month's recorded balance, so you can see the trend at a glance.",
+      "snapshotsTitle": "Monthly balances",
+      "snapshotsBody": "Each row is one month's balance. Add a snapshot whenever you check your statement."
     }
   },
   "property": {
@@ -92,6 +104,18 @@
       "currency": "IDR",
       "acquisitionCost": "1500000000",
       "appreciationRate": "e.g. 3.5 — negative if losing value"
+    },
+    "tour": {
+      "overviewTitle": "Your property at a glance",
+      "overviewBody": "Track this property's value over time — update it as the market moves.",
+      "actionsTitle": "Keep its value current",
+      "actionsBody": "Tap “+ New snapshot” to record its current value, or “Import from spreadsheet” for several months. The appreciation-rate helper can suggest a value.",
+      "detailsTitle": "The property's details",
+      "detailsBody": "Type, address, and acquisition details were set when you added it. The appreciation rate is a helper for estimating new values. Use “Edit” to change them.",
+      "chartTitle": "Value over time",
+      "chartBody": "Each point is a month's recorded value, showing how the property has appreciated.",
+      "snapshotsTitle": "Recorded values",
+      "snapshotsBody": "Each row is one month's value. Update it whenever you revalue the property."
     }
   },
   "vehicle": {
@@ -146,6 +170,18 @@
       "model": "HR-V",
       "year": "2022",
       "depreciationRate": "0.15 = 15% per year"
+    },
+    "tour": {
+      "overviewTitle": "Your vehicle at a glance",
+      "overviewBody": "Track this vehicle's value over time — it usually declines as it ages.",
+      "actionsTitle": "Keep its value current",
+      "actionsBody": "Tap “+ New snapshot” to record its current value, or “Import from spreadsheet” for several months. The depreciation-rate helper can suggest a value.",
+      "detailsTitle": "The vehicle's details",
+      "detailsBody": "Type and acquisition details were set when you added it. The depreciation rate is a helper for estimating new values. Use “Edit” to change them.",
+      "chartTitle": "Value over time",
+      "chartBody": "Each point is a month's recorded value, showing how the vehicle has depreciated.",
+      "snapshotsTitle": "Recorded values",
+      "snapshotsBody": "Each row is one month's value. Update it whenever you revalue the vehicle."
     }
   }
 }

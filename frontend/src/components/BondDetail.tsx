@@ -54,6 +54,7 @@ import { ownershipLabel } from '@/lib/ownership'
 import { matchesTxnSearch } from '@/lib/transactionSearch'
 import { computeCostBasis, costBasisSeries, flatCostSeries } from '@/lib/costBasis'
 import { InvestmentHeadline } from '@/components/InvestmentHeadline'
+import { HelpTourButton, type TourStep } from '@/components/HelpTourButton'
 
 type Props = {
   investmentId: string
@@ -185,6 +186,47 @@ export function BondDetail({ investmentId, onBack }: Props) {
     bond.details.issuer,
   ].filter(Boolean)
 
+  // Guided tour (issue #23). Steps run top-to-bottom; HelpTourButton prunes any
+  // whose anchor isn't rendered this visit (chart needs ≥2 snapshots; the
+  // add-row actions hide on closed positions).
+  const tourSteps: TourStep[] = [
+    {
+      element: '[data-testid="tour-overview"]',
+      title: t('investments:bond.tour.overviewTitle'),
+      description: t('investments:bond.tour.overviewBody'),
+    },
+    {
+      element: '[data-testid="investment-headline"]',
+      title: t('investments:bond.tour.headlineTitle'),
+      description: t('investments:bond.tour.headlineBody'),
+    },
+    {
+      element: '[data-testid="tour-actions"]',
+      title: t('investments:bond.tour.actionsTitle'),
+      description: t('investments:bond.tour.actionsBody'),
+    },
+    {
+      element: '[data-testid="tour-details"]',
+      title: t('investments:bond.tour.detailsTitle'),
+      description: t('investments:bond.tour.detailsBody'),
+    },
+    {
+      element: '[data-testid="tour-chart"]',
+      title: t('investments:bond.tour.chartTitle'),
+      description: t('investments:bond.tour.chartBody'),
+    },
+    {
+      element: '[data-testid="tour-snapshots"]',
+      title: t('investments:bond.tour.snapshotsTitle'),
+      description: t('investments:bond.tour.snapshotsBody'),
+    },
+    {
+      element: '[data-testid="tour-transactions"]',
+      title: t('investments:bond.tour.transactionsTitle'),
+      description: t('investments:bond.tour.transactionsBody'),
+    },
+  ]
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -197,7 +239,10 @@ export function BondDetail({ investmentId, onBack }: Props) {
           >
             {t('common:actions.back')}
           </Button>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1
+            data-testid="tour-overview"
+            className="text-2xl font-semibold tracking-tight"
+          >
             {bond.investment.display_name}
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -213,7 +258,8 @@ export function BondDetail({ investmentId, onBack }: Props) {
             terminatedAt={bond.investment.terminated_at}
           />
         </div>
-        <div className="flex gap-2">
+        <div data-testid="tour-actions" className="flex gap-2">
+          <HelpTourButton steps={tourSteps} />
           {isActiveStatus(bond.investment.status) && (
             <>
               <CreateAccruedInterestSnapshotDialog
@@ -248,7 +294,7 @@ export function BondDetail({ investmentId, onBack }: Props) {
         </div>
       </div>
 
-      <Card>
+      <Card data-testid="tour-details">
         <CardHeader>
           <CardTitle>{t('investments:bond.detailsCardTitle')}</CardTitle>
           <CardDescription>
@@ -299,7 +345,7 @@ export function BondDetail({ investmentId, onBack }: Props) {
       </Card>
 
       {snapshots && snapshots.length >= 2 && (
-        <Card>
+        <Card data-testid="tour-chart">
           <CardHeader>
             <CardTitle>{t('investments:snapshotsCard.chartTitle')}</CardTitle>
             <CardDescription>
@@ -318,7 +364,7 @@ export function BondDetail({ investmentId, onBack }: Props) {
         </Card>
       )}
 
-      <Card>
+      <Card data-testid="tour-snapshots">
         <CardHeader>
           <CardTitle>{t('investments:snapshotsCard.title')}</CardTitle>
           <CardDescription>
@@ -368,7 +414,7 @@ export function BondDetail({ investmentId, onBack }: Props) {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card data-testid="tour-transactions">
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
             <div>

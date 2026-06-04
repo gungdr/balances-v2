@@ -34,6 +34,7 @@ import { EditReceivableDialog } from '@/components/EditReceivableDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { SnapshotRow } from '@/components/SnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
+import { HelpTourButton, type TourStep } from '@/components/HelpTourButton'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useSession } from '@/hooks/useSession'
 import { formatDate } from '@/lib/format'
@@ -94,6 +95,34 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
     effectivePage * PAGE_SIZE,
   )
 
+  const tourSteps: TourStep[] = [
+    {
+      element: '[data-testid="tour-overview"]',
+      title: t('receivables:tour.overviewTitle'),
+      description: t('receivables:tour.overviewBody'),
+    },
+    {
+      element: '[data-testid="tour-actions"]',
+      title: t('receivables:tour.actionsTitle'),
+      description: t('receivables:tour.actionsBody'),
+    },
+    {
+      element: '[data-testid="tour-details"]',
+      title: t('receivables:tour.detailsTitle'),
+      description: t('receivables:tour.detailsBody'),
+    },
+    {
+      element: '[data-testid="tour-chart"]',
+      title: t('receivables:tour.chartTitle'),
+      description: t('receivables:tour.chartBody'),
+    },
+    {
+      element: '[data-testid="tour-snapshots"]',
+      title: t('receivables:tour.snapshotsTitle'),
+      description: t('receivables:tour.snapshotsBody'),
+    },
+  ]
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -106,7 +135,7 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
           >
             {t('common:actions.back')}
           </Button>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 data-testid="tour-overview" className="text-2xl font-semibold tracking-tight">
             {receivable.display_name}
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -118,7 +147,8 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
               : receivable.counterparty_name}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div data-testid="tour-actions" className="flex gap-2">
+          <HelpTourButton steps={tourSteps} />
           {isActiveStatus(receivable.status) && (
             <>
               <CreateSnapshotDialog
@@ -153,7 +183,7 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
         </div>
       </div>
 
-      <Card>
+      <Card data-testid="tour-details">
         <CardHeader>
           <CardTitle>{t('receivables:detailsCardTitle')}</CardTitle>
           <CardDescription>
@@ -177,7 +207,7 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
       </Card>
 
       {snapshots && snapshots.length >= 2 && (
-        <Card>
+        <Card data-testid="tour-chart">
           <CardHeader>
             <CardTitle>{t('receivables:chartTitle')}</CardTitle>
             <CardDescription>
@@ -195,7 +225,7 @@ export function ReceivableDetail({ receivableId, onBack }: Props) {
         </Card>
       )}
 
-      <Card>
+      <Card data-testid="tour-snapshots">
         <CardHeader>
           <CardTitle>{t('receivables:snapshotsTitle')}</CardTitle>
           <CardDescription>

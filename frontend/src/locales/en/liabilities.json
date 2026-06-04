@@ -66,5 +66,17 @@
     "principal": "1500000000",
     "interestRate": "0.08 = 8% /yr",
     "term": "180"
+  },
+  "tour": {
+    "overviewTitle": "Your liability at a glance",
+    "overviewBody": "Track what you owe over time — the balance lowers your net worth until it's paid off.",
+    "actionsTitle": "Keep its balance current",
+    "actionsBody": "Tap “+ New snapshot” to record the outstanding balance this month, or “Import from spreadsheet” for several months at once.",
+    "detailsTitle": "The liability's terms",
+    "detailsBody": "Principal, interest rate, term, and maturity were set when you added the liability. Use “Edit” to change them.",
+    "chartTitle": "Balance over time",
+    "chartBody": "Each point is a month's outstanding balance, so you can watch the debt shrink.",
+    "snapshotsTitle": "Outstanding balances",
+    "snapshotsBody": "Each row is one month's balance owed. Add a snapshot whenever you make a payment or get a statement."
   }
 }

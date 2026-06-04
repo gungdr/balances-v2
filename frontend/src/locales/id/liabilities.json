@@ -66,5 +66,17 @@
     "principal": "1500000000",
     "interestRate": "0.08 = 8% /thn",
     "term": "180"
+  },
+  "tour": {
+    "overviewTitle": "Sekilas tentang liabilitas Anda",
+    "overviewBody": "Lacak utang Anda dari waktu ke waktu — saldonya mengurangi kekayaan bersih hingga lunas.",
+    "actionsTitle": "Perbarui saldonya",
+    "actionsBody": "Ketuk “+ Snapshot baru” untuk mencatat saldo terutang bulan ini, atau “Impor dari spreadsheet” untuk beberapa bulan sekaligus.",
+    "detailsTitle": "Ketentuan liabilitas",
+    "detailsBody": "Pokok, suku bunga, tenor, dan jatuh tempo ditetapkan saat Anda menambahkannya. Gunakan “Ubah” untuk mengubahnya.",
+    "chartTitle": "Saldo sepanjang waktu",
+    "chartBody": "Setiap titik adalah saldo terutang satu bulan, sehingga Anda bisa melihat utang menyusut.",
+    "snapshotsTitle": "Saldo terutang",
+    "snapshotsBody": "Setiap baris adalah saldo utang satu bulan. Tambahkan snapshot setiap kali Anda membayar atau menerima tagihan."
   }
 }

@@ -33,5 +33,17 @@
     "displayName": "Pinjaman ke saudara",
     "currency": "IDR",
     "counterparty": "John Doe"
+  },
+  "tour": {
+    "overviewTitle": "Sekilas tentang piutang Anda",
+    "overviewBody": "Lacak uang yang terutang kepada Anda dari waktu ke waktu — ini dihitung sebagai kekayaan bersih hingga dilunasi.",
+    "actionsTitle": "Perbarui saldonya",
+    "actionsBody": "Ketuk “+ Snapshot baru” untuk mencatat jumlah terutang bulan ini, atau “Impor dari spreadsheet” untuk beberapa bulan sekaligus.",
+    "detailsTitle": "Detail piutang",
+    "detailsBody": "Pihak lawan dan tanggal jatuh tempo ditetapkan saat Anda menambahkannya. Gunakan “Ubah” untuk mengubahnya.",
+    "chartTitle": "Terutang sepanjang waktu",
+    "chartBody": "Setiap titik adalah jumlah terutang satu bulan, sehingga Anda bisa melihatnya dilunasi.",
+    "snapshotsTitle": "Jumlah terutang",
+    "snapshotsBody": "Setiap baris adalah jumlah yang terutang kepada Anda satu bulan. Tambahkan snapshot setiap kali Anda menerima pelunasan."
   }
 }

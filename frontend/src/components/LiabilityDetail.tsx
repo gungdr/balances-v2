@@ -34,6 +34,7 @@ import { EditLiabilityDialog } from '@/components/EditLiabilityDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { SnapshotRow } from '@/components/SnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
+import { HelpTourButton, type TourStep } from '@/components/HelpTourButton'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatDate } from '@/lib/format'
@@ -105,6 +106,34 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
   const subtypeLabel = t(`liabilities:subtypes.${liability.subtype}`)
   const periodMissing = t('liabilities:periodMissing')
 
+  const tourSteps: TourStep[] = [
+    {
+      element: '[data-testid="tour-overview"]',
+      title: t('liabilities:tour.overviewTitle'),
+      description: t('liabilities:tour.overviewBody'),
+    },
+    {
+      element: '[data-testid="tour-actions"]',
+      title: t('liabilities:tour.actionsTitle'),
+      description: t('liabilities:tour.actionsBody'),
+    },
+    {
+      element: '[data-testid="tour-details"]',
+      title: t('liabilities:tour.detailsTitle'),
+      description: t('liabilities:tour.detailsBody'),
+    },
+    {
+      element: '[data-testid="tour-chart"]',
+      title: t('liabilities:tour.chartTitle'),
+      description: t('liabilities:tour.chartBody'),
+    },
+    {
+      element: '[data-testid="tour-snapshots"]',
+      title: t('liabilities:tour.snapshotsTitle'),
+      description: t('liabilities:tour.snapshotsBody'),
+    },
+  ]
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -117,7 +146,7 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
           >
             {t('common:actions.back')}
           </Button>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 data-testid="tour-overview" className="text-2xl font-semibold tracking-tight">
             {liability.display_name}
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -127,7 +156,8 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
             })}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div data-testid="tour-actions" className="flex gap-2">
+          <HelpTourButton steps={tourSteps} />
           {isActiveStatus(liability.status) && (
             <>
               <CreateSnapshotDialog
@@ -162,7 +192,7 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
         </div>
       </div>
 
-      <Card>
+      <Card data-testid="tour-details">
         <CardHeader>
           <CardTitle>{t('liabilities:detailsCardTitle')}</CardTitle>
           <CardDescription>
@@ -227,7 +257,7 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
       </Card>
 
       {snapshots && snapshots.length >= 2 && (
-        <Card>
+        <Card data-testid="tour-chart">
           <CardHeader>
             <CardTitle>{t('liabilities:chartTitle')}</CardTitle>
             <CardDescription>
@@ -245,7 +275,7 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
         </Card>
       )}
 
-      <Card>
+      <Card data-testid="tour-snapshots">
         <CardHeader>
           <CardTitle>{t('liabilities:snapshotsTitle')}</CardTitle>
           <CardDescription>

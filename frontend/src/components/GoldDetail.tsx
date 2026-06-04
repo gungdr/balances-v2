@@ -44,6 +44,7 @@ import { EditGoldDialog } from '@/components/EditGoldDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { QuantityPriceSnapshotRow } from '@/components/QuantityPriceSnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
+import { HelpTourButton, type TourStep } from '@/components/HelpTourButton'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useSession } from '@/hooks/useSession'
 import { formatGoldPurity } from '@/lib/gold'
@@ -142,6 +143,44 @@ export function GoldDetail({ investmentId, onBack }: Props) {
   )
   const formLabel = t(`investments:gold.goldForms.${gold.details.form}`)
 
+  const tourSteps: TourStep[] = [
+    {
+      element: '[data-testid="tour-overview"]',
+      title: t('investments:gold.tour.overviewTitle'),
+      description: t('investments:gold.tour.overviewBody'),
+    },
+    {
+      element: '[data-testid="investment-headline"]',
+      title: t('investments:gold.tour.headlineTitle'),
+      description: t('investments:gold.tour.headlineBody'),
+    },
+    {
+      element: '[data-testid="tour-actions"]',
+      title: t('investments:gold.tour.actionsTitle'),
+      description: t('investments:gold.tour.actionsBody'),
+    },
+    {
+      element: '[data-testid="tour-details"]',
+      title: t('investments:gold.tour.detailsTitle'),
+      description: t('investments:gold.tour.detailsBody'),
+    },
+    {
+      element: '[data-testid="tour-chart"]',
+      title: t('investments:gold.tour.chartTitle'),
+      description: t('investments:gold.tour.chartBody'),
+    },
+    {
+      element: '[data-testid="tour-snapshots"]',
+      title: t('investments:gold.tour.snapshotsTitle'),
+      description: t('investments:gold.tour.snapshotsBody'),
+    },
+    {
+      element: '[data-testid="tour-transactions"]',
+      title: t('investments:gold.tour.transactionsTitle'),
+      description: t('investments:gold.tour.transactionsBody'),
+    },
+  ]
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -154,7 +193,7 @@ export function GoldDetail({ investmentId, onBack }: Props) {
           >
             {t('common:actions.back')}
           </Button>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 data-testid="tour-overview" className="text-2xl font-semibold tracking-tight">
             {gold.investment.display_name}
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -168,7 +207,8 @@ export function GoldDetail({ investmentId, onBack }: Props) {
             terminatedAt={gold.investment.terminated_at}
           />
         </div>
-        <div className="flex gap-2">
+        <div data-testid="tour-actions" className="flex gap-2">
+          <HelpTourButton steps={tourSteps} />
           {isActiveStatus(gold.investment.status) && (
             <>
               <CreateQuantityPriceSnapshotDialog
@@ -203,7 +243,7 @@ export function GoldDetail({ investmentId, onBack }: Props) {
         </div>
       </div>
 
-      <Card>
+      <Card data-testid="tour-details">
         <CardHeader>
           <CardTitle>{t('investments:gold.detailsCardTitle')}</CardTitle>
           <CardDescription>
@@ -227,7 +267,7 @@ export function GoldDetail({ investmentId, onBack }: Props) {
       </Card>
 
       {snapshots && snapshots.length >= 2 && (
-        <Card>
+        <Card data-testid="tour-chart">
           <CardHeader>
             <CardTitle>{t('investments:snapshotsCard.chartTitle')}</CardTitle>
             <CardDescription>
@@ -246,7 +286,7 @@ export function GoldDetail({ investmentId, onBack }: Props) {
         </Card>
       )}
 
-      <Card>
+      <Card data-testid="tour-snapshots">
         <CardHeader>
           <CardTitle>{t('investments:snapshotsCard.title')}</CardTitle>
           <CardDescription>
@@ -297,7 +337,7 @@ export function GoldDetail({ investmentId, onBack }: Props) {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card data-testid="tour-transactions">
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
             <div>

@@ -252,6 +252,22 @@
       "ticker": "BBCA",
       "exchange": "IDX",
       "currency": "IDR"
+    },
+    "tour": {
+      "overviewTitle": "Your stock at a glance",
+      "overviewBody": "Everything about one stock holding — its current value, what you paid, and every trade and dividend.",
+      "headlineTitle": "Cost and profit/loss",
+      "headlineBody": "“Total cost” is tallied from your Buy and Sell transactions. Profit or loss compares it to the latest recorded value.",
+      "actionsTitle": "Keep its value current",
+      "actionsBody": "Tap “+ New snapshot” to record this month's value (shares × price), or “Import from spreadsheet” to add several months at once.",
+      "detailsTitle": "The holding's details",
+      "detailsBody": "The ticker and basics were set when you added the stock. Use “Edit” to change them.",
+      "chartTitle": "Value over time",
+      "chartBody": "The shaded area is the recorded value each month; the line beneath is your cost. The gap between them is your gain.",
+      "snapshotsTitle": "Monthly values",
+      "snapshotsBody": "Each row records a month's share count and price. Add a snapshot whenever you have a fresh statement.",
+      "transactionsTitle": "Trades and dividends",
+      "transactionsBody": "Record every Buy and Sell — they drive your cost basis — plus dividends received and any fees."
     }
   },
   "mutualFund": {
@@ -289,6 +305,22 @@
       "fundCode": "MNDR-PU",
       "fundManager": "Mandiri Investasi",
       "currency": "IDR"
+    },
+    "tour": {
+      "overviewTitle": "Your mutual fund at a glance",
+      "overviewBody": "Everything about one fund holding — its value, what you invested, and every trade and distribution.",
+      "headlineTitle": "Cost and profit/loss",
+      "headlineBody": "“Total cost” is tallied from your Buy and Sell transactions. Profit or loss compares it to the latest recorded value.",
+      "actionsTitle": "Keep its value current",
+      "actionsBody": "Tap “+ New snapshot” to record this month's value (units × NAV), or “Import from spreadsheet” to add several months at once.",
+      "detailsTitle": "The fund's details",
+      "detailsBody": "The fund's basics were set when you added it. Use “Edit” to change them.",
+      "chartTitle": "Value over time",
+      "chartBody": "The shaded area is the recorded value each month; the line beneath is your cost. The gap between them is your gain.",
+      "snapshotsTitle": "Monthly values",
+      "snapshotsBody": "Each row records a month's unit count and NAV. Add a snapshot whenever you have a fresh statement.",
+      "transactionsTitle": "Trades and distributions",
+      "transactionsBody": "Record every Buy and Sell — they drive your cost basis — plus distributions received and any fees."
     }
   },
   "bond": {
@@ -353,6 +385,22 @@
       "currency": "IDR",
       "faceValue": "e.g. 50000000 for 50 lots of IDR 1,000,000 each",
       "couponRate": "6.25"
+    },
+    "tour": {
+      "overviewTitle": "Your bond at a glance",
+      "overviewBody": "This page holds everything about one bond — what it's worth now, what you paid for it, and every payment it makes along the way.",
+      "headlineTitle": "Cost and profit/loss",
+      "headlineBody": "“Total cost” is what the bond cost you. For a government bond bought at issue that's its face value; once you record Buy and Sell transactions, it's tallied from those instead. Profit or loss is the latest recorded value minus that cost.",
+      "actionsTitle": "Keep its value current",
+      "actionsBody": "Tap “New snapshot” to record what the bond is worth this month, or “Import from spreadsheet” to bring in several months at once.",
+      "detailsTitle": "The bond's terms",
+      "detailsBody": "Face value, coupon rate, and maturity date were set when you added the bond. Use “Edit” to change any of them.",
+      "chartTitle": "Value over time",
+      "chartBody": "The shaded area is the bond's recorded value each month; the line beneath is your cost. When the line sits below the area, the gap is your gain — your profit or loss over time.",
+      "snapshotsTitle": "Monthly values",
+      "snapshotsBody": "Each row is one month's recorded value. Add a snapshot whenever you get a fresh statement — and when the bond matures, the closing one is added for you automatically.",
+      "transactionsTitle": "Payments, trades, and maturity",
+      "transactionsBody": "Log the coupons you receive and any fees — the totals above tally your income to date. Record extra Buys or Sells if you trade on the secondary market. When the bond matures, post a Maturity entry: it records the final payout, files the closing snapshot automatically, and marks the bond closed."
     }
   },
   "timeDeposit": {
@@ -405,6 +453,22 @@
       "principal": "50000000",
       "interestRate": "4.5",
       "termMonths": "12"
+    },
+    "tour": {
+      "overviewTitle": "Your time deposit at a glance",
+      "overviewBody": "Everything about one deposit — its value, the principal you placed, and its maturity.",
+      "headlineTitle": "Cost and profit/loss",
+      "headlineBody": "“Total cost” is the principal you placed. Profit or loss is the latest recorded value — principal plus interest earned — minus that.",
+      "actionsTitle": "Keep its value current",
+      "actionsBody": "Tap “+ New snapshot” to record this month's value including interest earned so far, or “Import from spreadsheet” for several months.",
+      "detailsTitle": "The deposit's terms",
+      "detailsBody": "Principal, interest rate, and maturity date were set when you opened the deposit. Use “Edit” to change them.",
+      "chartTitle": "Value over time",
+      "chartBody": "The shaded area is the recorded value each month; the line beneath is your principal. The gap between them is the interest earned.",
+      "snapshotsTitle": "Monthly values",
+      "snapshotsBody": "Each row records a month's value — principal plus the interest accrued so far.",
+      "transactionsTitle": "Maturity",
+      "transactionsBody": "A time deposit has one transaction: when it matures, post a Maturity entry for the payout, and choose whether to cash it out or roll it into a new deposit."
     }
   },
   "gold": {
@@ -447,6 +511,22 @@
       "displayName": "Antam bar 10g",
       "currency": "IDR",
       "purity": "0.9999 = 24K"
+    },
+    "tour": {
+      "overviewTitle": "Your gold at a glance",
+      "overviewBody": "Everything about one gold holding — its value, what you paid, and every buy and sell.",
+      "headlineTitle": "Cost and profit/loss",
+      "headlineBody": "“Total cost” is tallied from your Buy and Sell transactions. Profit or loss compares it to the latest recorded value.",
+      "actionsTitle": "Keep its value current",
+      "actionsBody": "Tap “+ New snapshot” to record this month's value (weight × price), or “Import from spreadsheet” to add several months at once.",
+      "detailsTitle": "The holding's details",
+      "detailsBody": "Weight and purity were set when you added the gold. Use “Edit” to change them.",
+      "chartTitle": "Value over time",
+      "chartBody": "The shaded area is the recorded value each month; the line beneath is your cost. The gap between them is your gain.",
+      "snapshotsTitle": "Monthly values",
+      "snapshotsBody": "Each row records a month's weight and price. Add a snapshot whenever the price moves or you buy more.",
+      "transactionsTitle": "Buys and sells",
+      "transactionsBody": "Record every Buy and Sell, plus any fees — they drive your cost basis. Gold has no dividends or coupons."
     }
   }
 }

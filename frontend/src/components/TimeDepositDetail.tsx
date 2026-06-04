@@ -46,6 +46,7 @@ import { EditTimeDepositDialog } from '@/components/EditTimeDepositDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { AccruedInterestSnapshotRow } from '@/components/AccruedInterestSnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
+import { HelpTourButton, type TourStep } from '@/components/HelpTourButton'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatDate } from '@/lib/format'
@@ -151,6 +152,44 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
     `investments:timeDeposit.rolloverPolicy.${td.details.rollover_policy}`,
   )
 
+  const tourSteps: TourStep[] = [
+    {
+      element: '[data-testid="tour-overview"]',
+      title: t('investments:timeDeposit.tour.overviewTitle'),
+      description: t('investments:timeDeposit.tour.overviewBody'),
+    },
+    {
+      element: '[data-testid="investment-headline"]',
+      title: t('investments:timeDeposit.tour.headlineTitle'),
+      description: t('investments:timeDeposit.tour.headlineBody'),
+    },
+    {
+      element: '[data-testid="tour-actions"]',
+      title: t('investments:timeDeposit.tour.actionsTitle'),
+      description: t('investments:timeDeposit.tour.actionsBody'),
+    },
+    {
+      element: '[data-testid="tour-details"]',
+      title: t('investments:timeDeposit.tour.detailsTitle'),
+      description: t('investments:timeDeposit.tour.detailsBody'),
+    },
+    {
+      element: '[data-testid="tour-chart"]',
+      title: t('investments:timeDeposit.tour.chartTitle'),
+      description: t('investments:timeDeposit.tour.chartBody'),
+    },
+    {
+      element: '[data-testid="tour-snapshots"]',
+      title: t('investments:timeDeposit.tour.snapshotsTitle'),
+      description: t('investments:timeDeposit.tour.snapshotsBody'),
+    },
+    {
+      element: '[data-testid="tour-transactions"]',
+      title: t('investments:timeDeposit.tour.transactionsTitle'),
+      description: t('investments:timeDeposit.tour.transactionsBody'),
+    },
+  ]
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -163,7 +202,7 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
           >
             {t('common:actions.back')}
           </Button>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 data-testid="tour-overview" className="text-2xl font-semibold tracking-tight">
             {td.investment.display_name}
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -185,7 +224,8 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
             terminatedAt={td.investment.terminated_at}
           />
         </div>
-        <div className="flex gap-2">
+        <div data-testid="tour-actions" className="flex gap-2">
+          <HelpTourButton steps={tourSteps} />
           {isActiveStatus(td.investment.status) && (
             <>
               <CreateAccruedInterestSnapshotDialog
@@ -220,7 +260,7 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
         </div>
       </div>
 
-      <Card>
+      <Card data-testid="tour-details">
         <CardHeader>
           <CardTitle>{t('investments:timeDeposit.detailsCardTitle')}</CardTitle>
           <CardDescription>
@@ -274,7 +314,7 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
       </Card>
 
       {snapshots && snapshots.length >= 2 && (
-        <Card>
+        <Card data-testid="tour-chart">
           <CardHeader>
             <CardTitle>{t('investments:snapshotsCard.chartTitle')}</CardTitle>
             <CardDescription>
@@ -296,7 +336,7 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
         </Card>
       )}
 
-      <Card>
+      <Card data-testid="tour-snapshots">
         <CardHeader>
           <CardTitle>{t('investments:snapshotsCard.title')}</CardTitle>
           <CardDescription>
@@ -346,7 +386,7 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card data-testid="tour-transactions">
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
             <div>

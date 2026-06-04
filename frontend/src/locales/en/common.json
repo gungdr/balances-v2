@@ -155,5 +155,12 @@
     "importN_one": "Import {{count}} month",
     "importN_other": "Import {{count}} months",
     "importPlain": "Import"
+  },
+  "tour": {
+    "help": "Help",
+    "next": "Next",
+    "back": "Back",
+    "done": "Done",
+    "progress": "{{current}} of {{total}}"
   }
 }

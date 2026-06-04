@@ -1907,6 +1907,44 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     ESLint 0 errors; vite build green; vitest 164/164; Playwright E2E
     16/16.
 
+- **Built-in instruction manual — guided tours on every position detail
+  screen (M6, frontend-only — issue #23).** A "Help" button in each detail
+  header launches a step-by-step `driver.js` walkthrough that spotlights
+  each section with a short, non-technical explanation of what it is and
+  how to use it. POC'd on Bonds, then rolled to all 10 position detail
+  screens.
+  - New `driver.js` dependency (~5kb, no transitive deps). New shared
+    `components/HelpTourButton.tsx` takes already-translated `TourStep[]`
+    (so it stays i18n-agnostic) and prunes steps whose anchor isn't
+    rendered this visit (the chart card needs ≥2 snapshots; the add-row
+    actions hide on closed positions) — a pruned step would otherwise pop
+    as a stray centered modal. driver's Next/Back/Done/progress chrome
+    routes through a new `common:tour.*` namespace; `{{current}}/{{total}}`
+    are fed back through i18next as literal values so driver's own
+    interpolation leaves them intact.
+  - Anchored by `data-testid` (mirrors the E2E convention): `tour-overview`
+    (H1), `tour-actions` (header button group, where the Help button also
+    lives), `tour-details`/`tour-chart`/`tour-snapshots` cards, and — on the
+    5 investment subtypes — `tour-transactions` plus the existing
+    `investment-headline` for the cost/P&L step. Non-investment positions
+    (bank, property, vehicle, liability, receivable) run a 5-step variant
+    (no headline, no transactions).
+  - Copy teaches the actual workflow, not just labels: how cost basis & P/L
+    derive (ledger replay vs. flat principal/face-value per subtype), how to
+    read the value-vs-cost chart, the coupon/fee tallies, and the maturity
+    flow. EN + ID for all 10 screens under each domain namespace
+    (`investments.{bond,stock,mutualFund,gold,timeDeposit}.tour`,
+    `assets.{bankAccount,property,vehicle}.tour`, `liabilities.tour`,
+    `receivables.tour`); ID follows `docs/glossary-id.md`. Income is
+    deliberately out of scope — it's a flat flow-event, not a position.
+  - Surfaced a real accounting bug while writing the bond copy: the #17
+    maturity auto-snapshot double-counts the principal in the Dashboard
+    investment-return line. Filed as **#25** (Option B — truthful 0-value
+    close snapshot) rather than fixed inline; the tour copy stays honest by
+    not claiming principal isn't counted until #25 lands.
+  - All green: ESLint 0 errors; vite build green; vitest 164/164. Backend
+    untouched.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

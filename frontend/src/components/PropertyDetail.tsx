@@ -34,6 +34,7 @@ import { EditPropertyDialog } from '@/components/EditPropertyDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { SnapshotRow } from '@/components/SnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
+import { HelpTourButton, type TourStep } from '@/components/HelpTourButton'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatDate, formatSignedPercent } from '@/lib/format'
@@ -103,6 +104,34 @@ export function PropertyDetail({ assetId, onBack }: Props) {
   )
   const typeLabel = t(`assets:property.propertyTypes.${details.property_type}`)
 
+  const tourSteps: TourStep[] = [
+    {
+      element: '[data-testid="tour-overview"]',
+      title: t('assets:property.tour.overviewTitle'),
+      description: t('assets:property.tour.overviewBody'),
+    },
+    {
+      element: '[data-testid="tour-actions"]',
+      title: t('assets:property.tour.actionsTitle'),
+      description: t('assets:property.tour.actionsBody'),
+    },
+    {
+      element: '[data-testid="tour-details"]',
+      title: t('assets:property.tour.detailsTitle'),
+      description: t('assets:property.tour.detailsBody'),
+    },
+    {
+      element: '[data-testid="tour-chart"]',
+      title: t('assets:property.tour.chartTitle'),
+      description: t('assets:property.tour.chartBody'),
+    },
+    {
+      element: '[data-testid="tour-snapshots"]',
+      title: t('assets:property.tour.snapshotsTitle'),
+      description: t('assets:property.tour.snapshotsBody'),
+    },
+  ]
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -115,7 +144,7 @@ export function PropertyDetail({ assetId, onBack }: Props) {
           >
             {t('common:actions.back')}
           </Button>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 data-testid="tour-overview" className="text-2xl font-semibold tracking-tight">
             {asset.display_name}
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -123,7 +152,8 @@ export function PropertyDetail({ assetId, onBack }: Props) {
             {details.address && ` · ${details.address}`}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div data-testid="tour-actions" className="flex gap-2">
+          <HelpTourButton steps={tourSteps} />
           {isActiveStatus(asset.status) && (
             <>
               <CreateSnapshotDialog
@@ -165,7 +195,7 @@ export function PropertyDetail({ assetId, onBack }: Props) {
         </div>
       </div>
 
-      <Card>
+      <Card data-testid="tour-details">
         <CardHeader>
           <CardTitle>{t('assets:property.detailsCardTitle')}</CardTitle>
           <CardDescription>
@@ -214,7 +244,7 @@ export function PropertyDetail({ assetId, onBack }: Props) {
       </Card>
 
       {snapshots && snapshots.length >= 2 && (
-        <Card>
+        <Card data-testid="tour-chart">
           <CardHeader>
             <CardTitle>{t('assets:property.chartTitle')}</CardTitle>
             <CardDescription>
@@ -232,7 +262,7 @@ export function PropertyDetail({ assetId, onBack }: Props) {
         </Card>
       )}
 
-      <Card>
+      <Card data-testid="tour-snapshots">
         <CardHeader>
           <CardTitle>{t('assets:property.snapshotsTitle')}</CardTitle>
           <CardDescription>

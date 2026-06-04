@@ -330,6 +330,15 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     `useInvestmentTimeSeries` fetch; the old hook + all client-side
     `costBasisSeries`/`flatCostSeries` on the list screens are gone
     (detail screens keep `lib/costBasis.ts`). Closes the #18 follow-up.
+  - Built-in instruction manual (issue #23): a "Help" button on every
+    position detail screen launches a `driver.js` guided tour that
+    spotlights each section with non-technical EN+ID copy teaching the
+    workflow (cost/P&L derivation, chart reading, snapshot/transaction/
+    maturity flows). Shared `HelpTourButton` takes translated `TourStep[]`
+    and prunes steps whose `data-testid` anchor isn't rendered; chrome in
+    new `common:tour.*`. POC on Bonds, rolled to all 10 detail screens
+    (5-step variant for non-investment positions). Income out of scope
+    (flat flow-event). Writing the bond copy surfaced #25.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
@@ -607,13 +616,18 @@ invite-form relocation, the `users.nickname` build, vitest setup) — is preserv
   `lib/costBasis.ts`'s precise replay). Once landed, drop `hooks/useInvestmentBatch.ts`'s
   transactions batch (snapshots batch still needed for the time graph until a parallel monthly-
   series endpoint exists).
-- **Auto-snapshot on Sell transaction.** Counterpart to the now-shipped #17 Maturity auto-snapshot:
-  a manually-terminated sold position still snaps to 0 the following month, leaving the
-  termination-month bar inflated on the closed-positions time graphs (#21) and forcing the
-  `InvestmentHeadline` to keep the sold-status short-circuit. Structurally similar fix — insert /
-  upsert a snapshot at the sale month with the realized proceeds — but the user-driven Sell flow is
-  more nuanced (partial vs. full disposal, no equivalent of `maturity_date`), so left as a separate
-  ticket for when usage signals it matters.
+- **Termination value should be a truthful 0 close-snapshot (issue #25).** Filed during the #23
+  bond-tour copywriting. The #17 Maturity auto-snapshot writes the maturity month at
+  `principal + interest`, which collides with ADR-0008's return formula (`Δvalue + cash_out −
+  cash_in`, which assumes value collapses to ~0 at liquidation) — so the Dashboard
+  investment-return line double-counts the principal payout, and there's a one-month net-worth
+  bubble (worse for rolled TDs: old + new both counted). **Decision: Option B** — on any
+  termination (maturity *and* manual/sold) write a truthful `0`-value close snapshot; proceeds stay
+  in transactions. The engine then needs no special case (the formula is already correct on
+  truthful data); display stays honest in the frontend (headline short-circuit + a maturity-payout
+  marker derived from the transaction). Subsumes the old "auto-snapshot on Sell" item. Amend
+  ADR-0008 + ADR-0009. Until #25 lands, the #23 tour copy avoids claiming principal isn't counted
+  as return.
 
 ## Updating this document
 
