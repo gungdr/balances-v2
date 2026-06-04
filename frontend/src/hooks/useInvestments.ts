@@ -268,7 +268,11 @@ export type CreateBondPayload = {
   bond_type: BondType
   series_code: string | null
   issuer: string
+  // face_value + placement_date seed the placement Buy for a govt_primary bond
+  // (issue #27): nominal placed at par. Omitted for secondary_market, where the
+  // user records the actual Buy. Required only for govt_primary.
   face_value: string
+  placement_date: string
   coupon_rate: string
   coupon_frequency: CouponFrequency
   maturity_date: string
@@ -283,7 +287,6 @@ export type UpdateBondPayload = {
   bond_type: BondType
   series_code: string | null
   issuer: string
-  face_value: string
   coupon_rate: string
   coupon_frequency: CouponFrequency
   maturity_date: string

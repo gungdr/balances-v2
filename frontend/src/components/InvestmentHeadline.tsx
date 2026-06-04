@@ -27,8 +27,8 @@ type Props = {
   // there are no snapshots yet.
   latestValue: number | null
   // Cost basis as of "now" — caller computes via lib/costBasis based on
-  // subtype quirks (ledger replay for stock/MF/gold/bond-secondary; flat
-  // face_value for bond govt-primary; flat principal for time deposit).
+  // subtype quirks (ledger replay for stock/MF/gold/bond; flat principal for
+  // time deposit — bonds always carry a Buy at placement now, issue #27).
   totalCost: number
   // When set to a terminal status ('sold' | 'matured') with a
   // terminated_at, swaps the P/L block for "Sold on {date}" / "Matured on

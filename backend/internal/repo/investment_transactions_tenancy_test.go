@@ -54,7 +54,7 @@ func TestInvestmentTransaction_TenancyAndCRUD(t *testing.T) {
 		RiskProfile:     "medium",
 		BondType:        "govt_primary",
 		Issuer:          "Republik Indonesia",
-		FaceValue:       decimal.NewFromInt(10_000_000),
+		FaceValue:       decPtr(decimal.NewFromInt(10_000_000)),
 		CouponRate:      couponRate,
 		CouponFrequency: "monthly",
 		MaturityDate:    time.Date(2029, time.October, 15, 0, 0, 0, 0, time.UTC),

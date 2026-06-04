@@ -72,8 +72,8 @@ export function BondsScreen({ onSelect }: Props) {
   })
 
   // Headline cost from the list payload (#18); the time-graph value + cost
-  // series come from one household-scoped fetch (#22) — the backend handles
-  // the bond hasBuys → ledger | face_value branch, so no client replay here.
+  // series come from one household-scoped fetch (#22) — the backend replays the
+  // bond ledger (every bond carries a Buy now, #27), so no client replay here.
   const timeSeries = useInvestmentTimeSeries()
   const positions = useMemo<Position[]>(
     () =>

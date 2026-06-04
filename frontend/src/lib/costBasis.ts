@@ -10,10 +10,9 @@
 // Subtype quirks the caller handles, not this helper:
 //   - TimeDeposit: ledger has only Maturity transactions; cost = principal
 //     from time_deposit_details. Use `flatCostSeries`.
-//   - Bond govt-primary: no Buy txn (face value IS the cost). When the
-//     ledger has no buys, caller falls back to `flatCostSeries(face_value)`.
-//   - Stock / MutualFund / Gold / Bond secondary-market: pure ledger replay
-//     via `costBasisSeries`.
+//   - Stock / MutualFund / Gold / Bond: pure ledger replay via
+//     `costBasisSeries`. Bonds always carry a Buy at placement now (govt_primary
+//     seeded at par, secondary recorded by the user — issue #27).
 
 import type { InvestmentTransaction } from '@/api/types'
 

@@ -367,10 +367,19 @@ func (r *MonthlyReportRepo) loadEngineInput(ctx context.Context, hid uuid.UUID, 
 		return in, fmt.Errorf("list investments for report: %w", err)
 	}
 	for _, i := range investments {
-		in.positions = append(in.positions, reportPosition{
+		p := reportPosition{
 			id: i.ID, group: groupInvestment, subtype: i.Subtype, ownershipType: i.OwnershipType,
 			soleOwnerID: i.SoleOwnerUserID, terminatedAt: i.TerminatedAt,
-		})
+		}
+		// TimeDeposit placement cash_in (issue #27): the principal + placement
+		// date feed the engine's synthetic flow so the placement month nets to 0
+		// return. Other subtypes record a real Buy instead, so these stay nil.
+		if i.Subtype == "time_deposit" && i.TdPrincipal != nil && i.TdPlacementDate != nil {
+			p.placementAmount = i.TdPrincipal
+			p.placementMonth = i.TdPlacementDate
+			p.currency = i.NativeCurrency
+		}
+		in.positions = append(in.positions, p)
 	}
 
 	asnaps, err := r.q.ListAssetSnapshotsForReport(ctx, hid)

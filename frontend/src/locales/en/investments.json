@@ -353,6 +353,7 @@
     "totalCouponsLabel": "Total coupons:",
     "totalFeesLabel": "Total fees:",
     "quantityUnit": "lot",
+    "secondaryBuyHint": "Secondary-market bonds are entered by recording the actual purchase as a Buy transaction after creating — that captures your real price (discount or premium).",
     "bondType": {
       "govt_primary": "Government primary",
       "secondary_market": "Secondary market",
@@ -375,6 +376,7 @@
       "issuer": "Issuer",
       "bondType": "Bond type",
       "faceValue": "Face value",
+      "placementDate": "Placement date",
       "couponRate": "Coupon rate (% per year)",
       "couponFrequency": "Coupon frequency",
       "maturityDate": "Maturity date"

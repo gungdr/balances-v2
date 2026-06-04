@@ -33,6 +33,7 @@ function emptyForm() {
     series_code: '',
     issuer: '',
     face_value: '',
+    placement_date: '',
     coupon_rate: '',
     coupon_frequency: 'monthly' as CouponFrequency,
     maturity_date: '',
@@ -72,6 +73,7 @@ export function CreateBondDialog() {
         series_code: form.series_code.trim() || null,
         issuer: form.issuer,
         face_value: form.face_value,
+        placement_date: form.placement_date,
         coupon_rate: form.coupon_rate,
         coupon_frequency: form.coupon_frequency,
         maturity_date: form.maturity_date,
@@ -195,21 +197,44 @@ export function CreateBondDialog() {
               </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="bond_face_value">
-                {t('investments:bond.fields.faceValue')}
-              </Label>
-              <Input
-                id="bond_face_value"
-                required
-                inputMode="decimal"
-                value={form.face_value}
-                onChange={(e) =>
-                  setForm({ ...form, face_value: e.target.value })
-                }
-                placeholder={t('investments:bond.placeholders.faceValue')}
-              />
-            </div>
+            {form.bond_type === 'govt_primary' ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-2">
+                  <Label htmlFor="bond_face_value">
+                    {t('investments:bond.fields.faceValue')}
+                  </Label>
+                  <Input
+                    id="bond_face_value"
+                    required
+                    inputMode="decimal"
+                    value={form.face_value}
+                    onChange={(e) =>
+                      setForm({ ...form, face_value: e.target.value })
+                    }
+                    placeholder={t('investments:bond.placeholders.faceValue')}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="bond_placement_date">
+                    {t('investments:bond.fields.placementDate')}
+                  </Label>
+                  <Input
+                    id="bond_placement_date"
+                    required
+                    type="date"
+                    max="9999-12-31"
+                    value={form.placement_date}
+                    onChange={(e) =>
+                      setForm({ ...form, placement_date: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {t('investments:bond.secondaryBuyHint')}
+              </p>
+            )}
           </div>
 
           <div className="space-y-3 border-t pt-4">

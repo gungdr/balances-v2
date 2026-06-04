@@ -1990,6 +1990,49 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     tour / glossary, since the maturity-month NW dip is real and
     self-corrects once the bank deposit is recorded (ADR-0008 timing noise).
 
+- **Capital at entry is a transaction, never return (M6, full stack —
+  issue #27, placement-side mirror of #25).** The entry-side twin of #25:
+  deploying capital into a `govt_primary` bond or a time deposit over-stated
+  that month's investment return by the **full principal**, because the
+  `0 → principal` snapshot jump had no `cash_in` to cancel it under ADR-0008's
+  `Δvalue + cash_out − cash_in`. Stocks / MF / gold / secondary-market bonds
+  always recorded a Buy; primary bonds and TDs did not. Two fixes, one rule
+  (*capital at entry is a `cash_in`, return nets to yield*):
+  - **Bonds — placement is a Buy; face value is ledger-derived.** `CreateBond`
+    now seeds a placement **Buy** for `govt_primary` from its `face_value` +
+    new `placement_date` inputs (IDR-1,000,000 units: `qty = face / 1e6`,
+    `price_per_unit = 1e6` at par; secondary-market bonds are not seeded — the
+    user records the real Buy). The hand-maintained `bond_details.face_value`
+    scalar was **dropped** (migration 00021) — a duplicated source of truth that
+    drifts on every buy/sell edit (derive-don't-duplicate, ADR-0003). Outstanding
+    nominal now derives from the ledger, `(Σ buy_qty − Σ sell_qty) × 1e6`
+    (`outstandingFaceFromLedger`), surfaced as `Bond.outstanding_face` /
+    `BondListItem.outstanding_face`; cost basis always replays (every bond has a
+    Buy now). The detail-screen Edit dialog drops its `face_value` input;
+    `CreateBondDialog` gains a placement-date input (govt_primary only) + a hint
+    for secondary. Coupon/display read the derived nominal.
+  - **Time deposits — engine-synthesized placement cash_in (option a).** A TD
+    records no Buy, so the engine synthesizes the placement `cash_in` from
+    `time_deposit_details.principal` at `placement_date` (new fields on
+    `reportPosition`, fed by an extended `ListInvestmentsForReport`). No new txn
+    type, no migration, no backfill — applies uniformly to every existing TD.
+  - **Result.** Placement month nets to `0` return; lifetime return = coupons /
+    interest / gain only. Combined with #25, capital is excluded at **both**
+    entry and exit. Verified against real dev data: the 17 backfilled primary
+    bonds derive `outstanding_face` from their reconstructed Buys, and the
+    canonical dev TD (placed 2019-04, principal 12M) now books `0` time-deposit
+    return in 2019-04 (was +12M).
+  - **Tests.** Engine units: TD placement → 0 + accrued-only thereafter; bond
+    placement Buy → 0; two-tranche bond → 0 each tranche month;
+    `outstandingFaceFromLedger` across buys/sells. Bond HTTP tests gain
+    placement-date + a govt_primary-missing-placement 400; cost-basis assertions
+    re-pointed at the ledger. All green (backend `go test ./...` + golangci-lint;
+    frontend vitest 164/164, build + ESLint 0 errors).
+  - **Docs.** ADR-0008 birth-month note states placement must be a recorded
+    (bond Buy) or synthesized (TD) `cash_in`; ADR-0009 gains a "Placement"
+    section (Buy-at-placement for bonds, engine-synthesis for TDs,
+    face-value-from-ledger) and drops `face_value` from the `bond_details` row.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

@@ -6,6 +6,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
+
+	"github.com/kerti/balances-v2/backend/internal/db"
 )
 
 // Pure unit tests for the monthly-report engine — no DB. These carry the
@@ -486,5 +488,119 @@ func TestEngine_SoldTerminationBooksGainOnly(t *testing.T) {
 	}
 	if !m.nwInvestments.Equal(dec("0")) {
 		t.Errorf("sold month nwInvestments: got %s, want 0 (no bubble)", m.nwInvestments)
+	}
+}
+
+// TimeDeposit placement (#27): a TD records no Buy, so the engine synthesizes a
+// placement cash_in from principal + placement_date. In the placement month the
+// 0→principal snapshot jump is cancelled → 0 return (capital deployed, not
+// earned); later months book only accrued interest. A bank account establishes
+// the Dec baseline so the Jan placement month is a computed (non-baseline) one.
+func TestEngine_TimeDepositPlacementBooksZero(t *testing.T) {
+	bank, td := uuid.New(), uuid.New()
+	jan := ym(2026, time.January)
+	principal := dec("1000")
+	in := reportEngineInput{
+		positions: []reportPosition{
+			{id: bank, group: groupAsset, subtype: "bank_account", ownershipType: "joint"},
+			{id: td, group: groupInvestment, subtype: "time_deposit", ownershipType: "joint",
+				placementAmount: &principal, placementMonth: &jan, currency: "IDR"},
+		},
+		snapshots: []reportSnapshot{
+			{positionID: bank, yearMonth: ym(2025, time.December), amount: dec("10000")},
+			{positionID: td, yearMonth: jan, amount: dec("1000")},                     // placed
+			{positionID: td, yearMonth: ym(2026, time.February), amount: dec("1005")}, // +5 accrued
+		},
+		currentMonth: ym(2026, time.February),
+	}
+	reports := generateMonthlyReports(in)
+	janR := findMonth(t, reports, jan)
+	feb := findMonth(t, reports, ym(2026, time.February))
+
+	// Jan: (1000 − 0) − cash_in 1000 = 0 (deployed capital, not return).
+	if janR.investmentReturn == nil || !janR.investmentReturn.timeDeposit.Equal(dec("0")) {
+		t.Fatalf("Jan TD return: %+v, want 0 (placement nets to 0)", janR.investmentReturn)
+	}
+	// Feb: (1005 − 1000) − 0 = 5 (accrued interest only).
+	if !feb.investmentReturn.timeDeposit.Equal(dec("5")) {
+		t.Fatalf("Feb TD return: %+v, want 5 (accrued interest)", feb.investmentReturn)
+	}
+}
+
+// Bond placement (#27): a govt_primary bond now carries a Buy at placement (like
+// secondary-market bonds always did), whose cash_in cancels the 0→nominal
+// snapshot jump → 0 return in the placement month. No engine change is needed —
+// the existing Buy cash-flow path handles it; this pins the behaviour.
+func TestEngine_BondPlacementBuyBooksZero(t *testing.T) {
+	bank, bond := uuid.New(), uuid.New()
+	jan := ym(2026, time.January)
+	buy := dec("10000000")
+	in := reportEngineInput{
+		positions: []reportPosition{
+			{id: bank, group: groupAsset, subtype: "bank_account", ownershipType: "joint"},
+			{id: bond, group: groupInvestment, subtype: "bond", ownershipType: "joint"},
+		},
+		snapshots: []reportSnapshot{
+			{positionID: bank, yearMonth: ym(2025, time.December), amount: dec("10000000")},
+			{positionID: bond, yearMonth: jan, amount: dec("10000000")},
+		},
+		transactions: []reportTransaction{
+			{investmentID: bond, yearMonth: jan, txnType: "buy", amount: &buy},
+		},
+		currentMonth: jan,
+	}
+	janR := findMonth(t, generateMonthlyReports(in), jan)
+	if janR.investmentReturn == nil || !janR.investmentReturn.bond.Equal(dec("0")) {
+		t.Fatalf("Jan bond return: %+v, want 0 (placement Buy cancels snapshot)", janR.investmentReturn)
+	}
+}
+
+// Multi-tranche bond (#27): two Buys in consecutive months (20M then +80M) with
+// snapshots tracking the nominal. Each tranche month's cash_in cancels its
+// snapshot step, so every placement/top-up month nets to 0 — the case the issue
+// calls "unfixable by inference" without a real per-tranche Buy.
+func TestEngine_BondTwoTranchePlacementsBookZero(t *testing.T) {
+	bank, bond := uuid.New(), uuid.New()
+	jan, feb := ym(2026, time.January), ym(2026, time.February)
+	buy1, buy2 := dec("20000000"), dec("80000000")
+	in := reportEngineInput{
+		positions: []reportPosition{
+			{id: bank, group: groupAsset, subtype: "bank_account", ownershipType: "joint"},
+			{id: bond, group: groupInvestment, subtype: "bond", ownershipType: "joint"},
+		},
+		snapshots: []reportSnapshot{
+			{positionID: bank, yearMonth: ym(2025, time.December), amount: dec("100000000")},
+			{positionID: bond, yearMonth: jan, amount: dec("20000000")},  // tranche 1
+			{positionID: bond, yearMonth: feb, amount: dec("100000000")}, // + tranche 2
+		},
+		transactions: []reportTransaction{
+			{investmentID: bond, yearMonth: jan, txnType: "buy", amount: &buy1},
+			{investmentID: bond, yearMonth: feb, txnType: "buy", amount: &buy2},
+		},
+		currentMonth: feb,
+	}
+	reports := generateMonthlyReports(in)
+	janR := findMonth(t, reports, jan)
+	febR := findMonth(t, reports, feb)
+	if janR.investmentReturn == nil || !janR.investmentReturn.bond.Equal(dec("0")) {
+		t.Fatalf("Jan bond return: %+v, want 0 (tranche 1 nets to 0)", janR.investmentReturn)
+	}
+	if !febR.investmentReturn.bond.Equal(dec("0")) {
+		t.Fatalf("Feb bond return: %+v, want 0 (tranche 2 nets to 0)", febR.investmentReturn)
+	}
+}
+
+// outstandingFaceFromLedger derives held nominal across tranches and sells (#27):
+// (Σ buy_qty − Σ sell_qty) × 1,000,000.
+func TestOutstandingFaceFromLedger(t *testing.T) {
+	q := func(s string) *decimal.Decimal { d := dec(s); return &d }
+	ledger := []db.InvestmentTransaction{
+		{TransactionType: "buy", Quantity: q("20")},  // 20M
+		{TransactionType: "buy", Quantity: q("80")},  // +80M → 100M
+		{TransactionType: "sell", Quantity: q("30")}, // −30M → 70M
+		{TransactionType: "coupon"},                  // no quantity — ignored
+	}
+	if got := outstandingFaceFromLedger(ledger); !got.Equal(dec("70000000")) {
+		t.Fatalf("outstanding face: got %s, want 70000000", got)
 	}
 }

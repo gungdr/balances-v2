@@ -312,7 +312,6 @@ export type BondDetails = {
   bond_type: BondType
   series_code: string | null
   issuer: string
-  face_value: string
   coupon_rate: string
   coupon_frequency: CouponFrequency
   maturity_date: string
@@ -321,6 +320,9 @@ export type BondDetails = {
 export type Bond = {
   investment: Investment
   details: BondDetails
+  // Held nominal derived from the ledger (issue #27): (Σ buy_qty − Σ sell_qty)
+  // × 1,000,000. Replaces the dropped bond_details.face_value scalar.
+  outstanding_face: string
 }
 
 export type BondListItem = {
@@ -330,6 +332,8 @@ export type BondListItem = {
   // Avg-cost ledger replay folded into the list payload (issue #18) — the
   // headline P/L reads this instead of replaying transactions client-side.
   cost_basis: string
+  // Held nominal derived from the ledger (issue #27).
+  outstanding_face: string
 }
 
 export type RolloverPolicy =

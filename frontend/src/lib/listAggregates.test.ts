@@ -51,7 +51,7 @@ describe('aggregateListPositions — byCurrency totals', () => {
   })
 
   it('counts cost basis even when a position has no value yet', () => {
-    // A brand-new bond with face_value set but no snapshot still
+    // A freshly-placed bond (its Buy recorded) with no snapshot yet still
     // contributes its cost to the headline (you've already committed
     // the money), but does not contribute to the value column.
     const r = aggregateListPositions([

@@ -18,6 +18,8 @@ import (
 
 func ymUTC(y int, m time.Month) time.Time { return time.Date(y, m, 1, 0, 0, 0, 0, time.UTC) }
 
+func decPtr(d decimal.Decimal) *decimal.Decimal { return &d }
+
 // End-to-end plumbing for the materialized report: q -> engine -> upsert ->
 // read, plus tenancy isolation and the staleness watermark (no-regen when
 // unchanged, regen on input edit). The rule coverage lives in the pure engine

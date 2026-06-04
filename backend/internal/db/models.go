@@ -57,7 +57,6 @@ type BondDetail struct {
 	InvestmentID    uuid.UUID       `json:"investment_id"`
 	BondType        string          `json:"bond_type"`
 	Issuer          string          `json:"issuer"`
-	FaceValue       decimal.Decimal `json:"face_value"`
 	CouponRate      decimal.Decimal `json:"coupon_rate"`
 	CouponFrequency string          `json:"coupon_frequency"`
 	MaturityDate    time.Time       `json:"maturity_date"`

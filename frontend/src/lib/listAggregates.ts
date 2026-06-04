@@ -27,8 +27,8 @@ export type Position = {
   terminated_at: string | null
   latestValue: number | null
   // "As of now" cost basis. Caller computes via lib/costBasis per the
-  // subtype's quirk (ledger replay for Stock/MF/Gold/Bond-secondary;
-  // flat face_value for Bond govt-primary; flat principal for TD).
+  // subtype's quirk (ledger replay for Stock/MF/Gold/Bond; flat principal
+  // for TD — bonds always carry a Buy at placement now, issue #27).
   cost: number
   snapshots: Array<{ year_month: string; amount: string }>
   // Aligned with snapshots by year_month — caller computes via
@@ -80,7 +80,7 @@ export function aggregateListPositions(
       entry.count++
     }
     // Cost always contributes — a position with no snapshot still has a
-    // cost basis (e.g. a brand-new bond with face_value set).
+    // cost basis (e.g. a freshly-placed bond whose Buy is recorded).
     entry.cost += p.cost
     currencyMap.set(p.currency, entry)
   }

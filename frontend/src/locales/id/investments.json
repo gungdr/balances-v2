@@ -353,6 +353,7 @@
     "totalCouponsLabel": "Total kupon:",
     "totalFeesLabel": "Total biaya:",
     "quantityUnit": "lot",
+    "secondaryBuyHint": "Obligasi pasar sekunder dicatat dengan menambahkan transaksi Beli sesuai harga beli sebenarnya setelah dibuat — itu menangkap harga riil Anda (diskon atau premium).",
     "bondType": {
       "govt_primary": "Pemerintah primer",
       "secondary_market": "Pasar sekunder",
@@ -375,6 +376,7 @@
       "issuer": "Penerbit",
       "bondType": "Tipe obligasi",
       "faceValue": "Nilai nominal",
+      "placementDate": "Tanggal penempatan",
       "couponRate": "Suku bunga kupon (% per tahun)",
       "couponFrequency": "Frekuensi kupon",
       "maturityDate": "Tanggal jatuh tempo"

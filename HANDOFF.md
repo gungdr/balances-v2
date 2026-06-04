@@ -352,6 +352,17 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     rule) amended; help-tour copy gained an end-of-month "record bank
     balances too" recommendation. Subsumes the deferred "auto-snapshot on
     Sell" item.
+  - Capital at entry is a transaction, never return (issue #27, placement-side
+    mirror of #25): deploying principal into a `govt_primary` bond or a TD used
+    to book the full principal as that month's return (no `cash_in` to cancel
+    the `0→principal` snapshot jump). Bonds now seed a placement **Buy** at
+    create (govt_primary, IDR-1M units at par; secondary records its own Buy),
+    and `bond_details.face_value` is **dropped** (migration 00021) — outstanding
+    nominal derives from the ledger (`outstanding_face`). TDs get an
+    engine-synthesized placement `cash_in` from `principal` + `placement_date`
+    (option a — no new txn type, no backfill). Placement month now nets to `0`;
+    combined with #25, capital is excluded at both entry and exit. ADR-0008/0009
+    amended. Resolves the deferred "bond lots/quantity modeling" backlog item.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
@@ -607,9 +618,6 @@ invite-form relocation, the `users.nickname` build, vitest setup) — is preserv
   repeatedly override (e.g. mostly secondary-market holders) or repeatedly forget to, escalate to a
   per-bond enum `coupon_disposition: 'pays_out' | 'accrues'` on `bond_details` and pivot the form on
   it. No signal yet that we need it.
-- **Bond lots/quantity modeling.** Buy/Sell bond transactions carry `quantity` + `price_per_unit`,
-  but `bond_details.face_value` stays a user-edited total with no enforced reconciliation against
-  the ledger. Revisit only if real usage shows the disconnect is confusing.
 - **Transaction-list aggregations.** No "transaction count" / "last transaction date" on the subtype
   list rows yet. Would add a column to `*ListItem` aggregates + a sqlc query; reuse the snapshot
   `listKey` invalidation pattern from `useInvestmentTransactions`.

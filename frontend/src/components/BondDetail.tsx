@@ -52,7 +52,7 @@ import { formatCurrency, formatDate } from '@/lib/format'
 import { maturityClass, maturityInfo } from '@/lib/maturity'
 import { ownershipLabel } from '@/lib/ownership'
 import { matchesTxnSearch } from '@/lib/transactionSearch'
-import { computeCostBasis, costBasisSeries, flatCostSeries } from '@/lib/costBasis'
+import { computeCostBasis, costBasisSeries } from '@/lib/costBasis'
 import { InvestmentHeadline } from '@/components/InvestmentHeadline'
 import { HelpTourButton, type TourStep } from '@/components/HelpTourButton'
 
@@ -155,16 +155,11 @@ export function BondDetail({ investmentId, onBack }: Props) {
     )
   const totalCoupons = txnSum('coupon')
   const totalFees = txnSum('fee')
-  // Cost basis fallback for govt-primary bonds: no Buy transaction is
-  // recorded because face value IS the cost. Secondary-market bonds have
-  // real Buy txns; the ledger drives them.
-  const hasBuys = (transactions ?? []).some((tx) => tx.transaction_type === 'buy')
-  const bondCostSeries = hasBuys
-    ? costBasisSeries(snapshots ?? [], transactions ?? [])
-    : flatCostSeries(snapshots ?? [], Number(bond.details.face_value))
-  const bondTotalCost = hasBuys
-    ? computeCostBasis(transactions ?? []).cost
-    : Number(bond.details.face_value)
+  // Every bond now carries a Buy at placement (issue #27) — govt_primary seeds
+  // one at par, secondary-market records the real one — so cost always replays
+  // from the ledger; no face_value fallback remains.
+  const bondCostSeries = costBasisSeries(snapshots ?? [], transactions ?? [])
+  const bondTotalCost = computeCostBasis(transactions ?? []).cost
   const bondLatestSnapshot =
     snapshots && snapshots.length > 0 ? snapshots[0] : null
   // Maturity is uniquely terminal: posting it flips the position to 'matured'
@@ -316,7 +311,7 @@ export function BondDetail({ investmentId, onBack }: Props) {
               {t('investments:bond.faceValueLabel')}
             </span>{' '}
             {formatCurrency(
-              bond.details.face_value,
+              bond.outstanding_face,
               bond.investment.native_currency,
             )}
           </p>

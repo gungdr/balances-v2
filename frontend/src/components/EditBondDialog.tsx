@@ -42,7 +42,6 @@ function toForm(bond: Bond | BondListItem) {
     bond_type: d.bond_type,
     series_code: d.series_code ?? '',
     issuer: d.issuer,
-    face_value: d.face_value,
     coupon_rate: d.coupon_rate,
     coupon_frequency: d.coupon_frequency,
     maturity_date: d.maturity_date ? d.maturity_date.slice(0, 10) : '',
@@ -71,7 +70,6 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
         bond_type: form.bond_type,
         series_code: form.series_code.trim() || null,
         issuer: form.issuer,
-        face_value: form.face_value,
         coupon_rate: form.coupon_rate,
         coupon_frequency: form.coupon_frequency,
         maturity_date: form.maturity_date,
@@ -146,42 +144,28 @@ export function EditBondDialog({ open, onOpenChange, bond }: Props) {
           </div>
 
           <div className="space-y-3 border-t pt-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-2">
-                <Label htmlFor="edit_bond_type">
-                  {t('investments:bond.fields.bondType')}
-                </Label>
-                <select
-                  id="edit_bond_type"
-                  className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-                  value={form.bond_type}
-                  onChange={(e) =>
-                    setForm({ ...form, bond_type: e.target.value as BondType })
-                  }
-                >
-                  <option value="govt_primary">
-                    {t('investments:bond.bondType.govt_primary')}
-                  </option>
-                  <option value="secondary_market">
-                    {t('investments:bond.bondType.secondary_market')}
-                  </option>
-                </select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit_bond_face_value">
-                  {t('investments:bond.fields.faceValue')}
-                </Label>
-                <Input
-                  id="edit_bond_face_value"
-                  required
-                  inputMode="decimal"
-                  value={form.face_value}
-                  onChange={(e) =>
-                    setForm({ ...form, face_value: e.target.value })
-                  }
-                />
-              </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit_bond_type">
+                {t('investments:bond.fields.bondType')}
+              </Label>
+              <select
+                id="edit_bond_type"
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                value={form.bond_type}
+                onChange={(e) =>
+                  setForm({ ...form, bond_type: e.target.value as BondType })
+                }
+              >
+                <option value="govt_primary">
+                  {t('investments:bond.bondType.govt_primary')}
+                </option>
+                <option value="secondary_market">
+                  {t('investments:bond.bondType.secondary_market')}
+                </option>
+              </select>
             </div>
+            {/* Outstanding nominal is derived from the Buy/Sell ledger (issue
+                #27); edit it by adding/editing transactions, not here. */}
           </div>
 
           <div className="space-y-3 border-t pt-4">

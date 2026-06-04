@@ -60,16 +60,31 @@ func applyLedgerTxn(cost, qty *decimal.Decimal, tx db.InvestmentTransaction) {
 	}
 }
 
-// ledgerHasBuy reports whether the ledger holds at least one buy transaction.
-// Bonds carry their cost as face_value when bought at primary issuance (no buy
-// txn); a secondary-market bond has buys and replays like any other holding.
-func ledgerHasBuy(txns []db.InvestmentTransaction) bool {
+// bondFaceUnit is the IDR nominal carried by one bond quantity unit (issue #27).
+// Indonesian primary retail bonds (SBR/ST/ORI/SR) trade in IDR 1,000,000 units,
+// so a bond's quantity is its nominal / 1,000,000 and price_per_unit is
+// 1,000,000 at par; discount/premium is expressed via price_per_unit.
+var bondFaceUnit = decimal.NewFromInt(1_000_000)
+
+// outstandingFaceFromLedger derives a bond's held nominal from its transaction
+// ledger (issue #27): (Σ buy_qty − Σ sell_qty) × 1,000,000. It replaces the
+// dropped bond_details.face_value scalar — a hand-maintained total would be a
+// duplicated, drift-prone source of truth (ADR-0003). Multi-tranche nominal and
+// the coupon helper both read this so they scale correctly across top-ups.
+func outstandingFaceFromLedger(txns []db.InvestmentTransaction) decimal.Decimal {
+	qty := decimal.Zero
 	for _, tx := range txns {
-		if tx.TransactionType == "buy" {
-			return true
+		if tx.Quantity == nil {
+			continue
+		}
+		switch tx.TransactionType {
+		case "buy":
+			qty = qty.Add(*tx.Quantity)
+		case "sell":
+			qty = qty.Sub(*tx.Quantity)
 		}
 	}
-	return false
+	return qty.Mul(bondFaceUnit)
 }
 
 // groupTransactionsByInvestment buckets a flat batch result by investment_id,

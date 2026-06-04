@@ -75,15 +75,6 @@ func (r *InvestmentRepo) InvestmentTimeSeries(ctx context.Context) ([]Investment
 	}
 	txnByID := groupTransactionsByInvestment(txns)
 
-	bondDetails, err := r.q.ListBondDetailsByInvestmentIDs(ctx, ids)
-	if err != nil {
-		return nil, fmt.Errorf("list bond_details: %w", err)
-	}
-	faceByID := make(map[uuid.UUID]decimal.Decimal, len(bondDetails))
-	for _, d := range bondDetails {
-		faceByID[d.InvestmentID] = d.FaceValue
-	}
-
 	tdDetails, err := r.q.ListTimeDepositDetailsByInvestmentIDs(ctx, ids)
 	if err != nil {
 		return nil, fmt.Errorf("list time_deposit_details: %w", err)
@@ -109,15 +100,9 @@ func (r *InvestmentRepo) InvestmentTimeSeries(ctx context.Context) ([]Investment
 		case "time_deposit":
 			// Ledger holds only the terminal Maturity row — flat principal.
 			costSeries = flatCostSeriesAtMonths(months, principalByID[x.ID])
-		case "bond":
-			// Secondary-market bonds replay; govt-primary (no buy) is flat
-			// face_value — same rule as ListBonds and lib/costBasis.ts.
-			if ledgerHasBuy(ledger) {
-				costSeries = costSeriesAtMonths(months, ledger)
-			} else {
-				costSeries = flatCostSeriesAtMonths(months, faceByID[x.ID])
-			}
-		default: // stock, mutual_fund, gold
+		default: // stock, mutual_fund, gold, bond — all replay the buy/sell ledger
+			// Bonds now always carry a Buy at placement (issue #27), so they
+			// replay like any other holding; no face_value fallback remains.
 			costSeries = costSeriesAtMonths(months, ledger)
 		}
 

@@ -130,10 +130,16 @@ SELECT id, ownership_type, sole_owner_user_id, terminated_at
 FROM receivables
 WHERE household_id = $1 AND deleted_at IS NULL;
 
+-- native_currency + the time_deposit placement fields let the engine synthesize
+-- a placement cash_in for TDs (issue #27): a TD records no Buy, so without it
+-- the placement-month snapshot 0→principal reads as pure return. td.principal /
+-- td.placement_date are NULL for non-TD subtypes.
 -- name: ListInvestmentsForReport :many
-SELECT id, subtype, ownership_type, sole_owner_user_id, terminated_at
-FROM investments
-WHERE household_id = $1 AND deleted_at IS NULL;
+SELECT i.id, i.subtype, i.ownership_type, i.sole_owner_user_id, i.terminated_at,
+       i.native_currency, td.principal AS td_principal, td.placement_date AS td_placement_date
+FROM investments i
+LEFT JOIN time_deposit_details td ON td.investment_id = i.id
+WHERE i.household_id = $1 AND i.deleted_at IS NULL;
 
 -- ----- engine inputs: income + investment transactions (slice 2) ----------
 

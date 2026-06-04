@@ -247,7 +247,7 @@ func TestInvestmentTransaction_MaturityFlipsStatus(t *testing.T) {
 	bond, err := r.CreateBond(aliceCtx, repo.CreateBondParams{
 		DisplayName: "ORI024", OwnershipType: "joint", NativeCurrency: "IDR",
 		BondType: "govt_primary", Issuer: "Republik Indonesia",
-		FaceValue: decimal.NewFromInt(10_000_000), CouponRate: couponRate,
+		CouponRate:      couponRate,
 		CouponFrequency: "monthly",
 		MaturityDate:    time.Date(2029, time.October, 15, 0, 0, 0, 0, time.UTC),
 		RiskProfile:     "medium",

@@ -13,16 +13,20 @@ import (
 )
 
 type createBondReq struct {
-	DisplayName     string           `json:"display_name"       validate:"required"`
-	Description     *string          `json:"description"`
-	OwnershipType   string           `json:"ownership_type"     validate:"required,oneof=sole joint"`
-	SoleOwnerUserID *uuid.UUID       `json:"sole_owner_user_id" validate:"required_if=OwnershipType sole"`
-	NativeCurrency  string           `json:"native_currency"    validate:"required,iso4217"`
-	RiskProfile     string           `json:"risk_profile"       validate:"required,oneof=low medium high"`
-	BondType        string           `json:"bond_type"          validate:"required,oneof=govt_primary secondary_market"`
-	SeriesCode      *string          `json:"series_code"`
-	Issuer          string           `json:"issuer"             validate:"required"`
-	FaceValue       *decimal.Decimal `json:"face_value"         validate:"required"`
+	DisplayName     string     `json:"display_name"       validate:"required"`
+	Description     *string    `json:"description"`
+	OwnershipType   string     `json:"ownership_type"     validate:"required,oneof=sole joint"`
+	SoleOwnerUserID *uuid.UUID `json:"sole_owner_user_id" validate:"required_if=OwnershipType sole"`
+	NativeCurrency  string     `json:"native_currency"    validate:"required,iso4217"`
+	RiskProfile     string     `json:"risk_profile"       validate:"required,oneof=low medium high"`
+	BondType        string     `json:"bond_type"          validate:"required,oneof=govt_primary secondary_market"`
+	SeriesCode      *string    `json:"series_code"`
+	Issuer          string     `json:"issuer"             validate:"required"`
+	// FaceValue + PlacementDate seed the placement Buy for a govt_primary bond
+	// (issue #27); secondary_market bonds omit them and record the real Buy
+	// themselves. Required only for govt_primary.
+	FaceValue       *decimal.Decimal `json:"face_value"         validate:"required_if=BondType govt_primary"`
+	PlacementDate   string           `json:"placement_date"     validate:"required_if=BondType govt_primary"`
 	CouponRate      *decimal.Decimal `json:"coupon_rate"        validate:"required"`
 	CouponFrequency string           `json:"coupon_frequency"   validate:"required,oneof=monthly quarterly semi_annual annual"`
 	MaturityDate    string           `json:"maturity_date"      validate:"required"`
@@ -37,7 +41,6 @@ type updateBondReq struct {
 	BondType        string           `json:"bond_type"          validate:"required,oneof=govt_primary secondary_market"`
 	SeriesCode      *string          `json:"series_code"`
 	Issuer          string           `json:"issuer"             validate:"required"`
-	FaceValue       *decimal.Decimal `json:"face_value"         validate:"required"`
 	CouponRate      *decimal.Decimal `json:"coupon_rate"        validate:"required"`
 	CouponFrequency string           `json:"coupon_frequency"   validate:"required,oneof=monthly quarterly semi_annual annual"`
 	MaturityDate    string           `json:"maturity_date"      validate:"required"`
@@ -58,6 +61,17 @@ func (h *Handlers) handleCreateBond(w http.ResponseWriter, r *http.Request) {
 		writeInvalidDate(w, "maturity_date")
 		return
 	}
+	// PlacementDate is required only for govt_primary (validated above); parse it
+	// when present so it can seed the placement Buy (issue #27).
+	var placement *time.Time
+	if req.PlacementDate != "" {
+		p, err := time.Parse("2006-01-02", req.PlacementDate)
+		if err != nil {
+			writeInvalidDate(w, "placement_date")
+			return
+		}
+		placement = &p
+	}
 
 	b, err := h.repo.CreateBond(r.Context(), repo.CreateBondParams{
 		DisplayName:     req.DisplayName,
@@ -69,7 +83,8 @@ func (h *Handlers) handleCreateBond(w http.ResponseWriter, r *http.Request) {
 		BondType:        req.BondType,
 		SeriesCode:      req.SeriesCode,
 		Issuer:          req.Issuer,
-		FaceValue:       *req.FaceValue,
+		FaceValue:       req.FaceValue,
+		PlacementDate:   placement,
 		CouponRate:      *req.CouponRate,
 		CouponFrequency: req.CouponFrequency,
 		MaturityDate:    maturity,
@@ -134,7 +149,6 @@ func (h *Handlers) handleUpdateBond(w http.ResponseWriter, r *http.Request) {
 		BondType:        req.BondType,
 		SeriesCode:      req.SeriesCode,
 		Issuer:          req.Issuer,
-		FaceValue:       *req.FaceValue,
 		CouponRate:      *req.CouponRate,
 		CouponFrequency: req.CouponFrequency,
 		MaturityDate:    maturity,

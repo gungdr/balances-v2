@@ -83,7 +83,14 @@ Transaction → cash-flow mapping (columns per migration 00010):
   recognizes it lump-sum at maturity.
 - **Birth month**: `value(M−1) = 0` when no snapshot ≤ M−1 — correct under the expected workflow
   (buy during the month, snapshot the position at month-end): `ΔSnapshot − cash_in` = unrealised
-  gain since purchase.
+  gain since purchase. **This depends on placement being a `cash_in` to cancel the `0 → principal`
+  jump (issue #27).** Stocks, mutual funds, gold, and secondary-market bonds always recorded a Buy.
+  The two that historically did not — `govt_primary` bonds and time deposits — would otherwise read
+  their entire deployed principal as return in the placement month (the entry-side twin of the #25
+  exit-side bug). Both are now fixed: a primary bond records a **Buy at placement** (ADR-0009), and a
+  time deposit's placement `cash_in` is **synthesized by the engine** from
+  `time_deposit_details.principal` at `placement_date` (a TD records no Buy). With that `cash_in` the
+  placement month nets to `0` and only later yield (coupon / accrued interest) is booked as return.
 - **Termination/maturity month — the liquidation-to-0 assumption (made explicit, issue #25).** The
   formula's correctness at the end of a position's life *depends on the close-month snapshot being
   `0`*. A matured/sold position holds nothing at month-end — the principal and any interest/proceeds

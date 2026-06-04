@@ -36,7 +36,7 @@ used.
 |---|---|
 | `stock_details` | `ticker` (req), `exchange` (req) |
 | `mutual_fund_details` | `fund_code` (req), `fund_manager` (opt) |
-| `bond_details` | `bond_type` (`'govt_primary' \| 'secondary_market'`), `issuer` (req), `face_value` (req), `coupon_rate` (req, annual %), `coupon_frequency` (default `'monthly'`), `maturity_date` (req) |
+| `bond_details` | `bond_type` (`'govt_primary' \| 'secondary_market'`), `issuer` (req), `coupon_rate` (req, annual %), `coupon_frequency` (default `'monthly'`), `maturity_date` (req). **No stored `face_value`** — outstanding nominal is derived from the ledger, `(Σ buy_qty − Σ sell_qty) × 1,000,000` (issue #27, see "Placement" below; `face_value` column dropped in migration 00021). |
 | `gold_details` | `form` (`'bar' \| 'coin' \| 'digital' \| 'jewelry'`), `purity` (decimal) |
 | `time_deposit_details` | `bank_name` (req), `principal` (req), `interest_rate` (req, annual %), `term_months` (req), `placement_date` (req), `maturity_date` (req), `rollover_policy` (`'auto_renew_principal' \| 'auto_renew_with_interest' \| 'no_rollover'`) |
 
@@ -47,6 +47,39 @@ used.
 (opt).
 
 `receivables` adds: `counterparty_name` (req), `due_date` (opt). No subtype.
+
+## Placement — capital at entry is a transaction (issue #27)
+
+Symmetric with the maturity rule below and with #25's exit-side fix: **capital deployed into a
+position at entry is a `cash_in`, never investment return.** Without it, the placement-month snapshot
+`0 → principal` reads as pure return under ADR-0008's `Δvalue + cash_out − cash_in` formula — the
+entry-side twin of the #25 double-count.
+
+- **Bonds (`govt_primary`):** placement is recorded as a **Buy** (`cash_in`), the same shape
+  secondary-market bonds always carried. The create-bond flow seeds the first Buy from its
+  `face_value` + `placement_date` inputs; Indonesian primary retail bonds (SBR/ST/ORI/SR) trade in
+  **IDR 1,000,000 units**, so `quantity = face / 1,000,000`, `price_per_unit = 1,000,000` at par
+  (`amount = quantity × price_per_unit`). Discount/premium rides on `price_per_unit ≠ 1,000,000`.
+  Secondary-market bonds are **not** seeded — the user records the actual Buy with the real price.
+
+  **Face value is ledger-derived, not stored.** Once placement is a Buy, both the held nominal and
+  the cost fall out of the ledger, so the hand-maintained `bond_details.face_value` scalar was dropped
+  (migration 00021) — keeping it would be a duplicated source of truth that drifts on every buy/sell
+  edit (the derive-don't-duplicate principle behind ADR-0003). Outstanding face =
+  `(Σ buy_qty − Σ sell_qty) × 1,000,000`; cost basis = `Σ amount` (handles premium/discount where
+  cash ≠ nominal). Multi-tranche just adds Buys; the coupon helper reads the derived outstanding face
+  so coupons scale across top-ups. The detail-screen Edit dialog no longer carries a `face_value`
+  input — nominal is changed by adding/editing transactions.
+
+- **Time deposits:** a TD records **no** Buy (placement lives in the Create dialog —
+  `principal` + `placement_date` are already stored, and rollovers create new rows). Rather than add a
+  placement transaction type, the **engine synthesizes** the placement `cash_in` from those two fields
+  in the placement month (option (a) — no new txn type, no data-entry burden, no backfill: it applies
+  uniformly to every existing TD). The synthetic flow is booked exactly like a Buy `cash_in`.
+
+This is the entry half of the rule whose exit half is #25's 0-value close snapshot: combined, capital
+is excluded from investment return at **both** entry and exit, leaving only yield (coupons /
+interest / realized + unrealized gain).
 
 ## Lifecycle and status
 

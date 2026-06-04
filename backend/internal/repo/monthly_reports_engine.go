@@ -44,6 +44,13 @@ type reportPosition struct {
 	ownershipType string // "sole" | "joint"
 	soleOwnerID   *uuid.UUID
 	terminatedAt  *time.Time
+	// Time-deposit placement (issue #27). A TD records no Buy, so the engine
+	// synthesizes a placement cash_in to cancel the 0→principal snapshot jump
+	// in the placement month — otherwise it reads as pure return. nil for every
+	// other subtype. currency is the native currency the cash_in is booked in.
+	placementAmount *decimal.Decimal
+	placementMonth  *time.Time
+	currency        string
 }
 
 // reportSnapshot is one monthly observation in its native currency.
@@ -308,6 +315,40 @@ func generateMonthlyReports(in reportEngineInput) []monthlyReportData {
 		c := m[mi]
 		c.in = c.in.Add(inC)
 		c.out = c.out.Add(outC)
+		m[mi] = c
+	}
+
+	// Synthetic time-deposit placement cash_in (issue #27). Booked exactly like
+	// a Buy: in the placement month it cancels the snapshot's 0→principal jump so
+	// the deployed capital nets to 0 return, leaving only interest as yield. Same
+	// FX handling as real transactions — an unconvertible currency is flagged and
+	// the flow dropped so the report still generates.
+	for _, p := range in.positions {
+		if p.placementAmount == nil || p.placementMonth == nil {
+			continue
+		}
+		mi := monthIndex(*p.placementMonth)
+		inC, rate, ok := fx.convert(*p.placementAmount, p.currency, mi)
+		if !ok {
+			if txnMissing[mi] == nil {
+				txnMissing[mi] = make(map[string]bool)
+			}
+			txnMissing[mi][p.currency] = true
+			continue
+		}
+		if fx.foreign(p.currency) {
+			if txnRates[mi] == nil {
+				txnRates[mi] = make(map[string]decimal.Decimal)
+			}
+			txnRates[mi][p.currency] = rate
+		}
+		m := cashByPos[p.id]
+		if m == nil {
+			m = make(map[int]cashFlow)
+			cashByPos[p.id] = m
+		}
+		c := m[mi]
+		c.in = c.in.Add(inC)
 		m[mi] = c
 	}
 
