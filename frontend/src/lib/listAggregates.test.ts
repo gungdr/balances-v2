@@ -219,12 +219,12 @@ describe('aggregateListPositions — time series', () => {
     expect(r.timeSeriesByCurrency.has('IDR')).toBe(false)
   })
 
-  it('includes closed positions historically, capped at terminated_at', () => {
-    // Issue #21: a sold/matured position must still show in the
-    // time series for the months it was held, then drop out. Issue #24:
-    // the synthetic 0-value close snapshot (#25) at the termination month
-    // is dropped so the position carries its last real value through that
-    // month rather than cratering the summed line to 0.
+  it('includes closed positions historically, capped before terminated_at', () => {
+    // Issue #21: a sold/matured position must still show in the time series
+    // for the months it was held, then drop out. Option A: it contributes
+    // through the month BEFORE its termination month, then leaves — the
+    // termination-month snapshot is its synthetic 0-close (#25/#27), excluded
+    // so a same-month successor (rollover) doesn't double-count.
     const r = aggregateListPositions([
       pos({
         id: 'active',
@@ -264,21 +264,22 @@ describe('aggregateListPositions — time series', () => {
       { currency: 'IDR', value: 100, cost: 100, pl: 0 },
     ])
     expect(r.count).toBe(1)
-    // Appears in the series through its termination month at its last real
-    // value (200/150 carried into Feb, not the 0-close), then drops out.
+    // Appears in Jan (held). From its termination month (Feb) on, it's gone —
+    // the active position alone carries Feb + Mar. No phantom carry of the
+    // sold value into Feb.
     const idr = r.timeSeriesByCurrency.get('IDR')!
     expect(idr).toEqual([
       { year_month: '2026-01', value: 300, cost: 250 },
-      { year_month: '2026-02', value: 300, cost: 250 },
-      // March: sold has dropped; only active remains.
+      { year_month: '2026-02', value: 100, cost: 100 },
       { year_month: '2026-03', value: 100, cost: 100 },
     ])
   })
 
   it('does not crater the line at a matured position’s 0-close month (#24)', () => {
-    // The TD-list case the maturity "trick" missed: a lone matured position
-    // must not pull the summed line down to 0 at its termination month. Its
-    // last real value carries through that month, then it leaves the series.
+    // A lone matured position must not pull the summed line down to 0 at its
+    // termination month. Option A: its termination month (the 0-close) is
+    // excluded from the range entirely, so the series ends at the last live
+    // month — no dip to 0, no phantom point.
     const r = aggregateListPositions([
       pos({
         id: 'matured-td',
@@ -308,29 +309,80 @@ describe('aggregateListPositions — time series', () => {
     ])
   })
 
-  it('omits closed-position contribution in months strictly after terminated_at', () => {
+  it('does not double-count a same-month rollover seam (Option A)', () => {
+    // The real TD rollover case: R0 matures end of May (#25 0-close at May),
+    // R1 is placed the same day at the rolled-over value. The seam month must
+    // show R1 only — carrying R0 through May too would spike it to ~2× value.
+    const r = aggregateListPositions([
+      pos({
+        id: 'R0',
+        status: 'matured',
+        terminated_at: '2023-05-31T00:00:00Z',
+        latestValue: 0,
+        cost: 0,
+        snapshots: [
+          { year_month: '2023-03', amount: '24000000' },
+          { year_month: '2023-04', amount: '24000000' },
+          { year_month: '2023-05', amount: '0' }, // #25 close
+        ],
+        costSeries: [
+          { year_month: '2023-03', cost: 24000000 },
+          { year_month: '2023-04', cost: 24000000 },
+          { year_month: '2023-05', cost: 0 },
+        ],
+      }),
+      pos({
+        id: 'R1',
+        latestValue: 24576116,
+        cost: 24576116,
+        snapshots: [
+          { year_month: '2023-05', amount: '24576116' },
+          { year_month: '2023-06', amount: '24576116' },
+        ],
+        costSeries: [
+          { year_month: '2023-05', cost: 24576116 },
+          { year_month: '2023-06', cost: 24576116 },
+        ],
+      }),
+    ])
+    expect(r.timeSeriesByCurrency.get('IDR')).toEqual([
+      { year_month: '2023-03', value: 24000000, cost: 24000000 },
+      { year_month: '2023-04', value: 24000000, cost: 24000000 },
+      // Seam: R0 gone (its termination month), R1 only — no spike.
+      { year_month: '2023-05', value: 24576116, cost: 24576116 },
+      { year_month: '2023-06', value: 24576116, cost: 24576116 },
+    ])
+  })
+
+  it('omits closed-position contribution from its termination month onward', () => {
     const r = aggregateListPositions([
       pos({
         id: 'sold',
         status: 'sold',
-        terminated_at: '2026-01-31T00:00:00Z',
-        snapshots: [{ year_month: '2026-01', amount: '500' }],
-        costSeries: [{ year_month: '2026-01', cost: 400 }],
+        // Held through Jan; terminated in Feb (with the #25 Feb 0-close).
+        terminated_at: '2026-02-28T00:00:00Z',
+        snapshots: [
+          { year_month: '2026-01', amount: '500' },
+          { year_month: '2026-02', amount: '0' },
+        ],
+        costSeries: [
+          { year_month: '2026-01', cost: 400 },
+          { year_month: '2026-02', cost: 0 },
+        ],
       }),
       pos({
         id: 'active',
         latestValue: 10,
         cost: 10,
-        snapshots: [
-          { year_month: '2026-02', amount: '10' },
-        ],
+        snapshots: [{ year_month: '2026-02', amount: '10' }],
         costSeries: [{ year_month: '2026-02', cost: 10 }],
       }),
     ])
     const idr = r.timeSeriesByCurrency.get('IDR')!
     // Jan: sold contributes 500/400; active not yet.
     expect(idr[0]).toEqual({ year_month: '2026-01', value: 500, cost: 400 })
-    // Feb: sold dropped (Jan was termination month); only active.
+    // Feb: sold dropped from its termination month (0-close excluded, no
+    // carry of the Jan value); only active remains.
     expect(idr[1]).toEqual({ year_month: '2026-02', value: 10, cost: 10 })
   })
 })

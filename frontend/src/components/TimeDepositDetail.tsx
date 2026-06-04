@@ -38,6 +38,7 @@ import {
 import { CreateAccruedInterestSnapshotDialog } from '@/components/CreateAccruedInterestSnapshotDialog'
 import { ImportSnapshotsDialog } from '@/components/ImportSnapshotsDialog'
 import { CreateMaturityTransactionDialog } from '@/components/CreateMaturityTransactionDialog'
+import { CreateTimeDepositDialog } from '@/components/CreateTimeDepositDialog'
 import { TransactionRow } from '@/components/TransactionRow'
 import { TerminatePositionDialog } from '@/components/TerminatePositionDialog'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -53,7 +54,9 @@ import { formatCurrency, formatDate } from '@/lib/format'
 import { maturityClass, maturityInfo } from '@/lib/maturity'
 import { ownershipLabel } from '@/lib/ownership'
 import { matchesTxnSearch } from '@/lib/transactionSearch'
+import { maturityRolloverPrefill } from '@/lib/rollover'
 import { flatCostSeries } from '@/lib/costBasis'
+import { Repeat } from 'lucide-react'
 import { InvestmentHeadline } from '@/components/InvestmentHeadline'
 
 type Props = {
@@ -151,6 +154,10 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
   const rolloverLabel = t(
     `investments:timeDeposit.rolloverPolicy.${td.details.rollover_policy}`,
   )
+  // Q14c-iv: a matured TD whose principal/interest rolled over needs a fresh
+  // deposit to hold the rolled funds. Non-null only when something actually
+  // rolled (and a maturity txn exists, which only happens once matured).
+  const rollover = maturityRolloverPrefill(td, transactions)
 
   const tourSteps: TourStep[] = [
     {
@@ -259,6 +266,34 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
           </Button>
         </div>
       </div>
+
+      {rollover && (
+        <div
+          data-testid="rollover-callout"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sky-900"
+        >
+          <div className="flex items-start gap-3">
+            <Repeat className="mt-0.5 size-5 shrink-0 text-sky-600" />
+            <div className="text-sm">
+              <p className="font-medium">
+                {t('investments:timeDeposit.rollover.calloutTitle')}
+              </p>
+              <p className="text-sky-800">
+                {t('investments:timeDeposit.rollover.calloutBody', {
+                  amount: formatCurrency(
+                    rollover.rolledAmount.toString(),
+                    td.investment.native_currency,
+                  ),
+                })}
+              </p>
+            </div>
+          </div>
+          <CreateTimeDepositDialog
+            prefill={rollover.prefill}
+            triggerLabel={t('investments:timeDeposit.rollover.calloutAction')}
+          />
+        </div>
+      )}
 
       <Card data-testid="tour-details">
         <CardHeader>

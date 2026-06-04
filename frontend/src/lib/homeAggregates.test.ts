@@ -160,8 +160,9 @@ describe('aggregateHomePositions', () => {
   })
 
   it('excludes terminated positions from headline + pies but keeps them in time + category series', () => {
-    // Issue #21: closed positions show historically up to their
-    // terminated_at month, then drop out. Pies + headline reflect
+    // Issue #21: closed positions show historically up to the month BEFORE
+    // their terminated_at month, then drop out (Option A — the termination
+    // month is when they convert to cash/successor). Pies + headline reflect
     // current state only, so closed positions are excluded there.
     const r = aggregateHomePositions([
       pos({
@@ -176,10 +177,14 @@ describe('aggregateHomePositions', () => {
       pos({
         id: 'b',
         status: 'sold',
-        terminated_at: '2026-01-20T00:00:00Z',
+        // Held through Jan, terminated in Feb (its Feb 0-close is excluded).
+        terminated_at: '2026-02-15T00:00:00Z',
         category: 'bond',
         latestValue: 9999,
-        snapshots: [{ year_month: '2026-01', amount: '300' }],
+        snapshots: [
+          { year_month: '2026-01', amount: '300' },
+          { year_month: '2026-02', amount: '0' },
+        ],
       }),
     ])
     expect(r.byCurrency).toEqual([

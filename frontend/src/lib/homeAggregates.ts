@@ -10,8 +10,8 @@
 //
 // **Current-state outputs (headline, pies) are active-only**. **Time
 // series + category stack include terminated positions historically**
-// (issue #21), with each position capped at its `terminated_at` month
-// — mirroring `lib/listAggregates.ts`.
+// (issue #21), with each position capped just before its `terminated_at`
+// month — mirroring `lib/listAggregates.ts`.
 //
 // Extends listAggregates with:
 //   - categorySeriesByCurrency: monthly value share per category, carry-
@@ -153,8 +153,11 @@ export function aggregateHomePositions(
 // latest-at-or-before snapshot value and attributes it to the position's
 // category. Cost is not needed here — the stacked chart is share-of-value.
 //
-// Closed positions contribute carry-forward up to their `terminated_at`
-// month, then drop out (issue #21), matching listAggregates.
+// Closed positions contribute carry-forward up to but EXCLUDING their
+// `terminated_at` month, then drop out (issue #21 cap, tightened for the
+// rollover seam) — matching listAggregates' aggregateMonthly. The
+// termination-month snapshot is the synthetic 0-close (#25/#27), excluded by
+// the cap below, so a same-month rollover never double-counts.
 function aggregateMonthlyByCategory(
   positions: HomePosition[],
 ): CategoryTimePoint[] {
@@ -166,21 +169,16 @@ function aggregateMonthlyByCategory(
   }
   const sorted: Sorted[] = positions.map((p) => {
     const termMonth = p.terminated_at ? monthOf(p.terminated_at) : null
-    // Drop the synthetic 0-value close snapshot (#25) so a matured position's
-    // category share carries its last real value through its termination month
-    // instead of cratering to 0 — parity with the per-position detail chart
-    // and lib/listAggregates. Only a zero close-month snapshot is dropped.
-    const closeMonth =
-      termMonth !== null &&
-      p.snapshots.some(
-        (s) => monthOf(s.year_month) === termMonth && Number(s.amount) === 0,
-      )
-        ? termMonth
-        : null
+    // Held only through the month before terminated_at — exclude the
+    // termination month so a lone closed category doesn't crater to 0 at its
+    // 0-close month and a same-month rollover doesn't double-count. The walk
+    // cap below stops carry-forward leaking past termMonth. (See the longer
+    // note in lib/listAggregates' aggregateMonthly.)
+    const live = (m: string) => termMonth === null || m < termMonth
     const byMonth = new Map<string, number>()
     for (const s of p.snapshots) {
       const m = monthOf(s.year_month)
-      if (m === closeMonth) continue
+      if (!live(m)) continue
       byMonth.set(m, Number(s.amount))
     }
     const months = [...byMonth.keys()].sort()
@@ -203,7 +201,7 @@ function aggregateMonthlyByCategory(
   for (const month of allMonths) {
     const byCategory = emptyByCategory()
     for (let i = 0; i < sorted.length; i++) {
-      if (sorted[i].termMonth !== null && month > sorted[i].termMonth!) {
+      if (sorted[i].termMonth !== null && month >= sorted[i].termMonth!) {
         continue
       }
       while (

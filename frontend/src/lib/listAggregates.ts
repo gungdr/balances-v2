@@ -10,7 +10,7 @@
 // **Headline + count are active-only** (`activeCurrencyTotals` parity —
 // closed positions have no current value/cost). **Time series includes
 // terminated positions historically** (issue #21): each position
-// contributes carry-forward up to and including its `terminated_at`
+// contributes carry-forward up to but *excluding* its `terminated_at`
 // month, then drops out. Without this, a sold/matured position
 // vanishes from the chart entirely, hiding the portfolio's past
 // shape.
@@ -129,11 +129,14 @@ export function aggregateListPositions(
 // sums. Cursors are per-position so the inner loop is O(1) amortized
 // across the sorted months.
 //
-// Closed positions (terminated_at set) contribute their carry-forward
-// up to and including their termination month, then 0 afterwards
-// (issue #21). Without #17 their termination-month value will be the
-// last pre-maturity snapshot rather than the realized payout; once #17
-// lands the auto-snapshot will correct that.
+// Closed positions (terminated_at set) contribute carry-forward up to but
+// EXCLUDING their termination month, then drop out. A position paid out /
+// matured by month-end isn't held at that month-end, and the
+// termination-month snapshot is the synthetic 0-close (#25/#27) anyway — so
+// excluding it loses nothing real. This (a) keeps a same-month rollover from
+// double-counting (predecessor carried + successor real, one spike month) and
+// (b) matches the per-position detail chart, which ends a closed position at
+// its last real snapshot + a Sold/Matured marker, never plotting the 0-close.
 function aggregateMonthly(positions: Position[]): TimePoint[] {
   type Sorted = {
     months: string[]
@@ -143,33 +146,25 @@ function aggregateMonthly(positions: Position[]): TimePoint[] {
   }
   const sorted: Sorted[] = positions.map((p) => {
     const termMonth = p.terminated_at ? monthOf(p.terminated_at) : null
-    // A closed position carries a synthetic 0-value close snapshot at its
-    // termination month (#25). The per-position detail chart drops it via its
-    // `status` prop; the aggregate has no status, so leaving it in craters the
-    // summed line to 0 at the maturity month — the same "lost all its value"
-    // misread #25 set out to kill, just on the list/home graph instead of the
-    // detail one. Drop the 0-close here too so the position's last real value
-    // carries through its termination month, then the cap below removes it the
-    // month after. Only a *zero* close-month snapshot is dropped, so a position
-    // whose genuine final value lands in its termination month is untouched.
-    const closeMonth =
-      termMonth !== null &&
-      p.snapshots.some(
-        (s) => monthOf(s.year_month) === termMonth && Number(s.amount) === 0,
-      )
-        ? termMonth
-        : null
+    // A closed position is held only *through the month before* terminated_at.
+    // Drop its termination month (and any later snapshot) here so it neither
+    // extends the timeline into a 0-close/payout month — which would crater a
+    // lone closed position to 0 at the end — nor reaches the sum. The walk
+    // cap below stops the carried value leaking past termMonth when *another*
+    // position extends the range. The termination-month snapshot is the
+    // synthetic 0-close (#25/#27) anyway, so excluding it loses nothing real.
+    const live = (m: string) => termMonth === null || m < termMonth
     // Build {month → (value, cost)} so snapshot + cost lookups merge by
     // month even if the input arrays are in different orders.
     const byMonth = new Map<string, { value: number; cost: number }>()
     for (const s of p.snapshots) {
       const m = monthOf(s.year_month)
-      if (m === closeMonth) continue
+      if (!live(m)) continue
       byMonth.set(m, { value: Number(s.amount), cost: 0 })
     }
     for (const c of p.costSeries) {
       const m = monthOf(c.year_month)
-      if (m === closeMonth) continue
+      if (!live(m)) continue
       const entry = byMonth.get(m) ?? { value: 0, cost: 0 }
       entry.cost = c.cost
       byMonth.set(m, entry)
@@ -196,7 +191,7 @@ function aggregateMonthly(positions: Position[]): TimePoint[] {
     let value = 0
     let cost = 0
     for (let i = 0; i < sorted.length; i++) {
-      if (sorted[i].termMonth !== null && month > sorted[i].termMonth!) {
+      if (sorted[i].termMonth !== null && month >= sorted[i].termMonth!) {
         continue
       }
       while (

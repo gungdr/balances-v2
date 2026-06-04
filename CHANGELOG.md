@@ -2083,6 +2083,68 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     last real value, not the 0-close) + a lone-matured-position no-crater case.
     All green (vitest 173/173, build + ESLint 0 errors).
 
+- **Duplicate-matured-TD rollover helper (M6, frontend-only — Q14c-iv).** When a
+  TimeDeposit matures with a `rolled_to_new` disposition on its principal and/or
+  interest, the rolled funds belong in a fresh deposit — until now the user
+  re-keyed every field by hand. A matured TD detail screen now shows a teaching
+  callout (sky banner, `Repeat` icon, `data-testid="rollover-callout"`) stating
+  the rolled amount and offering **Create rollover deposit**, which opens the
+  standard Create-TD dialog pre-seeded from the matured position.
+  - **Pure helper.** New `lib/rollover.ts`: `maturityRolloverPrefill(td, txns)`
+    finds the (terminal, at-most-one) maturity transaction, sums only the
+    rolled portions (`principal_amount` if `principal_disposition ===
+    'rolled_to_new'`, plus `interest_amount` if its disposition is rolled),
+    and returns `{ rolledAmount, prefill }` — or `null` when nothing rolled
+    (pure cash_out) or no maturity txn exists (so the callout never shows on an
+    active or manually-sold position). The prefill carries bank/currency/rate/
+    term/ownership/risk/description forward, sets `placement_date` = the old
+    TD's scheduled `maturity_date` and `principal` = the rolled sum, and
+    recomputes the new `maturity_date` via a shared
+    `addMonths` (lifted out of the dialog into the same module).
+  - **Dialog reuse.** `CreateTimeDepositDialog` gained optional `prefill` +
+    `triggerLabel`/`triggerVariant`/`triggerSize` props (the two list-screen
+    call sites are unchanged — props default to the primary Create trigger).
+    Form state seeds from `{ ...emptyForm(), ...prefill }` and resets to the
+    same on close. The form's shape now lives in `lib/rollover.ts` as the
+    exported `TimeDepositForm` type so the helper can describe a partial of it.
+  - **i18n + tests.** New `timeDeposit.rollover.{calloutTitle,calloutBody,
+    calloutAction}` EN+ID (ID: "digulung ke deposito baru", aligning with the
+    `disposition.rolledShort` glossary term). `rollover.test.ts` (7 cases):
+    addMonths math + the four roll combinations (both/principal-only/
+    interest-only/none) + no-maturity-txn. vitest 180/180, build + ESLint 0
+    errors. Backend untouched.
+
+- **Aggregate graph: closed positions end before their termination month
+  (M6, frontend-only — refines #24/#21 for the rollover seam).** Verifying the
+  first real rolled-over TD pair (R0 matured + rolled → R1 placed the *same*
+  month) surfaced a one-month spike on the list/home time graphs: #24 dropped a
+  closed position's synthetic 0-close (#25/#27) and carried its last real value
+  *through* its termination month, so at a rollover seam both the predecessor
+  (carried) and the successor (real) landed in the same month — e.g. R0 24.0M +
+  R1 24.576M = 48.576M, when the household only ever held ~24.5M. The detail
+  chart never had this (it ends a closed position at its last real snapshot +
+  a Sold/Matured marker), so the two surfaces also disagreed.
+  - **Fix (chosen over a rollover-disposition-aware branch).** Both aggregators
+    (`lib/listAggregates` `aggregateMonthly`, `lib/homeAggregates`
+    `aggregateMonthlyByCategory`) now treat a closed position as held only
+    *through the month before* `terminated_at`. A `live(m) = m < termMonth`
+    filter drops the termination month from each position's month set (so a
+    *lone* closed position no longer extends the timeline into its 0-close
+    month and crater to 0 there), and the walk-time cap tightened from
+    `month > termMonth` to `month >= termMonth` (so a carried value can't leak
+    into the termination month when *another* position extends the range). The
+    whole 0-close-detection block is deleted — with #25/#27 the termination
+    month's snapshot is always the 0-close anyway, so excluding it loses
+    nothing real. This unifies the aggregate with the detail chart and matches
+    the app's month-end snapshot semantics (a position paid out by month-end
+    isn't held at that month-end).
+  - **Tests.** New `does not double-count a same-month rollover seam` case
+    mirrors the real R0→R1 data (seam month shows R1 only). The #24/#21
+    closed-position cases updated to Option A (closed contributes through the
+    month before termination, then drops; lone-matured still no-craters because
+    its termination month leaves the range entirely). vitest 181/181, build +
+    ESLint 0 errors. Backend untouched.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

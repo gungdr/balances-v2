@@ -18,16 +18,16 @@ import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { preferredName } from '@/lib/names'
 import { errorMessage } from '@/lib/errorMessage'
 import { RiskProfileSelect } from '@/components/RiskProfileSelect'
-import type { RiskProfile } from '@/api/types'
+import { addMonths, type TimeDepositForm } from '@/lib/rollover'
 import type { RolloverPolicy } from '@/api/types'
 
-function emptyForm() {
+function emptyForm(): TimeDepositForm {
   return {
     display_name: '',
     description: '',
-    ownership_type: 'joint' as 'sole' | 'joint',
-    sole_owner_user_id: null as string | null,
-    risk_profile: '' as RiskProfile | '',
+    ownership_type: 'joint',
+    sole_owner_user_id: null,
+    risk_profile: '',
     native_currency: 'IDR',
     bank_name: '',
     principal: '',
@@ -35,27 +35,35 @@ function emptyForm() {
     term_months: '',
     placement_date: '',
     maturity_date: '',
-    rollover_policy: 'no_rollover' as RolloverPolicy,
+    rollover_policy: 'no_rollover',
   }
 }
 
-// placement_date + term_months → maturity_date.
 // Bank-actual maturities sometimes nudge by a day or two (holidays); the
-// computed value is overwritten on any change to placement / term, but the
-// user can edit maturity_date directly afterward and the override sticks
-// until they touch placement or term again.
-function addMonths(date: string, months: number): string {
-  if (!date || Number.isNaN(months) || months <= 0) return ''
-  const d = new Date(date)
-  if (Number.isNaN(d.getTime())) return ''
-  d.setMonth(d.getMonth() + months)
-  return d.toISOString().slice(0, 10)
+// computed maturity_date is overwritten on any change to placement / term, but
+// the user can edit it directly afterward and the override sticks until they
+// touch placement or term again. The date math lives in lib/rollover.
+
+type Props = {
+  // Seed the form (e.g. the matured-TD rollover helper). Reset target on close.
+  prefill?: Partial<TimeDepositForm>
+  triggerLabel?: string
+  triggerVariant?: 'default' | 'outline'
+  triggerSize?: 'default' | 'sm'
 }
 
-export function CreateTimeDepositDialog() {
+export function CreateTimeDepositDialog({
+  prefill,
+  triggerLabel,
+  triggerVariant = 'default',
+  triggerSize = 'default',
+}: Props = {}) {
   const { t } = useTranslation(['investments', 'common'])
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState(emptyForm)
+  const [form, setForm] = useState<TimeDepositForm>(() => ({
+    ...emptyForm(),
+    ...prefill,
+  }))
   const { data: user } = useSession()
   const { data: members } = useHouseholdMembers()
   const mutation = useCreateTimeDeposit()
@@ -64,7 +72,7 @@ export function CreateTimeDepositDialog() {
 
   function close() {
     setOpen(false)
-    setForm(emptyForm())
+    setForm({ ...emptyForm(), ...prefill })
     mutation.reset()
   }
 
@@ -114,7 +122,9 @@ export function CreateTimeDepositDialog() {
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
-        <Button>{t('investments:timeDeposit.createTrigger')}</Button>
+        <Button variant={triggerVariant} size={triggerSize}>
+          {triggerLabel ?? t('investments:timeDeposit.createTrigger')}
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>

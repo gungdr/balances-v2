@@ -370,10 +370,22 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     list/home aggregators also drop a matured position's 0-value close
     snapshot (#25) so the summed line carries its last real value through the
     termination month instead of cratering to 0 — the detail-chart maturity
-    trick, now on the aggregate graphs too. Plus two chart-readability fixes:
+    trick, now on the aggregate graphs too. **(The carry-*through*-termination-
+    month part was superseded by the rollover-seam fix below — closed positions
+    now end the month *before* `terminated_at`.)** Plus two chart-readability fixes:
     the Sold/Matured marker label no longer clips off the chart edges
     (`textAnchor: 'end'` + top headroom), and the tooltip labels each line
     ("Value"/"Cost") instead of showing bare numbers.
+  - Duplicate-matured-TD rollover helper (Q14c-iv): a matured TD whose principal/interest rolled
+    over now shows a teaching callout offering "Create rollover deposit", which opens the Create-TD
+    dialog pre-seeded from the matured position (placement = maturity date, principal = rolled sum).
+    New pure `lib/rollover.ts` (`maturityRolloverPrefill` + shared `addMonths`); `CreateTimeDepositDialog`
+    gained optional `prefill`/`trigger*` props. Frontend-only.
+  - Aggregate graph rollover-seam fix (refines #24/#21): closed positions now end the month *before*
+    `terminated_at` on the list/home time graphs (not carried *through* it), so a same-month rollover
+    (R0 matures → R1 placed same month) no longer double-counts the seam month. Both aggregators drop
+    the termination month via a `live(m) = m < termMonth` filter + a `>=` walk cap; the 0-close-drop
+    block is deleted. Unifies the aggregate with the detail chart. Frontend-only.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
@@ -392,10 +404,6 @@ M6 is the v1-polish milestone (see `docs/ROADMAP.md`). Still open in M6:
 
 - **PDF export** of monthly reports (user requirement, Q22).
 - **Fee cash→quantity helper** (Q12).
-- **TimeDeposit "duplicate matured TD" helper** (Q14c-iv): when a Maturity transaction has
-  `principal_disposition = 'rolled_to_new'`, a fresh TD must receive the rolled amount. Today the
-  user creates it manually. Helper pre-fills a Create-TD dialog from the matured row with
-  `placement_date = maturity_date` and `principal = old.principal + rolled_interest`.
 - **Migration consolidation** — squash the ~15 accumulated pre-alpha migrations into one
   initial-schema migration before the first production deploy.
 - **Deploy** — choose a hosting target and ship it; configure a real Resend domain for production
