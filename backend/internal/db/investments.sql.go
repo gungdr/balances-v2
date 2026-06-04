@@ -16,23 +16,24 @@ const createInvestment = `-- name: CreateInvestment :one
 INSERT INTO investments (
     household_id, display_name, description, subtype,
     ownership_type, sole_owner_user_id, native_currency, risk_profile,
-    created_by, updated_by
+    rolled_from_investment_id, created_by, updated_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $9
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10
 )
-RETURNING id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at, risk_profile
+RETURNING id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at, risk_profile, rolled_from_investment_id
 `
 
 type CreateInvestmentParams struct {
-	HouseholdID     uuid.UUID  `json:"household_id"`
-	DisplayName     string     `json:"display_name"`
-	Description     *string    `json:"description"`
-	Subtype         string     `json:"subtype"`
-	OwnershipType   string     `json:"ownership_type"`
-	SoleOwnerUserID *uuid.UUID `json:"sole_owner_user_id"`
-	NativeCurrency  string     `json:"native_currency"`
-	RiskProfile     string     `json:"risk_profile"`
-	CreatedBy       *uuid.UUID `json:"created_by"`
+	HouseholdID            uuid.UUID  `json:"household_id"`
+	DisplayName            string     `json:"display_name"`
+	Description            *string    `json:"description"`
+	Subtype                string     `json:"subtype"`
+	OwnershipType          string     `json:"ownership_type"`
+	SoleOwnerUserID        *uuid.UUID `json:"sole_owner_user_id"`
+	NativeCurrency         string     `json:"native_currency"`
+	RiskProfile            string     `json:"risk_profile"`
+	RolledFromInvestmentID *uuid.UUID `json:"rolled_from_investment_id"`
+	CreatedBy              *uuid.UUID `json:"created_by"`
 }
 
 func (q *Queries) CreateInvestment(ctx context.Context, arg CreateInvestmentParams) (Investment, error) {
@@ -45,6 +46,7 @@ func (q *Queries) CreateInvestment(ctx context.Context, arg CreateInvestmentPara
 		arg.SoleOwnerUserID,
 		arg.NativeCurrency,
 		arg.RiskProfile,
+		arg.RolledFromInvestmentID,
 		arg.CreatedBy,
 	)
 	var i Investment
@@ -66,12 +68,13 @@ func (q *Queries) CreateInvestment(ctx context.Context, arg CreateInvestmentPara
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.RiskProfile,
+		&i.RolledFromInvestmentID,
 	)
 	return i, err
 }
 
 const getInvestmentByID = `-- name: GetInvestmentByID :one
-SELECT id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at, risk_profile
+SELECT id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at, risk_profile, rolled_from_investment_id
 FROM investments
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
 `
@@ -102,12 +105,43 @@ func (q *Queries) GetInvestmentByID(ctx context.Context, arg GetInvestmentByIDPa
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.RiskProfile,
+		&i.RolledFromInvestmentID,
 	)
 	return i, err
 }
 
+const getRolloverSuccessor = `-- name: GetRolloverSuccessor :one
+SELECT id, display_name FROM investments
+WHERE rolled_from_investment_id = $1
+  AND household_id = $2
+  AND deleted_at IS NULL
+ORDER BY created_at
+LIMIT 1
+`
+
+type GetRolloverSuccessorParams struct {
+	RolledFromInvestmentID *uuid.UUID `json:"rolled_from_investment_id"`
+	HouseholdID            uuid.UUID  `json:"household_id"`
+}
+
+type GetRolloverSuccessorRow struct {
+	ID          uuid.UUID `json:"id"`
+	DisplayName string    `json:"display_name"`
+}
+
+// The live investment rolled over from $1 (the matured source), if any — the
+// matured-TD detail surfaces it as the "rolled over into" link and suppresses
+// the rollover callout when present (issue #29). 1:1 by concept; LIMIT 1 guards
+// against accidental multiples.
+func (q *Queries) GetRolloverSuccessor(ctx context.Context, arg GetRolloverSuccessorParams) (GetRolloverSuccessorRow, error) {
+	row := q.db.QueryRow(ctx, getRolloverSuccessor, arg.RolledFromInvestmentID, arg.HouseholdID)
+	var i GetRolloverSuccessorRow
+	err := row.Scan(&i.ID, &i.DisplayName)
+	return i, err
+}
+
 const listInvestmentsByHousehold = `-- name: ListInvestmentsByHousehold :many
-SELECT id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at, risk_profile
+SELECT id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at, risk_profile, rolled_from_investment_id
 FROM investments
 WHERE household_id = $1
   AND ($2::text IS NULL OR subtype = $2::text)
@@ -147,6 +181,7 @@ func (q *Queries) ListInvestmentsByHousehold(ctx context.Context, arg ListInvest
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.RiskProfile,
+			&i.RolledFromInvestmentID,
 		); err != nil {
 			return nil, err
 		}
@@ -190,7 +225,7 @@ SET display_name       = $3,
     updated_by         = $8,
     updated_at         = now()
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
-RETURNING id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at, risk_profile
+RETURNING id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at, risk_profile, rolled_from_investment_id
 `
 
 type UpdateInvestmentParams struct {
@@ -234,6 +269,7 @@ func (q *Queries) UpdateInvestment(ctx context.Context, arg UpdateInvestmentPara
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.RiskProfile,
+		&i.RolledFromInvestmentID,
 	)
 	return i, err
 }
@@ -246,7 +282,7 @@ SET status           = $3,
     updated_by       = $6,
     updated_at       = now()
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
-RETURNING id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at, risk_profile
+RETURNING id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at, risk_profile, rolled_from_investment_id
 `
 
 type UpdateInvestmentLifecycleParams struct {
@@ -286,6 +322,7 @@ func (q *Queries) UpdateInvestmentLifecycle(ctx context.Context, arg UpdateInves
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.RiskProfile,
+		&i.RolledFromInvestmentID,
 	)
 	return i, err
 }

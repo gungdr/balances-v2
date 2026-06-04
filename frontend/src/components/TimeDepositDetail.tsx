@@ -56,17 +56,24 @@ import { ownershipLabel } from '@/lib/ownership'
 import { matchesTxnSearch } from '@/lib/transactionSearch'
 import { maturityRolloverPrefill } from '@/lib/rollover'
 import { flatCostSeries } from '@/lib/costBasis'
-import { Repeat } from 'lucide-react'
+import { ArrowDown, ArrowUp, Repeat } from 'lucide-react'
 import { InvestmentHeadline } from '@/components/InvestmentHeadline'
 
 type Props = {
   investmentId: string
   onBack: () => void
+  // Navigate to another time deposit's detail (the rollover-chain links). Kept
+  // as a callback so the screen stays router-unaware (App.tsx bridges to nav).
+  onSelectTimeDeposit: (id: string) => void
 }
 
 const PAGE_SIZE = 12
 
-export function TimeDepositDetail({ investmentId, onBack }: Props) {
+export function TimeDepositDetail({
+  investmentId,
+  onBack,
+  onSelectTimeDeposit,
+}: Props) {
   const { t } = useTranslation(['investments', 'common', 'errors'])
   const { data: td, isPending, error } = useTimeDeposit(investmentId)
   const { data: snapshots } = useInvestmentSnapshots(investmentId)
@@ -290,6 +297,7 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
           </div>
           <CreateTimeDepositDialog
             prefill={rollover.prefill}
+            rolledFromInvestmentId={td.investment.id}
             triggerLabel={t('investments:timeDeposit.rollover.calloutAction')}
           />
         </div>
@@ -347,6 +355,62 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
           )}
         </CardContent>
       </Card>
+
+      {(td.rolled_from || td.rolled_to) && (
+        <Card data-testid="rollover-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Repeat className="size-4 text-muted-foreground" />
+              {t('investments:timeDeposit.rolloverChain.title')}
+            </CardTitle>
+            <CardDescription>
+              {t('investments:timeDeposit.rolloverChain.description')}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm space-y-2">
+            <div className="flex items-center gap-2">
+              <ArrowUp className="size-4 shrink-0 text-muted-foreground" />
+              <span className="text-muted-foreground">
+                {t('investments:timeDeposit.rolloverChain.fromLabel')}
+              </span>
+              {td.rolled_from ? (
+                <button
+                  type="button"
+                  data-testid="rollover-from-link"
+                  className="font-medium text-sky-700 underline underline-offset-2 hover:text-sky-900"
+                  onClick={() => onSelectTimeDeposit(td.rolled_from!.id)}
+                >
+                  {td.rolled_from.display_name}
+                </button>
+              ) : (
+                <span className="text-muted-foreground">
+                  {t('investments:timeDeposit.rolloverChain.none')}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <ArrowDown className="size-4 shrink-0 text-muted-foreground" />
+              <span className="text-muted-foreground">
+                {t('investments:timeDeposit.rolloverChain.intoLabel')}
+              </span>
+              {td.rolled_to ? (
+                <button
+                  type="button"
+                  data-testid="rollover-into-link"
+                  className="font-medium text-sky-700 underline underline-offset-2 hover:text-sky-900"
+                  onClick={() => onSelectTimeDeposit(td.rolled_to!.id)}
+                >
+                  {td.rolled_to.display_name}
+                </button>
+              ) : (
+                <span className="text-muted-foreground">
+                  {t('investments:timeDeposit.rolloverChain.noneYet')}
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {snapshots && snapshots.length >= 2 && (
         <Card data-testid="tour-chart">

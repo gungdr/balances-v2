@@ -124,23 +124,24 @@ type Income struct {
 }
 
 type Investment struct {
-	ID              uuid.UUID          `json:"id"`
-	HouseholdID     uuid.UUID          `json:"household_id"`
-	DisplayName     string             `json:"display_name"`
-	Description     *string            `json:"description"`
-	Subtype         string             `json:"subtype"`
-	OwnershipType   string             `json:"ownership_type"`
-	SoleOwnerUserID *uuid.UUID         `json:"sole_owner_user_id"`
-	NativeCurrency  string             `json:"native_currency"`
-	Status          string             `json:"status"`
-	TerminatedAt    *time.Time         `json:"terminated_at"`
-	TerminationNote *string            `json:"termination_note"`
-	CreatedBy       *uuid.UUID         `json:"created_by"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	UpdatedBy       *uuid.UUID         `json:"updated_by"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
-	RiskProfile     string             `json:"risk_profile"`
+	ID                     uuid.UUID          `json:"id"`
+	HouseholdID            uuid.UUID          `json:"household_id"`
+	DisplayName            string             `json:"display_name"`
+	Description            *string            `json:"description"`
+	Subtype                string             `json:"subtype"`
+	OwnershipType          string             `json:"ownership_type"`
+	SoleOwnerUserID        *uuid.UUID         `json:"sole_owner_user_id"`
+	NativeCurrency         string             `json:"native_currency"`
+	Status                 string             `json:"status"`
+	TerminatedAt           *time.Time         `json:"terminated_at"`
+	TerminationNote        *string            `json:"termination_note"`
+	CreatedBy              *uuid.UUID         `json:"created_by"`
+	CreatedAt              pgtype.Timestamptz `json:"created_at"`
+	UpdatedBy              *uuid.UUID         `json:"updated_by"`
+	UpdatedAt              pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt              pgtype.Timestamptz `json:"deleted_at"`
+	RiskProfile            string             `json:"risk_profile"`
+	RolledFromInvestmentID *uuid.UUID         `json:"rolled_from_investment_id"`
 }
 
 type InvestmentSnapshot struct {

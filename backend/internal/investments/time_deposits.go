@@ -26,6 +26,9 @@ type createTimeDepositReq struct {
 	PlacementDate   string           `json:"placement_date"     validate:"required"`
 	MaturityDate    string           `json:"maturity_date"      validate:"required"`
 	RolloverPolicy  string           `json:"rollover_policy"    validate:"required,oneof=auto_renew_principal auto_renew_with_interest no_rollover"`
+	// RolledFromInvestmentID links a rollover successor to its matured source
+	// (issue #29). Set by the frontend rollover helper; absent on fresh deposits.
+	RolledFromInvestmentID *uuid.UUID `json:"rolled_from_investment_id"`
 }
 
 type updateTimeDepositReq struct {
@@ -65,19 +68,20 @@ func (h *Handlers) handleCreateTimeDeposit(w http.ResponseWriter, r *http.Reques
 	}
 
 	t, err := h.repo.CreateTimeDeposit(r.Context(), repo.CreateTimeDepositParams{
-		DisplayName:     req.DisplayName,
-		Description:     req.Description,
-		OwnershipType:   req.OwnershipType,
-		SoleOwnerUserID: req.SoleOwnerUserID,
-		NativeCurrency:  req.NativeCurrency,
-		RiskProfile:     req.RiskProfile,
-		BankName:        req.BankName,
-		Principal:       *req.Principal,
-		InterestRate:    *req.InterestRate,
-		TermMonths:      req.TermMonths,
-		PlacementDate:   placement,
-		MaturityDate:    maturity,
-		RolloverPolicy:  req.RolloverPolicy,
+		DisplayName:            req.DisplayName,
+		Description:            req.Description,
+		OwnershipType:          req.OwnershipType,
+		SoleOwnerUserID:        req.SoleOwnerUserID,
+		NativeCurrency:         req.NativeCurrency,
+		RiskProfile:            req.RiskProfile,
+		BankName:               req.BankName,
+		Principal:              *req.Principal,
+		InterestRate:           *req.InterestRate,
+		TermMonths:             req.TermMonths,
+		PlacementDate:          placement,
+		MaturityDate:           maturity,
+		RolloverPolicy:         req.RolloverPolicy,
+		RolledFromInvestmentID: req.RolledFromInvestmentID,
 	})
 	if err != nil {
 		httperr.WriteRepo(w, "create time deposit", err)

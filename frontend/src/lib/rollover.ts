@@ -43,6 +43,11 @@ export function maturityRolloverPrefill(
   td: TimeDeposit,
   transactions: InvestmentTransaction[] | undefined,
 ): { rolledAmount: number; prefill: Partial<TimeDepositForm> } | null {
+  // The rolled funds already live in a successor deposit — don't nag to create
+  // one that exists (issue #29). Hand-created successors stay unlinked and still
+  // prompt; only helper-created ones carry the back-reference.
+  if (td.rolled_to) return null
+
   const maturity = (transactions ?? []).find(
     (tx) => tx.transaction_type === 'maturity',
   )

@@ -22,8 +22,12 @@ const maturity = (fields: {
     interest_disposition: fields.interestDisp ?? null,
   }) as InvestmentTransaction
 
-const td = (): TimeDeposit =>
+const td = (hasSuccessor = false): TimeDeposit =>
   ({
+    rolled_from: null,
+    rolled_to: hasSuccessor
+      ? { id: 'succ-1', display_name: 'BCA 6mo (rolled)' }
+      : null,
     investment: {
       display_name: 'BCA 6mo',
       description: 'Emergency fund deposit',
@@ -59,6 +63,19 @@ describe('maturityRolloverPrefill', () => {
   it('returns null when there is no maturity transaction', () => {
     expect(maturityRolloverPrefill(td(), [])).toBeNull()
     expect(maturityRolloverPrefill(td(), undefined)).toBeNull()
+  })
+
+  it('returns null when a rollover successor already exists (issue #29)', () => {
+    expect(
+      maturityRolloverPrefill(td(true), [
+        maturity({
+          principal: '100000000',
+          interest: '5000000',
+          principalDisp: 'rolled_to_new',
+          interestDisp: 'rolled_to_new',
+        }),
+      ]),
+    ).toBeNull()
   })
 
   it('returns null when everything was cashed out', () => {

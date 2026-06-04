@@ -47,6 +47,9 @@ function emptyForm(): TimeDepositForm {
 type Props = {
   // Seed the form (e.g. the matured-TD rollover helper). Reset target on close.
   prefill?: Partial<TimeDepositForm>
+  // When this deposit redeploys a matured position's funds, the source TD's id
+  // (issue #29). Sent on create so the source's rollover callout disappears.
+  rolledFromInvestmentId?: string
   triggerLabel?: string
   triggerVariant?: 'default' | 'outline'
   triggerSize?: 'default' | 'sm'
@@ -54,6 +57,7 @@ type Props = {
 
 export function CreateTimeDepositDialog({
   prefill,
+  rolledFromInvestmentId,
   triggerLabel,
   triggerVariant = 'default',
   triggerSize = 'default',
@@ -114,6 +118,9 @@ export function CreateTimeDepositDialog({
         placement_date: form.placement_date,
         maturity_date: form.maturity_date,
         rollover_policy: form.rollover_policy,
+        ...(rolledFromInvestmentId
+          ? { rolled_from_investment_id: rolledFromInvestmentId }
+          : {}),
       },
       { onSuccess: close },
     )

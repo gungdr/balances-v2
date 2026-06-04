@@ -445,6 +445,14 @@
       "calloutBody": "{{amount}} sedang diinvestasikan kembali. Buat deposito baru agar tetap terpantau.",
       "calloutAction": "Buat deposito gulungan"
     },
+    "rolloverChain": {
+      "title": "Gulungan",
+      "description": "Bagaimana deposito ini terhubung dengan deposito sebelum dan sesudahnya.",
+      "fromLabel": "Digulung dari",
+      "intoLabel": "Digulung ke",
+      "none": "—",
+      "noneYet": "Belum ada"
+    },
     "fields": {
       "bankName": "Nama bank",
       "principal": "Pokok",

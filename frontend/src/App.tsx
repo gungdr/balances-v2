@@ -305,6 +305,7 @@ const router = createBrowserRouter([
               <TimeDepositDetail
                 investmentId={id}
                 onBack={() => nav(routes.timeDeposits)}
+                onSelectTimeDeposit={(tid) => nav(routes.timeDeposit(tid))}
               />
             )}
           />

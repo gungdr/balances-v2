@@ -210,6 +210,9 @@ export type Investment = {
   sole_owner_user_id: string | null
   native_currency: string
   risk_profile: RiskProfile
+  // Set when this position was rolled over from a matured one (issue #29) —
+  // seeds a future rollover-chain view; null for a fresh position.
+  rolled_from_investment_id: string | null
   status: 'active' | 'sold' | 'matured'
   terminated_at: string | null
   termination_note: string | null
@@ -352,9 +355,22 @@ export type TimeDepositDetails = {
   rollover_policy: RolloverPolicy
 }
 
+// Minimal pointer to a rollover-chain neighbour — enough to render a link
+// (issue #29).
+export type RolloverRef = {
+  id: string
+  display_name: string
+}
+
 export type TimeDeposit = {
   investment: Investment
   details: TimeDepositDetails
+  // Immediate rollover-chain neighbours, derived backend-side (issue #29).
+  // rolled_from = the matured deposit this one redeployed; rolled_to = the live
+  // deposit rolled over from this one (a non-null rolled_to suppresses the
+  // rollover callout). Both null for a fresh deposit.
+  rolled_from: RolloverRef | null
+  rolled_to: RolloverRef | null
 }
 
 export type TimeDepositListItem = {

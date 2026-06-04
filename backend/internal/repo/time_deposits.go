@@ -13,11 +13,25 @@ import (
 	"github.com/kerti/balances-v2/backend/internal/db"
 )
 
+// RolloverRef is the minimal pointer to a neighbour in a rollover chain — just
+// enough to render a clickable link on the TD detail screen (issue #29).
+type RolloverRef struct {
+	ID          uuid.UUID `json:"id"`
+	DisplayName string    `json:"display_name"`
+}
+
 // TimeDeposit is the aggregate returned by Get/Create — the core investment
 // row joined with its time_deposit_details extension.
 type TimeDeposit struct {
 	Investment db.Investment        `json:"investment"`
 	Details    db.TimeDepositDetail `json:"details"`
+	// RolledFrom / RolledTo are the immediate rollover-chain neighbours, derived
+	// (not stored): RolledFrom is the matured deposit this one redeployed (from
+	// the stored rolled_from_investment_id); RolledTo is the live deposit rolled
+	// over from this one. The detail screen renders both as links, and a non-nil
+	// RolledTo suppresses the rollover callout (issue #29). Both nil on Create.
+	RolledFrom *RolloverRef `json:"rolled_from"`
+	RolledTo   *RolloverRef `json:"rolled_to"`
 }
 
 type TimeDepositListItem struct {
@@ -43,6 +57,9 @@ type CreateTimeDepositParams struct {
 	PlacementDate   time.Time
 	MaturityDate    time.Time
 	RolloverPolicy  string // "auto_renew_principal" | "auto_renew_with_interest" | "no_rollover"
+	// RolledFromInvestmentID links this deposit back to the matured position
+	// whose funds it redeploys (issue #29). Nil for a fresh deposit.
+	RolledFromInvestmentID *uuid.UUID
 }
 
 type UpdateTimeDepositParams struct {
@@ -73,16 +90,31 @@ func (r *InvestmentRepo) CreateTimeDeposit(ctx context.Context, p CreateTimeDepo
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	qtx := r.q.WithTx(tx)
+	// Belt + suspenders: a rollover source must belong to this household, else a
+	// crafted ID could flip another household's callout off (issue #29 / tenancy
+	// convention). The FK guarantees existence; this guarantees ownership.
+	if p.RolledFromInvestmentID != nil {
+		if _, err := qtx.GetInvestmentByID(ctx, db.GetInvestmentByIDParams{
+			ID:          *p.RolledFromInvestmentID,
+			HouseholdID: hid,
+		}); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return nil, ErrNotFound
+			}
+			return nil, fmt.Errorf("verify rollover source: %w", err)
+		}
+	}
 	inv, err := qtx.CreateInvestment(ctx, db.CreateInvestmentParams{
-		HouseholdID:     hid,
-		DisplayName:     p.DisplayName,
-		Description:     p.Description,
-		Subtype:         "time_deposit",
-		OwnershipType:   p.OwnershipType,
-		SoleOwnerUserID: p.SoleOwnerUserID,
-		NativeCurrency:  p.NativeCurrency,
-		RiskProfile:     p.RiskProfile,
-		CreatedBy:       &user,
+		HouseholdID:            hid,
+		DisplayName:            p.DisplayName,
+		Description:            p.Description,
+		Subtype:                "time_deposit",
+		OwnershipType:          p.OwnershipType,
+		SoleOwnerUserID:        p.SoleOwnerUserID,
+		NativeCurrency:         p.NativeCurrency,
+		RiskProfile:            p.RiskProfile,
+		RolledFromInvestmentID: p.RolledFromInvestmentID,
+		CreatedBy:              &user,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create investment: %w", err)
@@ -131,7 +163,41 @@ func (r *InvestmentRepo) GetTimeDeposit(ctx context.Context, id uuid.UUID) (*Tim
 		return nil, fmt.Errorf("get time_deposit_details: %w", err)
 	}
 
-	return &TimeDeposit{Investment: inv, Details: details}, nil
+	td := &TimeDeposit{Investment: inv, Details: details}
+
+	// The deposit this one redeployed (if any). Household-scoped Get also drops a
+	// soft-deleted or cross-tenant source defensively — a dangling link just
+	// renders no "rolled over from" line rather than erroring.
+	if inv.RolledFromInvestmentID != nil {
+		src, err := r.q.GetInvestmentByID(ctx, db.GetInvestmentByIDParams{
+			ID:          *inv.RolledFromInvestmentID,
+			HouseholdID: hid,
+		})
+		switch {
+		case err == nil:
+			td.RolledFrom = &RolloverRef{ID: src.ID, DisplayName: src.DisplayName}
+		case errors.Is(err, pgx.ErrNoRows):
+			// dangling/cross-tenant source — leave RolledFrom nil
+		default:
+			return nil, fmt.Errorf("get rollover source: %w", err)
+		}
+	}
+
+	// The live deposit rolled over from this one (if any).
+	succ, err := r.q.GetRolloverSuccessor(ctx, db.GetRolloverSuccessorParams{
+		RolledFromInvestmentID: &inv.ID,
+		HouseholdID:            hid,
+	})
+	switch {
+	case err == nil:
+		td.RolledTo = &RolloverRef{ID: succ.ID, DisplayName: succ.DisplayName}
+	case errors.Is(err, pgx.ErrNoRows):
+		// no successor — leave RolledTo nil
+	default:
+		return nil, fmt.Errorf("get rollover successor: %w", err)
+	}
+
+	return td, nil
 }
 
 func (r *InvestmentRepo) ListTimeDeposits(ctx context.Context) ([]TimeDepositListItem, error) {

@@ -364,6 +364,9 @@ export type CreateTimeDepositPayload = {
   placement_date: string
   maturity_date: string
   rollover_policy: RolloverPolicy
+  // Links a rollover successor back to its matured source (issue #29). Omitted
+  // for a fresh deposit.
+  rolled_from_investment_id?: string
 }
 
 export type UpdateTimeDepositPayload = {
@@ -407,8 +410,15 @@ export function useCreateTimeDeposit() {
         method: 'POST',
         body: JSON.stringify(payload),
       }),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['time-deposits'] })
+      // Refresh the source TD so its rolled_to ref resolves (and the rollover
+      // callout disappears) without a manual reload (issue #29).
+      if (variables.rolled_from_investment_id) {
+        qc.invalidateQueries({
+          queryKey: ['time-deposits', variables.rolled_from_investment_id],
+        })
+      }
     },
   })
 }

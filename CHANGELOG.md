@@ -2145,6 +2145,61 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     its termination month leaves the range entirely). vitest 181/181, build +
     ESLint 0 errors. Backend untouched.
 
+- **Suppress the rollover callout once a successor exists (issue #29 — explicit
+  FK).** The matured-TD "Create rollover deposit" callout (Q14c-iv) kept showing
+  after the user had already created the successor, nagging them to make a
+  deposit that exists and inviting duplicates. The blocker was that nothing
+  linked a rolled-over deposit back to its source, so there was no signal to
+  gate on. Of the four candidate directions in the issue, we took **option 1
+  (explicit link)** — the model-correct one, which also seeds a future
+  R0→R1→R2 chain view. Accepted scope: a successor created *by hand* (not via
+  the helper) stays unlinked and still prompts; only helper-created successors
+  carry the back-reference.
+  - **Schema.** Migration 00022 adds a nullable self-referential
+    `investments.rolled_from_investment_id uuid REFERENCES investments(id)` —
+    on the shared `investments` table (per ADR-0022, mirroring the
+    `risk_profile` precedent in 00018). `CreateInvestment` gains the column;
+    new `GetRolloverSuccessor` query returns `{id, display_name}` of the live
+    investment rolled from a given id (household-scoped, `LIMIT 1`).
+  - **Backend.** `CreateTimeDepositParams.RolledFromInvestmentID *uuid.UUID`
+    threads from the `createTimeDepositReq` JSON field through to the insert.
+    Belt + suspenders: the create path verifies the source belongs to the
+    caller's household (`GetInvestmentByID` inside the tx) before linking, so a
+    crafted id can't touch another household's deposit — returns `ErrNotFound`
+    on a cross-tenant source. `GetTimeDeposit` resolves both immediate
+    rollover-chain neighbours into a new `RolloverRef {ID, DisplayName}` —
+    `RolledFrom` (from the stored `rolled_from_investment_id`, via
+    household-scoped `GetInvestmentByID`) and `RolledTo` (via
+    `GetRolloverSuccessor`); a dangling/cross-tenant/soft-deleted source
+    resolves to nil rather than erroring. A non-nil `RolledTo` is what
+    suppresses the callout.
+  - **Frontend.** `Investment.rolled_from_investment_id` + a new
+    `RolloverRef` type + `TimeDeposit.rolled_from` / `rolled_to` added to the
+    wire types. `maturityRolloverPrefill` short-circuits to `null` when
+    `rolled_to` is set (one guard at the top — every existing roll case is
+    unchanged). `CreateTimeDepositDialog` gained a `rolledFromInvestmentId`
+    prop, sent as `rolled_from_investment_id` on create; the callout passes
+    `td.investment.id`. `useCreateTimeDeposit`'s `onSuccess` now also
+    invalidates `['time-deposits', <source id>]` when the payload carries the
+    link, so the source detail refetches and the callout disappears without a
+    manual reload.
+  - **Rollover card (chain view, "while here" follow-on).** TD detail screen
+    gains a dedicated **Rollover** card (`data-testid="rollover-card"`, only
+    rendered when a neighbour exists) showing the immediate neighbours: an
+    up-arrow "Rolled over from" line linking the predecessor and a down-arrow
+    "Rolled over into" line linking the successor (each a button →
+    `onSelectTimeDeposit`, a new router-unaware callback bridged in `App.tsx`
+    to `nav(routes.timeDeposit(id))`); the absent side shows a muted "—" /
+    "Not yet". Scope is immediate neighbours only — you click through to walk
+    a longer chain. New `timeDeposit.rolloverChain.*` keys EN+ID (ID:
+    "Gulungan", "Digulung dari/ke", glossary-aligned).
+  - **Tests.** New `rollover.test.ts` case (successor present → null). New
+    repo tenancy subtest: source reports no `RolledTo` → bob's cross-tenant
+    link rejected with `ErrNotFound` → alice's link succeeds and round-trips
+    the FK → source resolves `RolledTo` to the successor and the successor
+    resolves `RolledFrom` back to the source → cleanup. vitest 182/182,
+    backend suite + golangci-lint green, vite build + ESLint 0 errors.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

@@ -479,6 +479,84 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 		}
 	})
 
+	t.Run("rollover successor link drives HasRolloverSuccessor (issue #29)", func(t *testing.T) {
+		// Before any successor, the matured source reports none.
+		before, err := r.GetTimeDeposit(aliceCtx, aliceTD.Investment.ID)
+		if err != nil {
+			t.Fatalf("GetTimeDeposit before: %v", err)
+		}
+		if before.RolledTo != nil {
+			t.Fatalf("RolledTo: want nil before any successor, got %+v", before.RolledTo)
+		}
+
+		// Bob can't link a successor to alice's TD — the source-ownership guard
+		// rejects it (belt + suspenders tenancy).
+		if _, err := r.CreateTimeDeposit(bobCtx, repo.CreateTimeDepositParams{
+			DisplayName:            "Bob steal-link TD",
+			OwnershipType:          "joint",
+			NativeCurrency:         "IDR",
+			RiskProfile:            "medium",
+			BankName:               "BCA",
+			Principal:              decimal.NewFromInt(50_000_000),
+			InterestRate:           interestRate,
+			TermMonths:             12,
+			PlacementDate:          time.Date(2027, time.January, 15, 0, 0, 0, 0, time.UTC),
+			MaturityDate:           time.Date(2028, time.January, 15, 0, 0, 0, 0, time.UTC),
+			RolloverPolicy:         "auto_renew_principal",
+			RolledFromInvestmentID: &aliceTD.Investment.ID,
+		}); !errors.Is(err, repo.ErrNotFound) {
+			t.Fatalf("bob CreateTimeDeposit cross-tenant link: want ErrNotFound, got %v", err)
+		}
+
+		// Alice rolls the matured TD into a fresh deposit.
+		successor, err := r.CreateTimeDeposit(aliceCtx, repo.CreateTimeDepositParams{
+			DisplayName:            "Alice BCA TD rollover",
+			OwnershipType:          "joint",
+			NativeCurrency:         "IDR",
+			RiskProfile:            "medium",
+			BankName:               "BCA",
+			Principal:              decimal.NewFromInt(52_750_000),
+			InterestRate:           interestRate,
+			TermMonths:             12,
+			PlacementDate:          time.Date(2027, time.January, 15, 0, 0, 0, 0, time.UTC),
+			MaturityDate:           time.Date(2028, time.January, 15, 0, 0, 0, 0, time.UTC),
+			RolloverPolicy:         "auto_renew_principal",
+			RolledFromInvestmentID: &aliceTD.Investment.ID,
+		})
+		if err != nil {
+			t.Fatalf("alice CreateTimeDeposit successor: %v", err)
+		}
+		if successor.Investment.RolledFromInvestmentID == nil ||
+			*successor.Investment.RolledFromInvestmentID != aliceTD.Investment.ID {
+			t.Fatalf("successor RolledFromInvestmentID: got %v, want %v",
+				successor.Investment.RolledFromInvestmentID, aliceTD.Investment.ID)
+		}
+
+		// The source now points to its successor — the callout will hide and the
+		// "rolled over into" link resolves.
+		after, err := r.GetTimeDeposit(aliceCtx, aliceTD.Investment.ID)
+		if err != nil {
+			t.Fatalf("GetTimeDeposit after: %v", err)
+		}
+		if after.RolledTo == nil || after.RolledTo.ID != successor.Investment.ID {
+			t.Errorf("RolledTo: want successor %v, got %+v", successor.Investment.ID, after.RolledTo)
+		}
+
+		// The successor points back to the source — its "rolled over from" link.
+		succGet, err := r.GetTimeDeposit(aliceCtx, successor.Investment.ID)
+		if err != nil {
+			t.Fatalf("GetTimeDeposit successor: %v", err)
+		}
+		if succGet.RolledFrom == nil || succGet.RolledFrom.ID != aliceTD.Investment.ID {
+			t.Errorf("RolledFrom: want source %v, got %+v", aliceTD.Investment.ID, succGet.RolledFrom)
+		}
+
+		// Clean up the successor so the later delete-and-empty-list checks hold.
+		if err := r.DeleteTimeDeposit(aliceCtx, successor.Investment.ID); err != nil {
+			t.Fatalf("DeleteTimeDeposit successor cleanup: %v", err)
+		}
+	})
+
 	t.Run("alice update snapshot persists new amount", func(t *testing.T) {
 		newQty := decimal.NewFromInt(120)
 		newPrice := decimal.NewFromInt(9000)

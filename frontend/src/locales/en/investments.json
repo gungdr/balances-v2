@@ -445,6 +445,14 @@
       "calloutBody": "{{amount}} is being reinvested. Create the new deposit to keep tracking it.",
       "calloutAction": "Create rollover deposit"
     },
+    "rolloverChain": {
+      "title": "Rollover",
+      "description": "How this deposit connects to the ones before and after it.",
+      "fromLabel": "Rolled over from",
+      "intoLabel": "Rolled over into",
+      "none": "—",
+      "noneYet": "Not yet"
+    },
     "fields": {
       "bankName": "Bank name",
       "principal": "Principal",

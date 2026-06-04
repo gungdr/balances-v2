@@ -2,9 +2,9 @@
 INSERT INTO investments (
     household_id, display_name, description, subtype,
     ownership_type, sole_owner_user_id, native_currency, risk_profile,
-    created_by, updated_by
+    rolled_from_investment_id, created_by, updated_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $9
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10
 )
 RETURNING *;
 
@@ -12,6 +12,18 @@ RETURNING *;
 SELECT *
 FROM investments
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL;
+
+-- name: GetRolloverSuccessor :one
+-- The live investment rolled over from $1 (the matured source), if any — the
+-- matured-TD detail surfaces it as the "rolled over into" link and suppresses
+-- the rollover callout when present (issue #29). 1:1 by concept; LIMIT 1 guards
+-- against accidental multiples.
+SELECT id, display_name FROM investments
+WHERE rolled_from_investment_id = $1
+  AND household_id = $2
+  AND deleted_at IS NULL
+ORDER BY created_at
+LIMIT 1;
 
 -- name: ListInvestmentsByHousehold :many
 SELECT *

@@ -386,6 +386,12 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     (R0 matures → R1 placed same month) no longer double-counts the seam month. Both aggregators drop
     the termination month via a `live(m) = m < termMonth` filter + a `>=` walk cap; the 0-close-drop
     block is deleted. Unifies the aggregate with the detail chart. Frontend-only.
+  - Suppress rollover callout once a successor exists (issue #29): explicit-FK approach (option 1).
+    Migration 00022 adds nullable self-ref `investments.rolled_from_investment_id`; TD create accepts
+    + tenancy-validates it; `GetTimeDeposit` derives `rolled_from` / `rolled_to` `RolloverRef`s;
+    `maturityRolloverPrefill` short-circuits when `rolled_to` is set. Hand-created successors stay
+    unlinked (accepted scope). TD detail gained a **Rollover card** linking the immediate chain
+    neighbours (predecessor + successor) via a router-unaware `onSelectTimeDeposit` callback.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
@@ -632,6 +638,11 @@ original wording of everything here — including items already resolved (side-b
 invite-form relocation, the `users.nickname` build, vitest setup) — is preserved verbatim in
 `CHANGELOG.md`.
 
+- **Link an existing TD as a rollover successor** (issue #29 gap). The #29 FK
+  (`rolled_from_investment_id`) is set only by the rollover helper, so a successor created *by hand*
+  stays unlinked and its source keeps showing the callout. If users hit this, add a "this deposit
+  rolled over from…" picker on the Create/Edit TD form (or a "mark as rolled over" action on the
+  matured source). Same FK already exists — only the UI + an update path are missing. No signal yet.
 - **Per-bond `coupon_disposition` field** (escalation path). The bond accrued-interest snapshot
   dialog ships a global `accrued=0` default plus copy explaining the override path. If users
   repeatedly override (e.g. mostly secondary-market holders) or repeatedly forget to, escalate to a
