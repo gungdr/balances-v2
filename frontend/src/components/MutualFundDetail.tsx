@@ -281,6 +281,7 @@ export function MutualFundDetail({ investmentId, onBack }: Props) {
               snapshots={snapshots}
               currency={mf.investment.native_currency}
               costSeries={costBasisSeries(snapshots, transactions ?? [])}
+              status={mf.investment.status}
             />
           </CardContent>
         </Card>

@@ -214,7 +214,8 @@
     "unrealizedPL": "Untung/rugi belum direalisasi:",
     "unrealizedPLEmpty": "—",
     "closed": {
-      "sold": "Dijual pada:"
+      "sold": "Dijual pada:",
+      "matured": "Jatuh tempo pada:"
     }
   },
   "stock": {
@@ -400,7 +401,7 @@
       "snapshotsTitle": "Nilai bulanan",
       "snapshotsBody": "Setiap baris adalah nilai satu bulan yang dicatat. Tambahkan snapshot setiap kali Anda menerima laporan terbaru — dan saat obligasi jatuh tempo, snapshot penutup ditambahkan secara otomatis.",
       "transactionsTitle": "Pembayaran, transaksi, dan jatuh tempo",
-      "transactionsBody": "Catat kupon yang Anda terima dan biaya apa pun — total di atas menjumlahkan pemasukan Anda hingga kini. Catat Beli atau Jual tambahan jika Anda bertransaksi di pasar sekunder. Saat obligasi jatuh tempo, buat entri Jatuh Tempo: ini mencatat pembayaran terakhir, menyimpan snapshot penutup secara otomatis, dan menandai obligasi sebagai selesai."
+      "transactionsBody": "Catat kupon yang Anda terima dan biaya apa pun — total di atas menjumlahkan pemasukan Anda hingga kini. Catat Beli atau Jual tambahan jika Anda bertransaksi di pasar sekunder. Saat obligasi jatuh tempo, buat entri Jatuh Tempo: ini mencatat pembayaran terakhir, menyimpan snapshot penutup secara otomatis, dan menandai obligasi sebagai selesai. Pembayarannya masuk ke rekening bank Anda, bukan di sini, jadi agar bulan itu akurat perbarui juga saldo bank Anda untuk bulan tersebut — di akhir bulan, catat nilai setiap posisi dan saldo bank Anda bersamaan."
     }
   },
   "timeDeposit": {
@@ -468,7 +469,7 @@
       "snapshotsTitle": "Nilai bulanan",
       "snapshotsBody": "Setiap baris mencatat nilai satu bulan — pokok plus bunga yang berjalan hingga saat itu.",
       "transactionsTitle": "Jatuh tempo",
-      "transactionsBody": "Deposito punya satu transaksi: saat jatuh tempo, buat entri Jatuh Tempo untuk pembayarannya, dan pilih apakah dicairkan atau digulung ke deposito baru."
+      "transactionsBody": "Deposito punya satu transaksi: saat jatuh tempo, buat entri Jatuh Tempo untuk pembayarannya, dan pilih apakah dicairkan atau digulung ke deposito baru. Jika dicairkan, uangnya masuk ke rekening bank Anda, bukan di sini — perbarui saldo bank Anda untuk bulan itu agar kekayaan bersih Anda tetap akurat. Di akhir bulan, catat nilai setiap posisi dan saldo bank Anda bersamaan."
     }
   },
   "gold": {

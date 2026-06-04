@@ -359,6 +359,7 @@ export function BondDetail({ investmentId, onBack }: Props) {
               snapshots={snapshots}
               currency={bond.investment.native_currency}
               costSeries={bondCostSeries}
+              status={bond.investment.status}
             />
           </CardContent>
         </Card>

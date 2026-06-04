@@ -136,32 +136,36 @@ func (r *InvestmentRepo) CreateInvestmentTransaction(ctx context.Context, p Crea
 			return nil, fmt.Errorf("flip investment to matured: %w", err)
 		}
 
-		// Auto-snapshot at maturity month so the position's end-of-life value
-		// (principal + interest payout) lands in the carry-forward series and
-		// the detail-screen P/L compares cost basis against a meaningful
-		// number rather than the zero an end-of-month snapshot would record
-		// after the cash already left the position (issue #17, fixes #16).
-		// Bond + TimeDeposit are the only subtypes that accept Maturity
-		// (per validateInvestmentTransactionType) and both use the accrued
-		// shape, so amount = principal + interest and accrued_interest =
-		// interest. Upserts to win over any pre-maturity snap the user took
-		// in the same month — the maturity payout is the authoritative
-		// end-of-life value.
-		total := p.PrincipalAmount.Add(*p.InterestAmount)
-		interest := *p.InterestAmount
+		// Truthful close snapshot at maturity month (issue #25, reverses the
+		// #17 data approach): a matured position holds 0 — the principal and
+		// interest have left it for the bank (recorded separately as the
+		// Maturity transaction's cash_out, ADR-0003 decoupling). Writing 0
+		// here is what makes the unchanged return formula correct: with
+		// prev≈principal, value→0, and cash_out=principal+interest, the
+		// engine books interest only (ADR-0008). A non-zero close (#17's
+		// principal+interest) left cash_out with nothing to cancel, so the
+		// payout was double-counted as investment return.
+		//
+		// Bond + TimeDeposit are the only subtypes that accept Maturity (per
+		// validateInvestmentTransactionType) and both use the accrued shape,
+		// so the 0 close is amount=0 / accrued_interest=0. Upserts to win
+		// over any pre-maturity snap the user took in the same month — the
+		// month-end truth is a liquidated position. (The detail screen reads
+		// "Matured on {date}" from the status, not a fictional P/L — #25.)
+		zero := decimal.Zero
 		ym := time.Date(p.TransactionDate.Year(), p.TransactionDate.Month(), 1, 0, 0, 0, 0, time.UTC)
 		asOf := p.TransactionDate
 		if _, err := qtx.UpsertInvestmentSnapshot(ctx, db.UpsertInvestmentSnapshotParams{
 			ID:              p.InvestmentID,
 			YearMonth:       ym,
-			Amount:          total,
+			Amount:          zero,
 			Currency:        p.Currency,
-			AccruedInterest: &interest,
+			AccruedInterest: &zero,
 			AsOfDate:        &asOf,
 			CreatedBy:       &user,
 			HouseholdID:     hid,
 		}); err != nil {
-			return nil, fmt.Errorf("auto-snapshot on maturity: %w", err)
+			return nil, fmt.Errorf("close snapshot on maturity: %w", err)
 		}
 	}
 

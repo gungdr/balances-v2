@@ -84,6 +84,19 @@ Transaction → cash-flow mapping (columns per migration 00010):
 - **Birth month**: `value(M−1) = 0` when no snapshot ≤ M−1 — correct under the expected workflow
   (buy during the month, snapshot the position at month-end): `ΔSnapshot − cash_in` = unrealised
   gain since purchase.
+- **Termination/maturity month — the liquidation-to-0 assumption (made explicit, issue #25).** The
+  formula's correctness at the end of a position's life *depends on the close-month snapshot being
+  `0`*. A matured/sold position holds nothing at month-end — the principal and any interest/proceeds
+  have left it for the bank (recorded as the `cash_out` transaction; decoupled from bank balances
+  per ADR-0003). With `value(M) = 0`, `prev ≈ principal`, and `cash_out = principal + return`, the
+  formula collapses to `(0 − principal) + (principal + return) = return` — interest/gain only, no
+  return *of* capital. This is the same mechanism the "rolled maturity portions" bullet above relies
+  on (old position → 0). A non-zero close (e.g. a snapshot of `principal + interest`) leaves
+  `cash_out` with nothing to cancel and **double-counts the entire payout as investment return**.
+  The truthful `0` close snapshot is written by the repo on maturity and on any manual termination
+  (ADR-0009); the engine needs no special case. *(This corrects a regression: issue #17 briefly
+  wrote a `principal + interest` close snapshot to fix a display glitch, silently violating this
+  assumption until #25 restored it.)*
 
 **Timing noise & its mitigation.** A transaction in a month with no snapshot for that instrument
 produces a per-month return that is off (e.g. `−buy_cost` that month, `+value` the next) but

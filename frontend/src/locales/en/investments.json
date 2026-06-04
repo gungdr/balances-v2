@@ -214,7 +214,8 @@
     "unrealizedPL": "Unrealized P/L:",
     "unrealizedPLEmpty": "—",
     "closed": {
-      "sold": "Sold on:"
+      "sold": "Sold on:",
+      "matured": "Matured on:"
     }
   },
   "stock": {
@@ -400,7 +401,7 @@
       "snapshotsTitle": "Monthly values",
       "snapshotsBody": "Each row is one month's recorded value. Add a snapshot whenever you get a fresh statement — and when the bond matures, the closing one is added for you automatically.",
       "transactionsTitle": "Payments, trades, and maturity",
-      "transactionsBody": "Log the coupons you receive and any fees — the totals above tally your income to date. Record extra Buys or Sells if you trade on the secondary market. When the bond matures, post a Maturity entry: it records the final payout, files the closing snapshot automatically, and marks the bond closed."
+      "transactionsBody": "Log the coupons you receive and any fees — the totals above tally your income to date. Record extra Buys or Sells if you trade on the secondary market. When the bond matures, post a Maturity entry: it records the final payout, files the closing snapshot automatically, and marks the bond closed. The payout lands in your bank, not here, so for an accurate month update your bank balance for that month too — at month-end, record every position's value and your bank balances together."
     }
   },
   "timeDeposit": {
@@ -468,7 +469,7 @@
       "snapshotsTitle": "Monthly values",
       "snapshotsBody": "Each row records a month's value — principal plus the interest accrued so far.",
       "transactionsTitle": "Maturity",
-      "transactionsBody": "A time deposit has one transaction: when it matures, post a Maturity entry for the payout, and choose whether to cash it out or roll it into a new deposit."
+      "transactionsBody": "A time deposit has one transaction: when it matures, post a Maturity entry for the payout, and choose whether to cash it out or roll it into a new deposit. If you cash out, the money lands in your bank, not here — update your bank balance for that month so your net worth stays accurate. At month-end, record every position's value and your bank balances together."
     }
   },
   "gold": {

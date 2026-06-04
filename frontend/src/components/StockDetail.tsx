@@ -280,6 +280,7 @@ export function StockDetail({ investmentId, onBack }: Props) {
               snapshots={snapshots}
               currency={stock.investment.native_currency}
               costSeries={costBasisSeries(snapshots, transactions ?? [])}
+              status={stock.investment.status}
             />
           </CardContent>
         </Card>

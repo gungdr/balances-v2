@@ -83,6 +83,18 @@ CONTEXT.md).
   the investment to `matured` + sets `terminated_at` atomically (one pgx tx), and any subsequent
   transaction on a non-active investment is rejected with `ErrPositionNotActive` → 409. This
   replaces the earlier frontend-only "hide the Maturity button once one exists" band-aid.
+- **Terminating an investment writes a truthful 0-value close snapshot (issue #25).** One coherent
+  rule across both terminal paths — Maturity transaction *and* manual terminate (sold) — in the
+  termination month: **terminate ⇒ 0-value close snapshot; proceeds are transactions.** A terminated
+  position holds nothing at month-end; the cash lives in the bank (ADR-0003 decoupling). This is what
+  keeps the derived investment-return correct — it is the liquidation-to-0 assumption ADR-0008's
+  return formula depends on. The close snapshot is written in the subtype's shape (quantity/price `0`
+  for stock/mutual_fund/gold; accrued_interest `0` for bond/time_deposit) and upserts to win over any
+  value the user recorded that month. The inverse — un-terminate (the *correction* affordance below)
+  — soft-deletes that close snapshot so a reactivated position carries forward its last real value
+  instead of `0`. *(Investments only: they are the one group whose derived line reads cash-flow
+  transactions; Asset/Liability/Receivable termination relies on `terminated_at` carry-forward
+  suppression alone.)*
 - **Same-row un-terminate is a *correction* affordance, not reactivation.** The terminate dialog
   lets a user switch a mis-set status back to Active (clearing `terminated_at` on the same row) to
   undo a mistake. This does **not** contradict the "reactivation creates a new row" rule above:
@@ -130,8 +142,14 @@ balances.
 - **One table per subtype** (~11 tables, no group split). Rejected — cross-group queries within a
   group ("all assets") need UNIONs, and the group/subtype discriminator becomes harder to discover
   in DDL.
-- **Status via final `$0` snapshot.** Rejected — conflates "balance = 0" with "no longer held" and
-  pollutes every future month's report with a stale carry-forward of zero.
+- **Status via final `$0` snapshot.** Rejected as the *lifecycle mechanism* — a `$0` snapshot alone
+  conflates "balance = 0" with "no longer held" and, with nothing to suppress carry-forward, pollutes
+  every future month's report with a stale zero. `status` / `terminated_at` remains the mechanism.
+  This does **not** conflict with issue #25's 0-value *close snapshot*: there the `0` is truthful
+  data for the termination month only (the position really is worth 0 at month-end), and
+  `terminated_at` carry-forward suppression drops the position from the *following* month on — so the
+  "stale zero" pollution this alternative warned about never occurs. The two coexist: lifecycle says
+  *whether* the position counts; the close snapshot says it's worth `0` in its final month.
 - **Status via soft-delete (ADR-0007).** Rejected — soft-delete is for entries that should disappear
   from history entirely; sold/closed Positions are real financial history that must remain in past
   months' reports.

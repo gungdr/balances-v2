@@ -29,7 +29,9 @@
   "chart": {
     "title": "Net worth over time",
     "amountLegend": "Amount",
-    "costLegend": "Cost"
+    "costLegend": "Cost",
+    "maturedMarker": "Matured",
+    "soldMarker": "Sold"
   },
   "breakdown": {
     "title": "Where it's held",

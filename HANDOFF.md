@@ -339,6 +339,19 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     new `common:tour.*`. POC on Bonds, rolled to all 10 detail screens
     (5-step variant for non-investment positions). Income out of scope
     (flat flow-event). Writing the bond copy surfaced #25.
+  - Truthful 0-value close snapshot on maturity/termination (issue #25,
+    fixes #16/#17 fallout): reverses #17's *data* approach (it wrote a
+    `principal + interest` maturity snapshot that made the Dashboard
+    investment-return line double-count the payout) while keeping its
+    frontend affordances. Maturity + manual Sell/terminate now write a `0`
+    close snapshot (subtype-shaped); un-terminate removes it. Engine
+    unchanged — the formula was always correct, #17 just fed it a fictional
+    value. Headline shows "Matured on {date}" (re-widened from sold-only);
+    detail graph drops the trailing `0` and marks Sold/Matured. ADR-0008
+    (liquidation-to-0 assumption made explicit) + ADR-0009 (close-snapshot
+    rule) amended; help-tour copy gained an end-of-month "record bank
+    balances too" recommendation. Subsumes the deferred "auto-snapshot on
+    Sell" item.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
@@ -616,19 +629,6 @@ invite-form relocation, the `users.nickname` build, vitest setup) — is preserv
   `lib/costBasis.ts`'s precise replay). Once landed, drop `hooks/useInvestmentBatch.ts`'s
   transactions batch (snapshots batch still needed for the time graph until a parallel monthly-
   series endpoint exists).
-- **Termination value should be a truthful 0 close-snapshot (issue #25).** Filed during the #23
-  bond-tour copywriting. The #17 Maturity auto-snapshot writes the maturity month at
-  `principal + interest`, which collides with ADR-0008's return formula (`Δvalue + cash_out −
-  cash_in`, which assumes value collapses to ~0 at liquidation) — so the Dashboard
-  investment-return line double-counts the principal payout, and there's a one-month net-worth
-  bubble (worse for rolled TDs: old + new both counted). **Decision: Option B** — on any
-  termination (maturity *and* manual/sold) write a truthful `0`-value close snapshot; proceeds stay
-  in transactions. The engine then needs no special case (the formula is already correct on
-  truthful data); display stays honest in the frontend (headline short-circuit + a maturity-payout
-  marker derived from the transaction). Subsumes the old "auto-snapshot on Sell" item. Amend
-  ADR-0008 + ADR-0009. Until #25 lands, the #23 tour copy avoids claiming principal isn't counted
-  as return.
-
 ## Updating this document
 
 When you close a milestone, update this file in the closing commit — don't let it drift more than

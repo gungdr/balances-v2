@@ -15,6 +15,7 @@ import (
 
 func ym(y int, m time.Month) time.Time { return time.Date(y, m, 1, 0, 0, 0, 0, time.UTC) }
 func dec(s string) decimal.Decimal     { return decimal.RequireFromString(s) }
+func strp(s string) *string            { return &s }
 
 func findMonth(t *testing.T, reports []monthlyReportData, m time.Time) monthlyReportData {
 	t.Helper()
@@ -372,5 +373,118 @@ func TestEngine_InvestmentReturnWithCashFlow(t *testing.T) {
 	mar := findMonth(t, generateMonthlyReports(in), ym(2026, time.March))
 	if mar.investmentReturn == nil || !mar.investmentReturn.total.Equal(dec("100")) {
 		t.Fatalf("Mar return: %+v, want 100 (Δsnapshot 400 − cashIn 300)", mar.investmentReturn)
+	}
+}
+
+// Maturity with both portions cashed out (#25): on truthful data — a 0-value
+// close snapshot at the maturity month plus the cash_out transaction — the
+// engine books interest only, and the position leaves no net-worth bubble.
+// This is the worked example from #25: principal 100, interest 5.
+func TestEngine_MaturityCashOutBooksInterestOnly(t *testing.T) {
+	td := uuid.New()
+	feb := ym(2026, time.February)
+	principal, interest := dec("100"), dec("5")
+	in := reportEngineInput{
+		positions: []reportPosition{
+			{id: td, group: groupInvestment, subtype: "time_deposit", ownershipType: "joint", terminatedAt: &feb},
+		},
+		snapshots: []reportSnapshot{
+			{positionID: td, yearMonth: ym(2026, time.January), amount: dec("100")},
+			{positionID: td, yearMonth: feb, amount: dec("0")}, // truthful close
+		},
+		transactions: []reportTransaction{
+			{investmentID: td, yearMonth: feb, txnType: "maturity",
+				principalAmount: &principal, interestAmount: &interest,
+				principalDisposition: strp("cash_out"), interestDisposition: strp("cash_out")},
+		},
+		currentMonth: feb,
+	}
+	reports := generateMonthlyReports(in)
+	jan := findMonth(t, reports, ym(2026, time.January))
+	m := findMonth(t, reports, feb)
+
+	// Return = (0 − 100) + 105 cash_out = 5 (interest only, no principal).
+	if m.investmentReturn == nil || !m.investmentReturn.total.Equal(dec("5")) || !m.investmentReturn.timeDeposit.Equal(dec("5")) {
+		t.Fatalf("maturity return: %+v, want total/time_deposit=5 (interest only)", m.investmentReturn)
+	}
+	// No NW bubble: the matured position contributes 0 in the maturity month.
+	if !m.nwInvestments.Equal(dec("0")) {
+		t.Errorf("maturity month nwInvestments: got %s, want 0 (no bubble)", m.nwInvestments)
+	}
+	if !jan.nwTotal.Equal(dec("100")) {
+		t.Errorf("Jan nwTotal: got %s, want 100", jan.nwTotal)
+	}
+}
+
+// Rolled TimeDeposit (#25): the old position closes to 0 and the new position
+// carries the rolled principal; neither the principal nor its roll is a cash
+// flow (ADR-0008). The combined return is interest only and the maturity month
+// shows no double-counted principal in net worth.
+func TestEngine_MaturityRolledNoDoubleCount(t *testing.T) {
+	oldTD, newTD := uuid.New(), uuid.New()
+	feb := ym(2026, time.February)
+	principal, interest := dec("100"), dec("5")
+	in := reportEngineInput{
+		positions: []reportPosition{
+			{id: oldTD, group: groupInvestment, subtype: "time_deposit", ownershipType: "joint", terminatedAt: &feb},
+			{id: newTD, group: groupInvestment, subtype: "time_deposit", ownershipType: "joint"},
+		},
+		snapshots: []reportSnapshot{
+			{positionID: oldTD, yearMonth: ym(2026, time.January), amount: dec("100")},
+			{positionID: oldTD, yearMonth: feb, amount: dec("0")},   // old closes
+			{positionID: newTD, yearMonth: feb, amount: dec("105")}, // rolled principal + interest
+		},
+		transactions: []reportTransaction{
+			{investmentID: oldTD, yearMonth: feb, txnType: "maturity",
+				principalAmount: &principal, interestAmount: &interest,
+				principalDisposition: strp("rolled_to_new"), interestDisposition: strp("rolled_to_new")},
+		},
+		currentMonth: feb,
+	}
+	reports := generateMonthlyReports(in)
+	jan := findMonth(t, reports, ym(2026, time.January))
+	m := findMonth(t, reports, feb)
+
+	// old: (0−100)+0 = −100; new: 105−0 = 105; total = 5 (interest only).
+	if m.investmentReturn == nil || !m.investmentReturn.total.Equal(dec("5")) {
+		t.Fatalf("rolled return: %+v, want total=5", m.investmentReturn)
+	}
+	// No double-count: NW investments = 0 (old) + 105 (new) = 105, not 205.
+	if !m.nwInvestments.Equal(dec("105")) {
+		t.Errorf("rolled month nwInvestments: got %s, want 105 (old→0, new 105)", m.nwInvestments)
+	}
+	if !jan.nwTotal.Equal(dec("100")) {
+		t.Errorf("Jan nwTotal: got %s, want 100", jan.nwTotal)
+	}
+}
+
+// Sold position (#25): a manual Sell + terminate now writes the same truthful
+// 0-value close snapshot, so the engine books the realized gain only (not the
+// returned principal) and leaves no net-worth bubble.
+func TestEngine_SoldTerminationBooksGainOnly(t *testing.T) {
+	stock := uuid.New()
+	feb := ym(2026, time.February)
+	proceeds := dec("560")
+	in := reportEngineInput{
+		positions: []reportPosition{
+			{id: stock, group: groupInvestment, subtype: "stock", ownershipType: "joint", terminatedAt: &feb},
+		},
+		snapshots: []reportSnapshot{
+			{positionID: stock, yearMonth: ym(2026, time.January), amount: dec("500")},
+			{positionID: stock, yearMonth: feb, amount: dec("0")}, // truthful close
+		},
+		transactions: []reportTransaction{
+			{investmentID: stock, yearMonth: feb, txnType: "sell", amount: &proceeds},
+		},
+		currentMonth: feb,
+	}
+	m := findMonth(t, generateMonthlyReports(in), feb)
+
+	// Return = (0 − 500) + 560 = 60 (realized gain only).
+	if m.investmentReturn == nil || !m.investmentReturn.total.Equal(dec("60")) || !m.investmentReturn.stock.Equal(dec("60")) {
+		t.Fatalf("sold return: %+v, want total/stock=60", m.investmentReturn)
+	}
+	if !m.nwInvestments.Equal(dec("0")) {
+		t.Errorf("sold month nwInvestments: got %s, want 0 (no bubble)", m.nwInvestments)
 	}
 }

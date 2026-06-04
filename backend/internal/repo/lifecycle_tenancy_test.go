@@ -307,3 +307,86 @@ func TestInvestmentTransaction_MaturityFlipsStatus(t *testing.T) {
 		t.Fatalf("want ErrPositionNotActive after maturity, got %v", err)
 	}
 }
+
+// TestInvestmentLifecycle_CloseSnapshot covers #25's generalization of the
+// truthful 0-value close snapshot to manual termination: terminating a position
+// writes a 0 close at the termination month (in the subtype's shape), and the
+// un-terminate correction affordance (ADR-0009) removes it so a reactivated
+// position carries forward its last real value rather than reading 0.
+func TestInvestmentLifecycle_CloseSnapshot(t *testing.T) {
+	tdb := testutil.NewTestDB(t)
+	q := db.New(tdb.Pool)
+	aliceUser := testutil.CreateHouseholdWithUser(t, q, "Alice")
+	aliceCtx := auth.WithUser(context.Background(), aliceUser)
+	r := repo.NewInvestmentRepo(tdb.Pool)
+
+	stock, err := r.CreateStock(aliceCtx, repo.CreateStockParams{
+		DisplayName: "BBCA", OwnershipType: "joint", NativeCurrency: "IDR",
+		Ticker: "BBCA", Exchange: "IDX", RiskProfile: "medium",
+	})
+	if err != nil {
+		t.Fatalf("CreateStock: %v", err)
+	}
+
+	// A real January snapshot (quantity/price shape) worth 500.
+	qty, ppu := decimal.NewFromInt(10), decimal.NewFromInt(50)
+	jan := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	if _, err := r.CreateInvestmentSnapshot(aliceCtx, repo.CreateInvestmentSnapshotParams{
+		InvestmentID: stock.Investment.ID, YearMonth: jan, Amount: decimal.NewFromInt(500),
+		Currency: "IDR", Quantity: &qty, PricePerUnit: &ppu,
+	}); err != nil {
+		t.Fatalf("CreateInvestmentSnapshot: %v", err)
+	}
+
+	termDate := time.Date(2026, time.February, 20, 0, 0, 0, 0, time.UTC)
+	termMonth := time.Date(2026, time.February, 1, 0, 0, 0, 0, time.UTC)
+
+	t.Run("termination writes 0-value close snapshot in subtype shape", func(t *testing.T) {
+		if _, err := r.UpdateInvestmentLifecycle(aliceCtx, stock.Investment.ID, repo.LifecycleParams{
+			Status: "sold", TerminatedAt: &termDate,
+		}); err != nil {
+			t.Fatalf("UpdateInvestmentLifecycle sold: %v", err)
+		}
+		snaps, err := r.ListInvestmentSnapshots(aliceCtx, stock.Investment.ID)
+		if err != nil {
+			t.Fatalf("ListInvestmentSnapshots: %v", err)
+		}
+		var close *db.InvestmentSnapshot
+		for i := range snaps {
+			if snaps[i].YearMonth.Equal(termMonth) {
+				close = &snaps[i]
+			}
+		}
+		if close == nil {
+			t.Fatalf("no close snapshot at termination month; got %d snapshots", len(snaps))
+		}
+		if !close.Amount.IsZero() {
+			t.Errorf("close Amount: got %s, want 0", close.Amount)
+		}
+		// Stock shape: quantity + price present (0), accrued nil.
+		if close.Quantity == nil || !close.Quantity.IsZero() || close.PricePerUnit == nil || !close.PricePerUnit.IsZero() {
+			t.Errorf("close quantity/price: got q=%v p=%v, want 0/0", close.Quantity, close.PricePerUnit)
+		}
+		if close.AccruedInterest != nil {
+			t.Errorf("close AccruedInterest should be nil for stock shape; got %v", close.AccruedInterest)
+		}
+	})
+
+	t.Run("un-terminate removes the close snapshot", func(t *testing.T) {
+		if _, err := r.UpdateInvestmentLifecycle(aliceCtx, stock.Investment.ID, repo.LifecycleParams{
+			Status: "active", TerminatedAt: nil,
+		}); err != nil {
+			t.Fatalf("UpdateInvestmentLifecycle un-terminate: %v", err)
+		}
+		snaps, err := r.ListInvestmentSnapshots(aliceCtx, stock.Investment.ID)
+		if err != nil {
+			t.Fatalf("ListInvestmentSnapshots: %v", err)
+		}
+		if len(snaps) != 1 {
+			t.Fatalf("after un-terminate: got %d snapshots, want 1 (only January)", len(snaps))
+		}
+		if !snaps[0].YearMonth.Equal(jan) || !snaps[0].Amount.Equal(decimal.NewFromInt(500)) {
+			t.Errorf("surviving snapshot: got %s=%s, want Jan=500", snaps[0].YearMonth.Format("2006-01"), snaps[0].Amount)
+		}
+	})
+}

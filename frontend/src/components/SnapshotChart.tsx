@@ -19,6 +19,11 @@ type Props = {
   // Investment detail screens pass this via `lib/costBasis`; non-
   // investment groups (assets / liabilities / receivables) omit it.
   costSeries?: CostPoint[]
+  // Terminal investment status ('sold' | 'matured'). When set, the chart
+  // drops the truthful 0-value close snapshot from the value line (so it
+  // ends at the last real value instead of cratering to 0) and labels that
+  // point with a Sold/Matured marker (#25). Non-investment groups omit it.
+  status?: string | null
 }
 
 // Lazy boundary so recharts + the shadcn chart wrapper land in a
@@ -27,7 +32,12 @@ type Props = {
 // even request the chunk on empty data.
 const SnapshotChartImpl = lazy(() => import('./SnapshotChartImpl'))
 
-export function SnapshotChart({ snapshots, currency, costSeries }: Props) {
+export function SnapshotChart({
+  snapshots,
+  currency,
+  costSeries,
+  status,
+}: Props) {
   if (snapshots.length === 0) return null
   return (
     <Suspense fallback={<div className="h-64 w-full" />}>
@@ -35,6 +45,7 @@ export function SnapshotChart({ snapshots, currency, costSeries }: Props) {
         snapshots={snapshots}
         currency={currency}
         costSeries={costSeries}
+        status={status}
       />
     </Suspense>
   )

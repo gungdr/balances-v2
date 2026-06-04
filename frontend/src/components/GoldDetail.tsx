@@ -281,6 +281,7 @@ export function GoldDetail({ investmentId, onBack }: Props) {
               snapshots={snapshots}
               currency={gold.investment.native_currency}
               costSeries={costBasisSeries(snapshots, transactions ?? [])}
+              status={gold.investment.status}
             />
           </CardContent>
         </Card>

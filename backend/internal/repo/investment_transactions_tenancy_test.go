@@ -370,11 +370,13 @@ func TestInvestmentTransaction_TenancyAndCRUD(t *testing.T) {
 		}
 	})
 
-	// Issue #17 — Maturity auto-creates a snapshot at the maturity month
-	// with the realized payout (principal + interest) so the detail-screen
-	// P/L compares cost basis against a meaningful end-of-life value rather
-	// than the zero an unaware end-of-month snap would record.
-	t.Run("alice maturity auto-creates snapshot at maturity month", func(t *testing.T) {
+	// Issue #25 — Maturity writes a truthful 0-value close snapshot at the
+	// maturity month: a matured position holds nothing, the principal +
+	// interest having left for the bank (recorded as the Maturity cash_out).
+	// This is what makes the derived investment-return book interest only;
+	// #17's principal+interest close double-counted the payout. The
+	// detail-screen reads "Matured on {date}" from the status, not a P/L.
+	t.Run("alice maturity writes 0-value close snapshot at maturity month", func(t *testing.T) {
 		snaps, err := r.ListInvestmentSnapshots(aliceCtx, td.Investment.ID)
 		if err != nil {
 			t.Fatalf("ListInvestmentSnapshots: %v", err)
@@ -387,12 +389,11 @@ func TestInvestmentTransaction_TenancyAndCRUD(t *testing.T) {
 		if !s.YearMonth.Equal(wantYM) {
 			t.Errorf("snapshot YearMonth: got %s, want %s", s.YearMonth.Format("2006-01-02"), wantYM.Format("2006-01-02"))
 		}
-		wantTotal := matPrincipal.Add(matInterest)
-		if !s.Amount.Equal(wantTotal) {
-			t.Errorf("snapshot Amount: got %s, want %s", s.Amount.String(), wantTotal.String())
+		if !s.Amount.IsZero() {
+			t.Errorf("close snapshot Amount: got %s, want 0", s.Amount.String())
 		}
-		if s.AccruedInterest == nil || !s.AccruedInterest.Equal(matInterest) {
-			t.Errorf("snapshot AccruedInterest: got %v, want %s", s.AccruedInterest, matInterest.String())
+		if s.AccruedInterest == nil || !s.AccruedInterest.IsZero() {
+			t.Errorf("close snapshot AccruedInterest: got %v, want 0", s.AccruedInterest)
 		}
 		if s.Quantity != nil {
 			t.Errorf("snapshot Quantity should be nil for TD (accrued shape); got %v", s.Quantity)
@@ -407,8 +408,8 @@ func TestInvestmentTransaction_TenancyAndCRUD(t *testing.T) {
 
 	// Idempotency: when the user took a pre-maturity snap in the same month
 	// (e.g., an end-of-prev-month carry-forward or a mid-month estimate), the
-	// Maturity upsert wins and the snapshot now reads the authoritative
-	// payout.
+	// Maturity upsert wins and the snapshot now reads the truthful 0 close —
+	// the month-end value of a liquidated position.
 	t.Run("maturity overwrites pre-existing snapshot in same month", func(t *testing.T) {
 		td2InterestRate, _ := decimal.NewFromString("4.0")
 		td2, err := r.CreateTimeDeposit(aliceCtx, repo.CreateTimeDepositParams{
@@ -464,12 +465,11 @@ func TestInvestmentTransaction_TenancyAndCRUD(t *testing.T) {
 		if len(snaps) != 1 {
 			t.Fatalf("td2 snapshots after maturity upsert: got %d, want 1", len(snaps))
 		}
-		wantTotal := matP.Add(matI)
-		if !snaps[0].Amount.Equal(wantTotal) {
-			t.Errorf("upserted snapshot Amount: got %s, want %s", snaps[0].Amount.String(), wantTotal.String())
+		if !snaps[0].Amount.IsZero() {
+			t.Errorf("upserted close snapshot Amount: got %s, want 0", snaps[0].Amount.String())
 		}
-		if snaps[0].AccruedInterest == nil || !snaps[0].AccruedInterest.Equal(matI) {
-			t.Errorf("upserted snapshot AccruedInterest: got %v, want %s", snaps[0].AccruedInterest, matI.String())
+		if snaps[0].AccruedInterest == nil || !snaps[0].AccruedInterest.IsZero() {
+			t.Errorf("upserted close snapshot AccruedInterest: got %v, want 0", snaps[0].AccruedInterest)
 		}
 	})
 

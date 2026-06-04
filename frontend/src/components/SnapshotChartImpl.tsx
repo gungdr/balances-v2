@@ -4,6 +4,7 @@ import {
   AreaChart,
   CartesianGrid,
   Line,
+  ReferenceDot,
   XAxis,
   YAxis,
 } from 'recharts'
@@ -38,6 +39,7 @@ type Props = {
   snapshots: SnapshotLike[]
   currency: string
   costSeries?: CostPoint[]
+  status?: string | null
 }
 
 function toChartData(snapshots: SnapshotLike[], costSeries?: CostPoint[]) {
@@ -66,9 +68,32 @@ export default function SnapshotChartImpl({
   snapshots,
   currency,
   costSeries,
+  status,
 }: Props) {
   const { t } = useTranslation('dashboard')
   const data = toChartData(snapshots, costSeries)
+
+  // A terminated position carries a truthful 0-value close snapshot at its
+  // termination month (#25). Drawn as-is the value line craters to 0, which
+  // reads as "the position lost all its value" rather than "the position
+  // closed and the cash moved to the bank." Drop that trailing 0 point so
+  // the line ends at the last real value, and mark that point Sold/Matured.
+  const isClosed = status === 'sold' || status === 'matured'
+  if (isClosed && data.length > 0 && data[data.length - 1].amount === 0) {
+    data.pop()
+  }
+  const marker =
+    isClosed && data.length > 0
+      ? {
+          month: data[data.length - 1].month,
+          amount: data[data.length - 1].amount,
+          label:
+            status === 'matured'
+              ? t('chart.maturedMarker')
+              : t('chart.soldMarker'),
+        }
+      : null
+
   const hasCost = (costSeries ?? []).length > 0
   // ChartConfig is built per-render so the legend label picks up the active
   // locale. Cheap — single key, no per-row computation.
@@ -134,6 +159,22 @@ export default function SnapshotChartImpl({
             dot={false}
             activeDot={false}
             isAnimationActive={false}
+          />
+        )}
+        {marker && (
+          <ReferenceDot
+            x={marker.month}
+            y={marker.amount}
+            r={4}
+            fill="var(--color-amount)"
+            stroke="var(--background)"
+            strokeWidth={1.5}
+            label={{
+              value: marker.label,
+              position: 'top',
+              fontSize: 11,
+              fill: 'var(--muted-foreground)',
+            }}
           />
         )}
         {hasCost && <ChartLegend content={<ChartLegendContent />} />}

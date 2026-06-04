@@ -331,6 +331,7 @@ export function TimeDepositDetail({ investmentId, onBack }: Props) {
                 snapshots,
                 Number(td.details.principal),
               )}
+              status={td.investment.status}
             />
           </CardContent>
         </Card>

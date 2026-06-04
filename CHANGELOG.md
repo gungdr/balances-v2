@@ -1945,6 +1945,51 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
   - All green: ESLint 0 errors; vite build green; vitest 164/164. Backend
     untouched.
 
+- **Maturity/termination is a truthful 0-value close snapshot (M6, full
+  stack — issue #25, fixes the #16/#17 fallout).** Reverses #17's *data*
+  approach while keeping its frontend affordances. #17 (added to fix a
+  −100% P/L display glitch) wrote a maturity-month snapshot of `principal
+  + interest`; with ADR-0008's return formula `Δvalue + cash_out − cash_in`
+  that left the `cash_out` payout with nothing to cancel, so the Dashboard
+  investment-return line **double-counted the entire payout** (booked 110
+  instead of 5 interest on a 100/5 TD). Rolled TDs were worse — old (105) +
+  new (~105) both counted that month. Option B from the issue: make the
+  *data* truthful, let the unchanged engine run.
+  - **Backend.** The Maturity handler now writes a `0` close snapshot
+    (amount + accrued) instead of `principal + interest`
+    (`investment_transactions.go`). Generalized the rule to **all**
+    termination: `UpdateInvestmentLifecycle` (investments only) writes the
+    same `0`-value close snapshot in the subtype's shape on a Sell/manual
+    terminate, wrapped in a tx with the lifecycle flip — subsuming the
+    deferred "auto-snapshot on Sell" item. One rule: *terminate ⇒ 0-value
+    close snapshot; proceeds are transactions.* The un-terminate correction
+    affordance (ADR-0009) soft-deletes that close so a reactivated position
+    carries its last real value, not `0`. The engine needs **no special
+    case** — `terminatedBefore` + the return formula were already correct;
+    they only broke because #17 fed them a fictional value.
+  - **Frontend.** Re-widened the `InvestmentHeadline` short-circuit that #17
+    had narrowed to sold-only: matured positions now show "Matured on
+    {date}" (presentation reading true status) instead of a naive −100% P/L
+    against the `0` close. The detail value-graph drops the trailing `0`
+    close point (so the line ends at the last real value, not a crater) and
+    marks it Sold/Matured (`SnapshotChart`, new `status` prop threaded from
+    the 5 investment detail screens).
+  - **Tests.** Engine unit tests for maturity cash_out, rolled TD (no
+    double-count), and sold termination — each asserting interest/gain-only
+    return and no NW bubble. DB-backed: maturity tenancy tests flipped to
+    assert the `0` close; new `TestInvestmentLifecycle_CloseSnapshot` covers
+    manual terminate + un-terminate. All green (backend `go test ./...`;
+    frontend vitest 164/164, build green).
+  - **Docs.** ADR-0008 states the liquidation-to-0 assumption the return
+    formula depends on explicitly; ADR-0009 documents the close-snapshot
+    rule and reconciles it with the long-standing rejected "$0 snapshot as
+    status mechanism" alternative (the `0` here is truthful data for the
+    termination month, not the lifecycle mechanism, and carry-forward
+    suppression prevents the stale-zero pollution that alternative warned
+    of). User-facing: an end-of-month data-entry recommendation in the help
+    tour / glossary, since the maturity-month NW dip is real and
+    self-corrects once the bank deposit is recorded (ADR-0008 timing noise).
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

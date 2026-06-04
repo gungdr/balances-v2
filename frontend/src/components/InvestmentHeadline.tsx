@@ -7,15 +7,15 @@
 // numbers shown are the two new-to-the-user signals: how much they put
 // in, and whether they're up or down.
 //
-// **Sold-position short-circuit.** A sold position whose latest snapshot
-// is the end-of-month after the sale reads value=0 (cash already left
-// the position) and would render a misleading −100% P/L against cost.
-// The user-driven Sell + manual terminate flow doesn't auto-create a
-// snapshot at the sale month, so we suppress the P/L line for sold
-// positions and surface "Sold on {date}" instead. **Matured positions
-// don't take this branch** — issue #17 makes Maturity auto-upsert a
-// snapshot with the realized payout, so P/L is accurate against the
-// payout value.
+// **Terminated-position short-circuit.** A terminated position holds a
+// truthful 0-value close snapshot at its termination month (#25): the
+// cash has left the position for the bank, recorded as a Sell/Maturity
+// transaction. Reading P/L off that 0 would render a misleading −100%
+// against cost, so we suppress the P/L line for sold *and* matured
+// positions and surface "Sold on {date}" / "Matured on {date}" instead
+// (presentation interpreting true data). This re-widens the branch that
+// #17 had narrowed to sold-only back when Maturity wrote a fictional
+// principal+interest close snapshot — #25 removed that false row.
 
 import { useTranslation } from 'react-i18next'
 import { formatCurrency, formatDate } from '@/lib/format'
@@ -30,9 +30,9 @@ type Props = {
   // subtype quirks (ledger replay for stock/MF/gold/bond-secondary; flat
   // face_value for bond govt-primary; flat principal for time deposit).
   totalCost: number
-  // When set to 'sold' with a terminated_at, swaps the P/L block for
-  // "Sold on {date}". Pass `investment.status` + `investment.terminated_at`.
-  // Matured positions don't take this branch (see file header).
+  // When set to a terminal status ('sold' | 'matured') with a
+  // terminated_at, swaps the P/L block for "Sold on {date}" / "Matured on
+  // {date}". Pass `investment.status` + `investment.terminated_at`.
   status?: string | null
   terminatedAt?: string | null
 }
@@ -46,7 +46,10 @@ export function InvestmentHeadline({
 }: Props) {
   const { t } = useTranslation('investments')
 
-  const isSold = !!(status === 'sold' && terminatedAt)
+  const isClosed = !!(
+    (status === 'sold' || status === 'matured') &&
+    terminatedAt
+  )
   // P/L is meaningful only when we have a current value to compare cost
   // against. No snapshot → no P/L number to show.
   const pl = latestValue !== null ? latestValue - totalCost : null
@@ -66,10 +69,14 @@ export function InvestmentHeadline({
           {formatCurrency(totalCost.toString(), currency)}
         </span>
       </div>
-      {isSold ? (
+      {isClosed ? (
         <div data-testid="investment-headline-closed">
           <span className="text-muted-foreground">
-            {t('headline.closed.sold')}
+            {t(
+              status === 'matured'
+                ? 'headline.closed.matured'
+                : 'headline.closed.sold',
+            )}
           </span>{' '}
           <span>{formatDate(terminatedAt)}</span>
         </div>
