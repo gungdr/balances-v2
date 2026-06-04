@@ -16,6 +16,7 @@ func (h *handlerHarness) createMutualFund(t *testing.T, displayName string) *rep
 		"ownership_type":  "joint",
 		"native_currency": "IDR",
 		"fund_code":       "BNI-AM",
+		"fund_type":       "money_market",
 		"risk_profile":    "medium",
 	})
 	requireStatus(t, rec, http.StatusCreated)
@@ -32,12 +33,16 @@ func TestMutualFundHandlers_Create(t *testing.T) {
 			"native_currency": "IDR",
 			"fund_code":       "SMMF",
 			"fund_manager":    "Sucorinvest AM",
+			"fund_type":       "money_market",
 			"risk_profile":    "medium",
 		})
 		requireStatus(t, rec, http.StatusCreated)
 		body := decodeBody[*repo.MutualFund](t, rec)
 		if body.Details.FundCode != "SMMF" {
 			t.Errorf("fund_code: got %q", body.Details.FundCode)
+		}
+		if body.Details.FundType != "money_market" {
+			t.Errorf("fund_type: got %q", body.Details.FundType)
 		}
 	})
 
@@ -46,6 +51,19 @@ func TestMutualFundHandlers_Create(t *testing.T) {
 			"display_name":    "X",
 			"ownership_type":  "joint",
 			"native_currency": "IDR",
+			"fund_type":       "equity",
+			"risk_profile":    "medium",
+		})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("400 invalid fund_type", func(t *testing.T) {
+		rec := h.do(t, "POST", "/investments/mutual-funds", map[string]any{
+			"display_name":    "X",
+			"ownership_type":  "joint",
+			"native_currency": "IDR",
+			"fund_code":       "X",
+			"fund_type":       "crypto",
 			"risk_profile":    "medium",
 		})
 		requireStatus(t, rec, http.StatusBadRequest)
@@ -106,12 +124,16 @@ func TestMutualFundHandlers_Update(t *testing.T) {
 			"display_name":   "Renamed",
 			"ownership_type": "joint",
 			"fund_code":      "NEWCODE",
+			"fund_type":      "equity",
 			"risk_profile":   "medium",
 		})
 		requireStatus(t, rec, http.StatusOK)
 		body := decodeBody[*repo.MutualFund](t, rec)
 		if body.Details.FundCode != "NEWCODE" {
 			t.Errorf("fund_code: want NEWCODE, got %q", body.Details.FundCode)
+		}
+		if body.Details.FundType != "equity" {
+			t.Errorf("fund_type: want equity, got %q", body.Details.FundType)
 		}
 	})
 
@@ -120,6 +142,7 @@ func TestMutualFundHandlers_Update(t *testing.T) {
 			"display_name":   "x",
 			"ownership_type": "joint",
 			"fund_code":      "x",
+			"fund_type":      "equity",
 			"risk_profile":   "medium",
 		})
 		requireStatus(t, rec, http.StatusNotFound)

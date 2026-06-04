@@ -17,6 +17,7 @@ import { preferredName } from '@/lib/names'
 import { useSession } from '@/hooks/useSession'
 import { errorMessage } from '@/lib/errorMessage'
 import { RiskProfileSelect } from '@/components/RiskProfileSelect'
+import { MutualFundTypeSelect } from '@/components/MutualFundTypeSelect'
 import type { MutualFund, MutualFundListItem } from '@/api/types'
 
 type Props = {
@@ -34,6 +35,7 @@ function toForm(m: MutualFund | MutualFundListItem) {
     risk_profile: m.investment.risk_profile,
     fund_code: m.details.fund_code,
     fund_manager: m.details.fund_manager ?? '',
+    fund_type: m.details.fund_type,
   }
 }
 
@@ -62,6 +64,7 @@ export function EditMutualFundDialog({
         risk_profile: form.risk_profile,
         fund_code: form.fund_code,
         fund_manager: form.fund_manager || null,
+        fund_type: form.fund_type,
       },
       { onSuccess: () => onOpenChange(false) },
     )
@@ -118,6 +121,12 @@ export function EditMutualFundDialog({
               />
             </div>
           </div>
+
+          <MutualFundTypeSelect
+            idPrefix="mf_edit"
+            value={form.fund_type}
+            onChange={(v) => setForm({ ...form, fund_type: v })}
+          />
 
           <div className="grid gap-2">
             <Label>{t('common:fields.ownership')}</Label>

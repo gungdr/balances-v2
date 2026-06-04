@@ -263,10 +263,25 @@ export type StockListItem = {
   cost_basis: string
 }
 
+// Global fund-type taxonomy (issue #20): the four universal ICI/Morningstar
+// asset classes + the structural wrappers households name + an `other` tail.
+// Mirrors the DB CHECK in migration 00023.
+export type MutualFundType =
+  | 'money_market'
+  | 'fixed_income'
+  | 'equity'
+  | 'mixed'
+  | 'index'
+  | 'etf'
+  | 'target_date'
+  | 'commodity'
+  | 'other'
+
 export type MutualFundDetails = {
   investment_id: string
   fund_code: string
   fund_manager: string | null
+  fund_type: MutualFundType
 }
 
 export type MutualFund = {

@@ -198,6 +198,7 @@ export function MutualFundDetail({ investmentId, onBack }: Props) {
           <p className="text-sm text-muted-foreground">
             {mf.details.fund_code}
             {mf.details.fund_manager && ` · ${mf.details.fund_manager}`}
+            {` · ${t(`investments:mutualFund.fundType.short.${mf.details.fund_type}`)}`}
           </p>
           <InvestmentHeadline
             currency={mf.investment.native_currency}

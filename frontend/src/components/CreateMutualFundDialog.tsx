@@ -18,7 +18,8 @@ import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { preferredName } from '@/lib/names'
 import { errorMessage } from '@/lib/errorMessage'
 import { RiskProfileSelect } from '@/components/RiskProfileSelect'
-import type { RiskProfile } from '@/api/types'
+import { MutualFundTypeSelect } from '@/components/MutualFundTypeSelect'
+import type { RiskProfile, MutualFundType } from '@/api/types'
 
 function emptyForm() {
   return {
@@ -30,6 +31,7 @@ function emptyForm() {
     native_currency: 'IDR',
     fund_code: '',
     fund_manager: '',
+    fund_type: '' as MutualFundType | '',
   }
 }
 
@@ -53,6 +55,7 @@ export function CreateMutualFundDialog() {
     e.preventDefault()
     if (!user) return
     if (!form.risk_profile) return
+    if (!form.fund_type) return
     mutation.mutate(
       {
         display_name: form.display_name,
@@ -64,6 +67,7 @@ export function CreateMutualFundDialog() {
         native_currency: form.native_currency,
         fund_code: form.fund_code,
         fund_manager: form.fund_manager || null,
+        fund_type: form.fund_type,
       },
       { onSuccess: close },
     )
@@ -126,6 +130,12 @@ export function CreateMutualFundDialog() {
               />
             </div>
           </div>
+
+          <MutualFundTypeSelect
+            idPrefix="mf_create"
+            value={form.fund_type}
+            onChange={(v) => setForm({ ...form, fund_type: v })}
+          />
 
           <div className="grid gap-2">
             <Label htmlFor="mf_currency">{t('common:fields.currency')}</Label>

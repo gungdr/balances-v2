@@ -13,28 +13,39 @@ import (
 
 const createMutualFundDetails = `-- name: CreateMutualFundDetails :one
 INSERT INTO mutual_fund_details (
-    investment_id, fund_code, fund_manager
+    investment_id, fund_code, fund_manager, fund_type
 ) VALUES (
-    $1, $2, $3
+    $1, $2, $3, $4
 )
-RETURNING investment_id, fund_code, fund_manager
+RETURNING investment_id, fund_code, fund_manager, fund_type
 `
 
 type CreateMutualFundDetailsParams struct {
 	InvestmentID uuid.UUID `json:"investment_id"`
 	FundCode     string    `json:"fund_code"`
 	FundManager  *string   `json:"fund_manager"`
+	FundType     string    `json:"fund_type"`
 }
 
 func (q *Queries) CreateMutualFundDetails(ctx context.Context, arg CreateMutualFundDetailsParams) (MutualFundDetail, error) {
-	row := q.db.QueryRow(ctx, createMutualFundDetails, arg.InvestmentID, arg.FundCode, arg.FundManager)
+	row := q.db.QueryRow(ctx, createMutualFundDetails,
+		arg.InvestmentID,
+		arg.FundCode,
+		arg.FundManager,
+		arg.FundType,
+	)
 	var i MutualFundDetail
-	err := row.Scan(&i.InvestmentID, &i.FundCode, &i.FundManager)
+	err := row.Scan(
+		&i.InvestmentID,
+		&i.FundCode,
+		&i.FundManager,
+		&i.FundType,
+	)
 	return i, err
 }
 
 const getMutualFundDetailsByInvestmentID = `-- name: GetMutualFundDetailsByInvestmentID :one
-SELECT investment_id, fund_code, fund_manager
+SELECT investment_id, fund_code, fund_manager, fund_type
 FROM mutual_fund_details
 WHERE investment_id = $1
 `
@@ -42,12 +53,17 @@ WHERE investment_id = $1
 func (q *Queries) GetMutualFundDetailsByInvestmentID(ctx context.Context, investmentID uuid.UUID) (MutualFundDetail, error) {
 	row := q.db.QueryRow(ctx, getMutualFundDetailsByInvestmentID, investmentID)
 	var i MutualFundDetail
-	err := row.Scan(&i.InvestmentID, &i.FundCode, &i.FundManager)
+	err := row.Scan(
+		&i.InvestmentID,
+		&i.FundCode,
+		&i.FundManager,
+		&i.FundType,
+	)
 	return i, err
 }
 
 const listMutualFundDetailsByInvestmentIDs = `-- name: ListMutualFundDetailsByInvestmentIDs :many
-SELECT investment_id, fund_code, fund_manager
+SELECT investment_id, fund_code, fund_manager, fund_type
 FROM mutual_fund_details
 WHERE investment_id = ANY($1::uuid[])
 `
@@ -61,7 +77,12 @@ func (q *Queries) ListMutualFundDetailsByInvestmentIDs(ctx context.Context, doll
 	var items []MutualFundDetail
 	for rows.Next() {
 		var i MutualFundDetail
-		if err := rows.Scan(&i.InvestmentID, &i.FundCode, &i.FundManager); err != nil {
+		if err := rows.Scan(
+			&i.InvestmentID,
+			&i.FundCode,
+			&i.FundManager,
+			&i.FundType,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -75,20 +96,32 @@ func (q *Queries) ListMutualFundDetailsByInvestmentIDs(ctx context.Context, doll
 const updateMutualFundDetails = `-- name: UpdateMutualFundDetails :one
 UPDATE mutual_fund_details
 SET fund_code    = $2,
-    fund_manager = $3
+    fund_manager = $3,
+    fund_type    = $4
 WHERE investment_id = $1
-RETURNING investment_id, fund_code, fund_manager
+RETURNING investment_id, fund_code, fund_manager, fund_type
 `
 
 type UpdateMutualFundDetailsParams struct {
 	InvestmentID uuid.UUID `json:"investment_id"`
 	FundCode     string    `json:"fund_code"`
 	FundManager  *string   `json:"fund_manager"`
+	FundType     string    `json:"fund_type"`
 }
 
 func (q *Queries) UpdateMutualFundDetails(ctx context.Context, arg UpdateMutualFundDetailsParams) (MutualFundDetail, error) {
-	row := q.db.QueryRow(ctx, updateMutualFundDetails, arg.InvestmentID, arg.FundCode, arg.FundManager)
+	row := q.db.QueryRow(ctx, updateMutualFundDetails,
+		arg.InvestmentID,
+		arg.FundCode,
+		arg.FundManager,
+		arg.FundType,
+	)
 	var i MutualFundDetail
-	err := row.Scan(&i.InvestmentID, &i.FundCode, &i.FundManager)
+	err := row.Scan(
+		&i.InvestmentID,
+		&i.FundCode,
+		&i.FundManager,
+		&i.FundType,
+	)
 	return i, err
 }

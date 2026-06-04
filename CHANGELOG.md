@@ -2247,6 +2247,40 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     frontend 200 afterwards. Backend suite + golangci-lint (`0 issues`) green;
     backend builds.
 
+- **Mutual-fund fund type (issue #20).** Mutual funds now carry a `fund_type`
+  classification, recorded on create/edit and shown on the list.
+  - **Global, not Indonesia-only.** The user asked to generalise past the local
+    reksa dana set. Researched the industry taxonomy: the four universal
+    ICI/Morningstar top-level asset classes (money market, fixed income / bond,
+    equity / stock, mixed / hybrid·balanced·allocation) are the cross-market
+    core; on top of them sit the structural wrappers a household actually names —
+    index funds, ETFs, target-date / lifecycle funds, commodity funds. `other`
+    absorbs the niche tail (municipal/tax-exempt, alternative/hedge, sector).
+    Final enum: `money_market | fixed_income | equity | mixed | index | etf |
+    target_date | commodity | other`. Syariah/ESG are an orthogonal *flavour* of
+    each type, never a type — kept out of scope as a possible future flag.
+  - **Schema (migration 00023).** Closed enum enforced by a `CHECK` on
+    `mutual_fund_details`, **not** the shared `investments` table — subtype-
+    specific data lives in `*_details` per ADR-0022 (mirrors `gold_details.form`).
+    Column lands `NOT NULL` in one pre-alpha step; existing rows backfill to
+    `other` (no neutral default exists, unlike risk_profile's `medium`).
+  - **Backend.** `queries/mutual_funds.sql` Create/Update gain the column; sqlc
+    regen; repo `Create/UpdateMutualFundParams` + handler `create/updateMutualFundReq`
+    carry `fund_type` with `validate:"required,oneof=…"` (the nine values). Forces
+    a deliberate choice on create, like risk_profile. Handler tests assert the
+    round-trip + reject an out-of-enum value (`crypto` → 400); tenancy test updated.
+  - **Frontend.** New `MutualFundType` union + `fund_type` on `MutualFundDetails`
+    and both payloads. New `MutualFundTypeSelect` (required, no default; placeholder
+    "— select —"; options in DB-CHECK order), wired into the Create and Edit
+    dialogs, parent refuses submit until chosen. `MutualFundListRow` renders the
+    short type label as a muted chip in the Name column (`data-testid="mf-fund-type"`),
+    satisfying the issue's "same column as Name". EN/ID
+    `mutualFund.fundType.{selectLabel,selectPlaceholder,option.*,short.*}` populated
+    (ID from the finance glossary: Pasar uang / Pendapatan tetap / Saham / Campuran
+    / Indeks / ETF / Target waktu / Komoditas / Lainnya).
+  - **Verified.** Backend suite green (real Postgres round-trip via the handler
+    harness); `tsc` clean, eslint 0 errors, vite build green, vitest 182/182.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

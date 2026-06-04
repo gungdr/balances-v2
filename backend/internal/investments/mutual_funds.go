@@ -19,6 +19,7 @@ type createMutualFundReq struct {
 	RiskProfile     string     `json:"risk_profile"       validate:"required,oneof=low medium high"`
 	FundCode        string     `json:"fund_code"          validate:"required"`
 	FundManager     *string    `json:"fund_manager"`
+	FundType        string     `json:"fund_type"          validate:"required,oneof=money_market fixed_income equity mixed index etf target_date commodity other"`
 }
 
 type updateMutualFundReq struct {
@@ -29,6 +30,7 @@ type updateMutualFundReq struct {
 	RiskProfile     string     `json:"risk_profile"       validate:"required,oneof=low medium high"`
 	FundCode        string     `json:"fund_code"          validate:"required"`
 	FundManager     *string    `json:"fund_manager"`
+	FundType        string     `json:"fund_type"          validate:"required,oneof=money_market fixed_income equity mixed index etf target_date commodity other"`
 }
 
 func (h *Handlers) handleCreateMutualFund(w http.ResponseWriter, r *http.Request) {
@@ -51,6 +53,7 @@ func (h *Handlers) handleCreateMutualFund(w http.ResponseWriter, r *http.Request
 		RiskProfile:     req.RiskProfile,
 		FundCode:        req.FundCode,
 		FundManager:     req.FundManager,
+		FundType:        req.FundType,
 	})
 	if err != nil {
 		httperr.WriteRepo(w, "create mutual fund", err)
@@ -106,6 +109,7 @@ func (h *Handlers) handleUpdateMutualFund(w http.ResponseWriter, r *http.Request
 		RiskProfile:     req.RiskProfile,
 		FundCode:        req.FundCode,
 		FundManager:     req.FundManager,
+		FundType:        req.FundType,
 	})
 	if err != nil {
 		httperr.WriteRepo(w, "update mutual fund", err)

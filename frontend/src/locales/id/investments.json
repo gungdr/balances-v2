@@ -307,6 +307,32 @@
       "fundManager": "Mandiri Investasi",
       "currency": "IDR"
     },
+    "fundType": {
+      "selectLabel": "Jenis reksa dana",
+      "selectPlaceholder": "— pilih —",
+      "option": {
+        "money_market": "Pasar uang",
+        "fixed_income": "Pendapatan tetap",
+        "equity": "Saham",
+        "mixed": "Campuran",
+        "index": "Indeks",
+        "etf": "ETF",
+        "target_date": "Target waktu",
+        "commodity": "Komoditas",
+        "other": "Lainnya"
+      },
+      "short": {
+        "money_market": "Pasar uang",
+        "fixed_income": "Pendapatan tetap",
+        "equity": "Saham",
+        "mixed": "Campuran",
+        "index": "Indeks",
+        "etf": "ETF",
+        "target_date": "Target waktu",
+        "commodity": "Komoditas",
+        "other": "Lainnya"
+      }
+    },
     "tour": {
       "overviewTitle": "Sekilas tentang reksa dana Anda",
       "overviewBody": "Semua hal tentang satu kepemilikan reksa dana — nilainya, jumlah yang Anda investasikan, serta setiap transaksi dan distribusi.",

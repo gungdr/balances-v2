@@ -55,6 +55,7 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 		NativeCurrency: "IDR",
 		RiskProfile:    "medium",
 		FundCode:       "SCMUS",
+		FundType:       "money_market",
 	})
 	if err != nil {
 		t.Fatalf("alice CreateMutualFund: %v", err)
@@ -414,6 +415,7 @@ func TestInvestmentRepo_TenancyAndCRUD(t *testing.T) {
 			OwnershipType: "joint",
 			FundCode:      "SCMUS",
 			RiskProfile:   "medium",
+			FundType:      "money_market",
 		})
 		if err != nil {
 			t.Fatalf("UpdateMutualFund: %v", err)

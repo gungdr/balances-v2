@@ -37,6 +37,7 @@ type CreateMutualFundParams struct {
 	RiskProfile     string
 	FundCode        string
 	FundManager     *string
+	FundType        string
 }
 
 type UpdateMutualFundParams struct {
@@ -47,6 +48,7 @@ type UpdateMutualFundParams struct {
 	RiskProfile     string
 	FundCode        string
 	FundManager     *string
+	FundType        string
 }
 
 func (r *InvestmentRepo) CreateMutualFund(ctx context.Context, p CreateMutualFundParams) (*MutualFund, error) {
@@ -81,6 +83,7 @@ func (r *InvestmentRepo) CreateMutualFund(ctx context.Context, p CreateMutualFun
 		InvestmentID: inv.ID,
 		FundCode:     p.FundCode,
 		FundManager:  p.FundManager,
+		FundType:     p.FundType,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create mutual_fund_details: %w", err)
@@ -218,6 +221,7 @@ func (r *InvestmentRepo) UpdateMutualFund(ctx context.Context, id uuid.UUID, p U
 		InvestmentID: inv.ID,
 		FundCode:     p.FundCode,
 		FundManager:  p.FundManager,
+		FundType:     p.FundType,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("update mutual_fund_details: %w", err)

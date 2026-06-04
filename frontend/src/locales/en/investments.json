@@ -307,6 +307,32 @@
       "fundManager": "Mandiri Investasi",
       "currency": "IDR"
     },
+    "fundType": {
+      "selectLabel": "Fund type",
+      "selectPlaceholder": "— select —",
+      "option": {
+        "money_market": "Money market",
+        "fixed_income": "Fixed income (bond)",
+        "equity": "Equity (stock)",
+        "mixed": "Mixed (balanced)",
+        "index": "Index",
+        "etf": "ETF",
+        "target_date": "Target-date",
+        "commodity": "Commodity",
+        "other": "Other"
+      },
+      "short": {
+        "money_market": "Money market",
+        "fixed_income": "Fixed income",
+        "equity": "Equity",
+        "mixed": "Mixed",
+        "index": "Index",
+        "etf": "ETF",
+        "target_date": "Target-date",
+        "commodity": "Commodity",
+        "other": "Other"
+      }
+    },
     "tour": {
       "overviewTitle": "Your mutual fund at a glance",
       "overviewBody": "Everything about one fund holding — its value, what you invested, and every trade and distribution.",

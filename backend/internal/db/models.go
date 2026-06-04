@@ -259,6 +259,7 @@ type MutualFundDetail struct {
 	InvestmentID uuid.UUID `json:"investment_id"`
 	FundCode     string    `json:"fund_code"`
 	FundManager  *string   `json:"fund_manager"`
+	FundType     string    `json:"fund_type"`
 }
 
 type PropertyDetail struct {

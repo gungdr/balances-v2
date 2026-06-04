@@ -402,6 +402,14 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     the lingering recipe sub-shell kept open — terminal use never saw it, captured callers did.
     `nohup` is retained (its `SIG_IGN` survives `go run`'s fork+exec to the real server) so the
     servers still outlive a closed terminal; verified by direct SIGHUP to the listening pid.
+  - Mutual-fund `fund_type` (issue #20; migration 00023): a global closed enum on
+    `mutual_fund_details` — the four universal ICI/Morningstar asset classes (money_market,
+    fixed_income, equity, mixed) + structural wrappers (index, etf, target_date, commodity) +
+    `other`. NOT on shared `investments` (subtype-specific → extension table, ADR-0022). Forced
+    choice on create (no default, like risk_profile); legacy rows backfilled to `other`. New
+    `MutualFundTypeSelect` in Create/Edit dialogs; list row shows the type as a muted chip in the
+    Name column. EN/ID `mutualFund.fundType.{option,short}` populated. Syariah/ESG kept orthogonal
+    (a future flag, never a fund_type value).
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

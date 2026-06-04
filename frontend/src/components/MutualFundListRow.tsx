@@ -45,11 +45,17 @@ export function MutualFundListRow({ item, onSelect }: Props) {
         onClick={() => onSelect(item.investment.id)}
       >
         <TableCell>
-          <div className="flex items-center gap-2">
-            <div className={cn('font-medium', terminated && 'font-normal')}>
-              {item.investment.display_name}
-            </div>
+          <div className={cn('font-medium', terminated && 'font-normal')}>
+            {item.investment.display_name}
+          </div>
+          <div className="mt-0.5 flex items-center gap-2">
             <RiskProfileBadge profile={item.investment.risk_profile} compact />
+            <span
+              className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
+              data-testid="mf-fund-type"
+            >
+              {t(`investments:mutualFund.fundType.short.${item.details.fund_type}`)}
+            </span>
           </div>
           {item.investment.description && (
             <div className="text-xs text-muted-foreground">

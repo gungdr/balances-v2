@@ -10,6 +10,7 @@ import type {
   GoldListItem,
   MutualFund,
   MutualFundListItem,
+  MutualFundType,
   RolloverPolicy,
   Stock,
   StockListItem,
@@ -107,6 +108,7 @@ export type CreateMutualFundPayload = {
   native_currency: string
   fund_code: string
   fund_manager: string | null
+  fund_type: MutualFundType
 }
 
 export type UpdateMutualFundPayload = {
@@ -117,6 +119,7 @@ export type UpdateMutualFundPayload = {
   risk_profile: RiskProfile
   fund_code: string
   fund_manager: string | null
+  fund_type: MutualFundType
 }
 
 export function useMutualFunds() {
