@@ -2033,6 +2033,34 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     section (Buy-at-placement for bonds, engine-synthesis for TDs,
     face-value-from-ledger) and drops `face_value` from the `bond_details` row.
 
+- **Value-over-time graphs never skip months (M6, frontend — issue #24).**
+  Every chart renders on a *categorical* X axis (one tick per data point), so
+  any month a series omitted simply vanished from the timeline and the
+  remaining points spaced out evenly — a position snapshotted in Jan then Apr
+  drew Jan and Apr side by side as if adjacent, and a stretch of empty months
+  read as no elapsed time. The series builders were the cause: both
+  aggregators (`lib/listAggregates` `aggregateMonthly`,
+  `lib/homeAggregates` `aggregateMonthlyByCategory`) walked
+  `[...new Set(snapshotMonths)]`, and the per-position detail chart
+  (`SnapshotChartImpl.toChartData`) plotted raw snapshots 1:1 — all three
+  emitted only months that carried an entry.
+  - **Fix.** A shared `lib/months.ts` `monthRange(first, last)` enumerates the
+    full inclusive `YYYY-MM` span (year-boundary aware; accepts the API's
+    `YYYY-MM-DDT…` shape). The two aggregators now walk that continuous range
+    instead of the snapshot-month set — their existing carry-forward cursors
+    fill the gap months for free. The detail chart's `toChartData` was
+    rewritten to walk the same range, carrying the last known value (and cost)
+    forward into gaps — a balance you didn't re-snapshot still held its value,
+    it didn't drop to zero. This covers all four converging surfaces: the
+    per-position detail charts, the list-screen `ListTimeGraph`, the home
+    `CategoryStackChart`, and the dashboard net-worth chart (already continuous
+    from the backend materialized report, unaffected).
+  - **Tests.** New `months.test.ts` (single month, consecutive, gap-fill,
+    year crossing, API shape, reversed/malformed bounds). A gap-fill regression
+    in `listAggregates.test.ts`: Jan+Apr snapshots → Feb/Mar carried forward.
+    Existing series tests unchanged (their months were already consecutive).
+    All green (vitest 172/172, build + ESLint 0 errors).
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

@@ -57,6 +57,8 @@ export type ListAggregates = {
   count: number
 }
 
+import { monthRange } from '@/lib/months'
+
 const monthOf = (s: string) => s.slice(0, 7)
 
 export function aggregateListPositions(
@@ -166,8 +168,12 @@ function aggregateMonthly(positions: Position[]): TimePoint[] {
     }
   })
 
-  const allMonths = [...new Set(sorted.flatMap((s) => s.months))].sort()
-  if (allMonths.length === 0) return []
+  const present = [...new Set(sorted.flatMap((s) => s.months))].sort()
+  if (present.length === 0) return []
+  // Walk the full continuous range, not just months that carry a snapshot,
+  // so the categorical X axis renders a proportional timeline (#24). Gap
+  // months take carry-forward values from the cursors below.
+  const allMonths = monthRange(present[0], present[present.length - 1])
 
   const out: TimePoint[] = []
   const cursors = sorted.map(() => -1)

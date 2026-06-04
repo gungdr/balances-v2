@@ -21,6 +21,7 @@ import {
   formatCompactNumber,
   formatCurrency,
 } from '@/lib/format'
+import { monthRange } from '@/lib/months'
 
 // Generic snapshot shape — all four position groups (asset, liability,
 // receivable, investment) have amount-shaped snapshots with year_month +
@@ -43,25 +44,39 @@ type Props = {
 }
 
 function toChartData(snapshots: SnapshotLike[], costSeries?: CostPoint[]) {
-  // Cost lookup by year_month prefix — caller passes either the bare
-  // "YYYY-MM" or the API's "YYYY-MM-DDT..." shape, both reduce to the
-  // same key via slice(0, 7).
+  // Lookups by year_month prefix — caller passes either the bare "YYYY-MM"
+  // or the API's "YYYY-MM-DDT..." shape, both reduce to the same key via
+  // slice(0, 7).
+  const amountByMonth = new Map<string, number>()
+  for (const s of snapshots) {
+    amountByMonth.set(s.year_month.slice(0, 7), Number(s.amount))
+  }
   const costByMonth = new Map<string, number>()
   for (const c of costSeries ?? []) {
     costByMonth.set(c.year_month.slice(0, 7), c.cost)
   }
-  return [...snapshots]
-    .sort((a, b) => a.year_month.localeCompare(b.year_month))
-    .map((s) => {
-      const month = formatChartMonth(new Date(s.year_month))
-      const ym = s.year_month.slice(0, 7)
-      const point: { month: string; amount: number; cost?: number } = {
-        month,
-        amount: Number(s.amount),
-      }
-      if (costByMonth.has(ym)) point.cost = costByMonth.get(ym)
-      return point
-    })
+
+  const months = [...amountByMonth.keys()].sort()
+  if (months.length === 0) return []
+
+  // Walk the continuous month range, not just months with a snapshot, so
+  // the categorical X axis renders a proportional timeline (#24). Gap
+  // months carry the last known value (and cost) forward — a balance you
+  // didn't re-snapshot still held its value, it didn't drop to zero.
+  const hasCost = (costSeries ?? []).length > 0
+  let lastAmount = 0
+  let lastCost: number | undefined
+  return monthRange(months[0], months[months.length - 1]).map((ym) => {
+    if (amountByMonth.has(ym)) lastAmount = amountByMonth.get(ym)!
+    if (costByMonth.has(ym)) lastCost = costByMonth.get(ym)
+    const [y, m] = ym.split('-').map(Number)
+    const point: { month: string; amount: number; cost?: number } = {
+      month: formatChartMonth(new Date(y, m - 1, 1)),
+      amount: lastAmount,
+    }
+    if (hasCost && lastCost !== undefined) point.cost = lastCost
+    return point
+  })
 }
 
 export default function SnapshotChartImpl({

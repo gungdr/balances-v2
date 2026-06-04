@@ -139,6 +139,33 @@ describe('aggregateListPositions — time series', () => {
     expect(idr[1]).toEqual({ year_month: '2026-02', value: 150, cost: 130 })
   })
 
+  it('fills skipped months with carry-forward, keeping the timeline whole (#24)', () => {
+    // A single position snapshotted in Jan and again in Apr — the two
+    // gap months (Feb, Mar) must still appear, carrying Jan's value
+    // forward, so the categorical X axis stays proportional.
+    const r = aggregateListPositions([
+      pos({
+        id: 'a',
+        latestValue: 200,
+        cost: 150,
+        snapshots: [
+          { year_month: '2026-01', amount: '100' },
+          { year_month: '2026-04', amount: '200' },
+        ],
+        costSeries: [
+          { year_month: '2026-01', cost: 100 },
+          { year_month: '2026-04', cost: 150 },
+        ],
+      }),
+    ])
+    expect(r.timeSeriesByCurrency.get('IDR')).toEqual([
+      { year_month: '2026-01', value: 100, cost: 100 },
+      { year_month: '2026-02', value: 100, cost: 100 },
+      { year_month: '2026-03', value: 100, cost: 100 },
+      { year_month: '2026-04', value: 200, cost: 150 },
+    ])
+  })
+
   it('separates currencies into independent series maps', () => {
     const r = aggregateListPositions([
       pos({

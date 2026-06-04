@@ -25,6 +25,7 @@ import {
   type Position,
   type TimePoint,
 } from '@/lib/listAggregates'
+import { monthRange } from '@/lib/months'
 
 export type InvestmentCategory =
   | 'stock'
@@ -177,8 +178,11 @@ function aggregateMonthlyByCategory(
     }
   })
 
-  const allMonths = [...new Set(sorted.flatMap((s) => s.months))].sort()
-  if (allMonths.length === 0) return []
+  const present = [...new Set(sorted.flatMap((s) => s.months))].sort()
+  if (present.length === 0) return []
+  // Continuous range so empty months stay on the timeline (#24); the
+  // cursors below carry each category forward across the gaps.
+  const allMonths = monthRange(present[0], present[present.length - 1])
 
   const out: CategoryTimePoint[] = []
   const cursors = sorted.map(() => -1)

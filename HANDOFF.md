@@ -363,6 +363,10 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     (option a — no new txn type, no backfill). Placement month now nets to `0`;
     combined with #25, capital is excluded at both entry and exit. ADR-0008/0009
     amended. Resolves the deferred "bond lots/quantity modeling" backlog item.
+  - Value-over-time graphs never skip months (issue #24): all monthly series
+    now walk a continuous `monthRange` (`lib/months.ts`) with carry-forward,
+    so gap months stay on the categorical X axis and the timeline reads
+    proportionally instead of collapsing unequal gaps to equal spacing.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
