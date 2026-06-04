@@ -221,7 +221,10 @@ describe('aggregateListPositions — time series', () => {
 
   it('includes closed positions historically, capped at terminated_at', () => {
     // Issue #21: a sold/matured position must still show in the
-    // time series for the months it was held, then drop out.
+    // time series for the months it was held, then drop out. Issue #24:
+    // the synthetic 0-value close snapshot (#25) at the termination month
+    // is dropped so the position carries its last real value through that
+    // month rather than cratering the summed line to 0.
     const r = aggregateListPositions([
       pos({
         id: 'active',
@@ -241,7 +244,8 @@ describe('aggregateListPositions — time series', () => {
       pos({
         id: 'sold',
         status: 'sold',
-        // Position terminated mid-February.
+        // Position terminated mid-February, carrying a 0-value close
+        // snapshot at its termination month (#25).
         terminated_at: '2026-02-15T00:00:00Z',
         latestValue: 0,
         cost: 0,
@@ -260,13 +264,47 @@ describe('aggregateListPositions — time series', () => {
       { currency: 'IDR', value: 100, cost: 100, pl: 0 },
     ])
     expect(r.count).toBe(1)
-    // But appears in the time series through its termination month.
+    // Appears in the series through its termination month at its last real
+    // value (200/150 carried into Feb, not the 0-close), then drops out.
     const idr = r.timeSeriesByCurrency.get('IDR')!
     expect(idr).toEqual([
       { year_month: '2026-01', value: 300, cost: 250 },
-      { year_month: '2026-02', value: 100, cost: 100 },
+      { year_month: '2026-02', value: 300, cost: 250 },
       // March: sold has dropped; only active remains.
       { year_month: '2026-03', value: 100, cost: 100 },
+    ])
+  })
+
+  it('does not crater the line at a matured position’s 0-close month (#24)', () => {
+    // The TD-list case the maturity "trick" missed: a lone matured position
+    // must not pull the summed line down to 0 at its termination month. Its
+    // last real value carries through that month, then it leaves the series.
+    const r = aggregateListPositions([
+      pos({
+        id: 'matured-td',
+        status: 'matured',
+        terminated_at: '2026-03-10T00:00:00Z',
+        latestValue: 0,
+        cost: 0,
+        snapshots: [
+          { year_month: '2026-01', amount: '1000' },
+          { year_month: '2026-02', amount: '1000' },
+          { year_month: '2026-03', amount: '0' }, // #25 close snapshot
+        ],
+        costSeries: [
+          { year_month: '2026-01', cost: 1000 },
+          { year_month: '2026-02', cost: 1000 },
+          { year_month: '2026-03', cost: 0 },
+        ],
+      }),
+    ])
+    // With the 0-close dropped, the only real snapshots are Jan + Feb, so
+    // the series ends at the last real value — no dip to 0, no phantom March
+    // point. Matches the detail chart, which ends at the last real value and
+    // marks it Matured.
+    expect(r.timeSeriesByCurrency.get('IDR')).toEqual([
+      { year_month: '2026-01', value: 1000, cost: 1000 },
+      { year_month: '2026-02', value: 1000, cost: 1000 },
     ])
   })
 

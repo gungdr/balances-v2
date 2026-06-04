@@ -165,16 +165,30 @@ function aggregateMonthlyByCategory(
     termMonth: string | null
   }
   const sorted: Sorted[] = positions.map((p) => {
+    const termMonth = p.terminated_at ? monthOf(p.terminated_at) : null
+    // Drop the synthetic 0-value close snapshot (#25) so a matured position's
+    // category share carries its last real value through its termination month
+    // instead of cratering to 0 — parity with the per-position detail chart
+    // and lib/listAggregates. Only a zero close-month snapshot is dropped.
+    const closeMonth =
+      termMonth !== null &&
+      p.snapshots.some(
+        (s) => monthOf(s.year_month) === termMonth && Number(s.amount) === 0,
+      )
+        ? termMonth
+        : null
     const byMonth = new Map<string, number>()
     for (const s of p.snapshots) {
-      byMonth.set(monthOf(s.year_month), Number(s.amount))
+      const m = monthOf(s.year_month)
+      if (m === closeMonth) continue
+      byMonth.set(m, Number(s.amount))
     }
     const months = [...byMonth.keys()].sort()
     return {
       category: p.category,
       months,
       values: months.map((m) => byMonth.get(m)!),
-      termMonth: p.terminated_at ? monthOf(p.terminated_at) : null,
+      termMonth,
     }
   })
 

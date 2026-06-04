@@ -130,7 +130,13 @@ export default function SnapshotChartImpl({
 
   return (
     <ChartContainer config={chartConfig} className="h-64 w-full">
-      <AreaChart data={data} margin={{ left: 0, right: 12, top: 12, bottom: 0 }}>
+      <AreaChart
+        data={data}
+        // Extra top headroom when a maturity/sold marker is drawn — its
+        // label sits above the dot, which often lands at the line's peak
+        // (plot top), so the default 12px margin clips the text vertically.
+        margin={{ left: 0, right: 12, top: marker ? 28 : 12, bottom: 0 }}
+      >
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
         <XAxis
           dataKey="month"
@@ -150,9 +156,29 @@ export default function SnapshotChartImpl({
         <ChartTooltip
           content={
             <ChartTooltipContent
-              formatter={(value) =>
-                formatCurrency(String(value), currency)
-              }
+              // Render a full row per series — colored indicator + series
+              // label + formatted value — so amount vs cost is legible.
+              // (ChartTooltipContent renders *only* the formatter's output
+              // when one is set, dropping its own label/indicator, so the
+              // formatter must supply them itself.)
+              formatter={(value, name) => {
+                const key = String(name)
+                const seriesLabel = (chartConfig as ChartConfig)[key]?.label
+                return (
+                  <div className="flex w-full items-center justify-between gap-3">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <span
+                        className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                        style={{ backgroundColor: `var(--color-${key})` }}
+                      />
+                      {seriesLabel ?? key}
+                    </span>
+                    <span className="font-mono font-medium tabular-nums text-foreground">
+                      {formatCurrency(String(value), currency)}
+                    </span>
+                  </div>
+                )
+              }}
               labelFormatter={(label) => label}
             />
           }
@@ -184,10 +210,16 @@ export default function SnapshotChartImpl({
             fill="var(--color-amount)"
             stroke="var(--background)"
             strokeWidth={1.5}
+            // The dot sits at the rightmost data point, so a default
+            // (middle-anchored) top label is half-clipped by the chart's
+            // right edge. `textAnchor: 'end'` anchors the text at the dot and
+            // extends it leftward, back into the plot, so it stays readable.
             label={{
               value: marker.label,
               position: 'top',
+              textAnchor: 'end',
               fontSize: 11,
+              fontWeight: 500,
               fill: 'var(--muted-foreground)',
             }}
           />

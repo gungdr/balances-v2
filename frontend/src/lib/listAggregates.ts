@@ -142,29 +142,44 @@ function aggregateMonthly(positions: Position[]): TimePoint[] {
     termMonth: string | null
   }
   const sorted: Sorted[] = positions.map((p) => {
+    const termMonth = p.terminated_at ? monthOf(p.terminated_at) : null
+    // A closed position carries a synthetic 0-value close snapshot at its
+    // termination month (#25). The per-position detail chart drops it via its
+    // `status` prop; the aggregate has no status, so leaving it in craters the
+    // summed line to 0 at the maturity month — the same "lost all its value"
+    // misread #25 set out to kill, just on the list/home graph instead of the
+    // detail one. Drop the 0-close here too so the position's last real value
+    // carries through its termination month, then the cap below removes it the
+    // month after. Only a *zero* close-month snapshot is dropped, so a position
+    // whose genuine final value lands in its termination month is untouched.
+    const closeMonth =
+      termMonth !== null &&
+      p.snapshots.some(
+        (s) => monthOf(s.year_month) === termMonth && Number(s.amount) === 0,
+      )
+        ? termMonth
+        : null
     // Build {month → (value, cost)} so snapshot + cost lookups merge by
     // month even if the input arrays are in different orders.
     const byMonth = new Map<string, { value: number; cost: number }>()
     for (const s of p.snapshots) {
-      byMonth.set(monthOf(s.year_month), {
-        value: Number(s.amount),
-        cost: 0,
-      })
+      const m = monthOf(s.year_month)
+      if (m === closeMonth) continue
+      byMonth.set(m, { value: Number(s.amount), cost: 0 })
     }
     for (const c of p.costSeries) {
-      const entry = byMonth.get(monthOf(c.year_month)) ?? {
-        value: 0,
-        cost: 0,
-      }
+      const m = monthOf(c.year_month)
+      if (m === closeMonth) continue
+      const entry = byMonth.get(m) ?? { value: 0, cost: 0 }
       entry.cost = c.cost
-      byMonth.set(monthOf(c.year_month), entry)
+      byMonth.set(m, entry)
     }
     const months = [...byMonth.keys()].sort()
     return {
       months,
       values: months.map((m) => byMonth.get(m)!.value),
       costs: months.map((m) => byMonth.get(m)!.cost),
-      termMonth: p.terminated_at ? monthOf(p.terminated_at) : null,
+      termMonth,
     }
   })
 

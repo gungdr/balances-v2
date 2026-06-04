@@ -2055,11 +2055,33 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     per-position detail charts, the list-screen `ListTimeGraph`, the home
     `CategoryStackChart`, and the dashboard net-worth chart (already continuous
     from the backend materialized report, unaffected).
+  - **Matured positions no longer crater the aggregate.** The maturity "trick"
+    (drop the synthetic 0-value close snapshot, #25) lived only on the
+    per-position detail chart via its `status` prop; the list/home aggregates
+    had no status, so the 0-close leaked into the summed line and dipped it to
+    0 at the termination month — visible on the TD-list time graph when a TD
+    matured. Both aggregators (`aggregateMonthly`, `aggregateMonthlyByCategory`)
+    now drop the *zero* close-month snapshot for a closed position, so its last
+    real value carries through its termination month, then the existing #21 cap
+    removes it the month after. A position whose genuine final value lands in
+    its termination month (non-zero) is untouched.
+  - **Readable maturity marker + labelled tooltip.** Two `SnapshotChartImpl`
+    fixes surfaced while verifying the above. The Sold/Matured `ReferenceDot`
+    label sat at the rightmost data point with a default middle anchor, so the
+    text was clipped by the chart's right edge (and, at the line's peak, the
+    top edge): now `textAnchor: 'end'` extends it leftward into the plot and a
+    `marker ? 28 : 12` top margin gives it vertical headroom. The tooltip
+    showed bare numbers with no series name — `ChartTooltipContent` renders
+    *only* the `formatter` output when one is set, dropping its own label +
+    indicator, and the formatter returned just the formatted currency. It now
+    returns a full row (colored square + "Value"/"Cost" label + formatted
+    amount), so the two lines are distinguishable on hover.
   - **Tests.** New `months.test.ts` (single month, consecutive, gap-fill,
     year crossing, API shape, reversed/malformed bounds). A gap-fill regression
     in `listAggregates.test.ts`: Jan+Apr snapshots → Feb/Mar carried forward.
-    Existing series tests unchanged (their months were already consecutive).
-    All green (vitest 172/172, build + ESLint 0 errors).
+    The #21 closed-position test updated (termination month now carries the
+    last real value, not the 0-close) + a lone-matured-position no-crater case.
+    All green (vitest 173/173, build + ESLint 0 errors).
 
 ## What M4.2 shipped
 

@@ -366,7 +366,14 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
   - Value-over-time graphs never skip months (issue #24): all monthly series
     now walk a continuous `monthRange` (`lib/months.ts`) with carry-forward,
     so gap months stay on the categorical X axis and the timeline reads
-    proportionally instead of collapsing unequal gaps to equal spacing.
+    proportionally instead of collapsing unequal gaps to equal spacing. Both
+    list/home aggregators also drop a matured position's 0-value close
+    snapshot (#25) so the summed line carries its last real value through the
+    termination month instead of cratering to 0 — the detail-chart maturity
+    trick, now on the aggregate graphs too. Plus two chart-readability fixes:
+    the Sold/Matured marker label no longer clips off the chart edges
+    (`textAnchor: 'end'` + top headroom), and the tooltip labels each line
+    ("Value"/"Cost") instead of showing bare numbers.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
