@@ -13,7 +13,7 @@ test('income create → edit → delete round-trip', async ({ page }) => {
   await page.goto('/income')
 
   // --- Create ---
-  await page.getByRole('button', { name: '+ New income' }).first().click()
+  await page.getByRole('button', { name: 'New income' }).first().click()
   const createDialog = page.getByRole('dialog')
   await expect(createDialog.getByText('New income')).toBeVisible()
   await createDialog.getByLabel('Amount').fill('15000000')

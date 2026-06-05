@@ -2281,6 +2281,35 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
   - **Verified.** Backend suite green (real Postgres round-trip via the handler
     harness); `tsc` clean, eslint 0 errors, vite build green, vitest 182/182.
 
+- **Position-control buttons: relocate + tighten (issue #31).** Two passes, frontend-only.
+  - **Relocation (#31).** The per-position **Add Snapshot** + **Import** controls moved off the
+    detail-screen top-right action cluster into the **snapshots-card header** (right-aligned),
+    mirroring the transactions card that already hosted its create buttons there. Top-right now
+    carries only Help / Edit / Close / Delete. Applied to all 10 detail screens (bank account,
+    property, vehicle, liability, receivable + stock, mutual fund, gold, bond, time deposit);
+    `isActiveStatus` gating preserved. Guided-tour steps repointed: the `actions` step (now
+    spotlighting the management buttons) rewritten to "Manage this position" (Edit / Close /
+    Delete), and the `snapshots` step body folded in the add/import guidance it gained — 10
+    subtypes × EN/ID.
+  - **Terser labels + icons (follow-on).** Every create/manage button shortened and given a lucide
+    icon (matching `HelpTourButton`'s `mr-1 size-4` pattern): snapshot `+ New snapshot` → **New**
+    (`Plus`), `Import from spreadsheet` → **Import** (`Upload`), terminate `Close position` →
+    **Close** / `Edit status` → **Status** (`Archive`), detail-screen **Edit** (`Pencil`) /
+    **Delete** (`Trash2`); the literal `+ ` prefix dropped from all 7 transaction triggers (uniform
+    `Plus`) and all 11 list-screen create buttons (noun kept, e.g. **New bank account**). Both
+    locales. Icons render as `<svg>` with no accessible name, so role-name lookups are unaffected.
+  - **Copy alignment.** Tour `actionsBody`/`snapshotsBody` and the per-group `snapshotsEmpty`
+    empty-state copy that *name* the buttons repointed to the new labels (`“New”` / `“Import”` /
+    `“Close”`; ID `“Baru”` / `“Impor”` / `“Tutup”`), EN+ID. Terminate dialog headings
+    (`closeTitle`/`editTitle`) left descriptive — they're modal titles, not button references.
+  - **E2E.** 12 specs' role-name selectors updated to the new labels; the two generic terminate
+    names made `exact` to dodge Radix Dialog's `aria-label="Close"`. Surfaced a pre-existing gap:
+    `bond-snapshot.spec` never filled the **Placement date** field that issue #27 made `required` on
+    bond create, so `Create` silently no-op'd — Playwright isn't in CI (go test + lint + build
+    only), so it went unnoticed since #27. Added the missing fill.
+  - **Verified.** `tsc` clean, eslint 0 errors, vite build green, vitest 182/182, Playwright 16/16.
+    ~54 files; backend untouched.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

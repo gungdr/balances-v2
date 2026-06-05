@@ -13,7 +13,7 @@ test('stock dividend + fee transactions land on the ledger', async ({ page }) =>
   await page.goto('/investments/stocks')
 
   // --- Create the stock position ---
-  await page.getByRole('button', { name: '+ New stock' }).first().click()
+  await page.getByRole('button', { name: 'New stock' }).first().click()
   const createDialog = page.getByRole('dialog')
   await expect(createDialog.getByText('New stock position')).toBeVisible()
   await createDialog.getByLabel('Display name').fill(name)
@@ -27,7 +27,7 @@ test('stock dividend + fee transactions land on the ledger', async ({ page }) =>
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible()
 
   // --- Record a Dividend (CashIncome shape — amount only) ---
-  await page.getByRole('button', { name: '+ Dividend' }).click()
+  await page.getByRole('button', { name: 'Dividend' }).click()
   const divDialog = page.getByRole('dialog')
   await expect(
     divDialog.getByRole('heading', { name: 'Record Dividend' }),
@@ -37,7 +37,7 @@ test('stock dividend + fee transactions land on the ledger', async ({ page }) =>
   await expect(page.getByRole('row', { name: /Dividend/ })).toBeVisible()
 
   // --- Record a Fee (pure-cash variant — quantity/price left blank) ---
-  await page.getByRole('button', { name: '+ Fee' }).click()
+  await page.getByRole('button', { name: 'Fee' }).click()
   const feeDialog = page.getByRole('dialog')
   await expect(
     feeDialog.getByRole('heading', { name: 'Record Fee' }),

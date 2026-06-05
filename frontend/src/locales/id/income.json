@@ -51,7 +51,7 @@
     "description": "Deskripsi",
     "ownership": "Kepemilikan"
   },
-  "createTrigger": "+ Pemasukan baru",
+  "createTrigger": "Pemasukan baru",
   "createTitle": "Pemasukan baru",
   "createDescription": "Catat uang yang masuk ke rumah tangga Anda — gaji, hadiah, pengembalian, klaim.",
   "duplicateTitle": "Duplikat pemasukan",

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
@@ -97,6 +98,7 @@ export function CreateCashIncomeTransactionDialog<TResult>({
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
+          <Plus className="mr-1 size-4" />
           {t(TRIGGER_KEYS[txnType])}
         </Button>
       </DialogTrigger>

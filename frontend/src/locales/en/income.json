@@ -51,7 +51,7 @@
     "description": "Description",
     "ownership": "Ownership"
   },
-  "createTrigger": "+ New income",
+  "createTrigger": "New income",
   "createTitle": "New income",
   "createDescription": "Record earned cash entering your household — salary, gifts, refunds, payouts.",
   "duplicateTitle": "Duplicate income",

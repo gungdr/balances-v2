@@ -18,7 +18,7 @@ test('time deposit maturity flips status to matured and gates the row', async ({
   await page.goto('/investments/time-deposits')
 
   // --- Create (term + placement auto-derive maturity; set it explicitly too) ---
-  await page.getByRole('button', { name: '+ New time deposit' }).first().click()
+  await page.getByRole('button', { name: 'New time deposit' }).first().click()
   const createDialog = page.getByRole('dialog')
   await expect(createDialog.getByText('New time deposit')).toBeVisible()
   await createDialog.getByLabel('Display name').fill(name)
@@ -39,10 +39,10 @@ test('time deposit maturity flips status to matured and gates the row', async ({
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible()
   // Active position: badge muted-active, Maturity entry available.
   await expect(statusBadge).toHaveText('Active')
-  await expect(page.getByRole('button', { name: '+ Maturity' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Maturity' })).toBeVisible()
 
   // --- Record Maturity (no_rollover default → both dispositions cash out) ---
-  await page.getByRole('button', { name: '+ Maturity' }).click()
+  await page.getByRole('button', { name: 'Maturity' }).click()
   const matDialog = page.getByRole('dialog')
   await expect(
     matDialog.getByRole('heading', { name: 'Record Maturity' }),
@@ -54,7 +54,7 @@ test('time deposit maturity flips status to matured and gates the row', async ({
   // Status flips to Matured; the Maturity row lands; the create button is gated.
   await expect(statusBadge).toHaveText('Matured')
   await expect(page.getByRole('row', { name: /Maturity/ })).toBeVisible()
-  await expect(page.getByRole('button', { name: '+ Maturity' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Maturity' })).toHaveCount(0)
 
   // --- Delete (cleanup — returns to the list, leaving it empty) ---
   await page.getByRole('button', { name: 'Delete' }).click()

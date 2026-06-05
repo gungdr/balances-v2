@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
@@ -158,20 +159,8 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
         </div>
         <div data-testid="tour-actions" className="flex gap-2">
           <HelpTourButton steps={tourSteps} />
-          {isActiveStatus(liability.status) && (
-            <>
-              <CreateSnapshotDialog
-                currency={liability.native_currency}
-                mutation={createSnapshotMutation}
-              />
-              <ImportSnapshotsDialog
-                templateUrl={liabilityImportTemplateUrl(liability.id)}
-                mutation={importSnapshotMutation}
-                currency={liability.native_currency}
-              />
-            </>
-          )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+            <Pencil className="mr-1 size-4" />
             {t('common:actions.edit')}
           </Button>
           <TerminatePositionDialog
@@ -187,6 +176,7 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
             size="sm"
             onClick={() => setDeleteOpen(true)}
           >
+            <Trash2 className="mr-1 size-4" />
             {t('common:delete')}
           </Button>
         </div>
@@ -277,10 +267,27 @@ export function LiabilityDetail({ liabilityId, onBack }: Props) {
 
       <Card data-testid="tour-snapshots">
         <CardHeader>
-          <CardTitle>{t('liabilities:snapshotsTitle')}</CardTitle>
-          <CardDescription>
-            {t('liabilities:snapshotsDescription')}
-          </CardDescription>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <CardTitle>{t('liabilities:snapshotsTitle')}</CardTitle>
+              <CardDescription>
+                {t('liabilities:snapshotsDescription')}
+              </CardDescription>
+            </div>
+            {isActiveStatus(liability.status) && (
+              <div className="flex flex-wrap gap-2">
+                <CreateSnapshotDialog
+                  currency={liability.native_currency}
+                  mutation={createSnapshotMutation}
+                />
+                <ImportSnapshotsDialog
+                  templateUrl={liabilityImportTemplateUrl(liability.id)}
+                  mutation={importSnapshotMutation}
+                  currency={liability.native_currency}
+                />
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {!snapshots || snapshots.length === 0 ? (

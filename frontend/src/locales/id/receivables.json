@@ -11,7 +11,7 @@
   "deleteRowDescription": "{{name}} akan disembunyikan dari daftar dan laporan. Bisa dipulihkan via database, belum via UI.",
   "deleteDetailDescription": "Snapshot dan riwayat akan disembunyikan. Bisa dipulihkan via database, belum via UI.",
   "sortLatestBalance": "Saldo terkini",
-  "createTrigger": "+ Piutang baru",
+  "createTrigger": "Piutang baru",
   "createTitle": "Piutang baru",
   "createDescription": "Lacak uang yang terutang kepada rumah tangga Anda — pinjaman yang Anda berikan, simpanan yang harus dikembalikan, pengembalian dana dalam proses.",
   "editTitle": "Ubah piutang",
@@ -24,7 +24,7 @@
   "chartDescription": "Perkembangan saldo bulanan dalam {{currency}}.",
   "snapshotsTitle": "Snapshot",
   "snapshotsDescription": "Bacaan saldo terutang bulanan (input manual).",
-  "snapshotsEmpty": "Belum ada snapshot. Klik \"Snapshot baru\" untuk mencatat saldo terutang bulan ini.",
+  "snapshotsEmpty": "Belum ada snapshot. Klik \"Baru\" untuk mencatat saldo terutang bulan ini.",
   "fields": {
     "counterparty": "Pihak lawan",
     "dueDate": "Tanggal jatuh tempo (opsional)"
@@ -37,13 +37,13 @@
   "tour": {
     "overviewTitle": "Sekilas tentang piutang Anda",
     "overviewBody": "Lacak uang yang terutang kepada Anda dari waktu ke waktu — ini dihitung sebagai kekayaan bersih hingga dilunasi.",
-    "actionsTitle": "Perbarui saldonya",
-    "actionsBody": "Ketuk “+ Snapshot baru” untuk mencatat jumlah terutang bulan ini, atau “Impor dari spreadsheet” untuk beberapa bulan sekaligus.",
+    "actionsTitle": "Kelola posisi ini",
+    "actionsBody": "Gunakan “Ubah” untuk mengubah detailnya, “Tutup” untuk menandainya berakhir — setelah itu tidak lagi dihitung dalam kekayaan bersih Anda — atau “Hapus” untuk menghapusnya sepenuhnya.",
     "detailsTitle": "Detail piutang",
     "detailsBody": "Pihak lawan dan tanggal jatuh tempo ditetapkan saat Anda menambahkannya. Gunakan “Ubah” untuk mengubahnya.",
     "chartTitle": "Terutang sepanjang waktu",
     "chartBody": "Setiap titik adalah jumlah terutang satu bulan, sehingga Anda bisa melihatnya dilunasi.",
     "snapshotsTitle": "Jumlah terutang",
-    "snapshotsBody": "Setiap baris adalah jumlah yang terutang kepada Anda satu bulan. Tambahkan snapshot setiap kali Anda menerima pelunasan."
+    "snapshotsBody": "Setiap baris adalah jumlah yang terutang kepada Anda satu bulan. Ketuk “Baru” untuk mencatat jumlah terutang bulan ini, atau “Impor” untuk beberapa bulan sekaligus."
   }
 }

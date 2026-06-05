@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { Upload } from 'lucide-react'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { useTranslation, Trans } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -67,6 +68,7 @@ export function ImportSnapshotsDialog({ templateUrl, mutation, currency }: Props
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline" data-testid="import-snapshots-trigger">
+          <Upload className="mr-1 size-4" />
           {t('import.trigger')}
         </Button>
       </DialogTrigger>

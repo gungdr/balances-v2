@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Archive } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
@@ -100,6 +101,7 @@ export function TerminatePositionDialog({
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
+          <Archive className="mr-1 size-4" />
           {wasActive ? t('terminate.closeTrigger') : t('terminate.editTrigger')}
         </Button>
       </DialogTrigger>

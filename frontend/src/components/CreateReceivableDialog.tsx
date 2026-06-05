@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -65,7 +66,10 @@ export function CreateReceivableDialog() {
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
-        <Button>{t('receivables:createTrigger')}</Button>
+        <Button>
+          <Plus className="mr-1 size-4" />
+          {t('receivables:createTrigger')}
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

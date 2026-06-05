@@ -18,7 +18,7 @@ test('bank account lifecycle: close → reopen → delete', async ({ page }) => 
   await page.goto('/assets/bank-accounts')
 
   // --- Create (minimal required fields; currency/type/ownership default) ---
-  await page.getByRole('button', { name: '+ New bank account' }).first().click()
+  await page.getByRole('button', { name: 'New bank account' }).first().click()
   const createDialog = page.getByRole('dialog')
   await expect(createDialog.getByText('New bank account')).toBeVisible()
   await createDialog.getByLabel('Display name').fill(name)
@@ -37,11 +37,11 @@ test('bank account lifecycle: close → reopen → delete', async ({ page }) => 
   // Active position: badge muted-active, snapshot entry available.
   await expect(statusBadge).toHaveText('Active')
   await expect(
-    page.getByRole('button', { name: '+ New snapshot' }),
+    page.getByRole('button', { name: 'New' }),
   ).toBeVisible()
 
   // --- Close (active → closed; date auto-fills today, note optional) ---
-  await page.getByRole('button', { name: 'Close position' }).click()
+  await page.getByRole('button', { name: 'Close', exact: true }).click()
   const closeDialog = page.getByRole('dialog')
   await expect(closeDialog.getByText('Close position')).toBeVisible()
   await closeDialog.getByLabel('Status').selectOption('closed')
@@ -51,11 +51,11 @@ test('bank account lifecycle: close → reopen → delete', async ({ page }) => 
   // Badge flips to Closed; snapshot entry is gated off on a terminated position.
   await expect(statusBadge).toHaveText('Closed')
   await expect(
-    page.getByRole('button', { name: '+ New snapshot' }),
+    page.getByRole('button', { name: 'New' }),
   ).toHaveCount(0)
 
   // --- Reopen (closed → active correction; biconditional clears the date) ---
-  await page.getByRole('button', { name: 'Edit status' }).click()
+  await page.getByRole('button', { name: 'Status', exact: true }).click()
   const reopenDialog = page.getByRole('dialog')
   await expect(reopenDialog.getByText('Edit lifecycle status')).toBeVisible()
   await reopenDialog.getByLabel('Status').selectOption('active')
@@ -63,7 +63,7 @@ test('bank account lifecycle: close → reopen → delete', async ({ page }) => 
 
   await expect(statusBadge).toHaveText('Active')
   await expect(
-    page.getByRole('button', { name: '+ New snapshot' }),
+    page.getByRole('button', { name: 'New' }),
   ).toBeVisible()
 
   // --- Delete (cleanup — returns to the list, leaving it empty) ---

@@ -410,6 +410,13 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     `MutualFundTypeSelect` in Create/Edit dialogs; list row shows the type as a muted chip in the
     Name column. EN/ID `mutualFund.fundType.{option,short}` populated. Syariah/ESG kept orthogonal
     (a future flag, never a fund_type value).
+  - Position-control buttons (issue #31): per-position Add Snapshot + Import moved from the
+    detail-screen top-right into the snapshots-card header (mirrors the transactions card). A
+    follow-on pass tightened every create/manage button across all detail + list screens — terser
+    labels (`New`/`Import`/`Close`/`Status`, literal `+ ` dropped) + lucide icons (Plus/Upload/
+    Pencil/Trash2/Archive) — with tour + `snapshotsEmpty` copy and e2e selectors repointed, both
+    locales. Also fixed a pre-existing `bond-snapshot.spec` gap (unfilled required `placement_date`
+    since #27; Playwright isn't in CI). Frontend-only.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

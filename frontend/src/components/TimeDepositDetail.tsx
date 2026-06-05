@@ -56,7 +56,7 @@ import { ownershipLabel } from '@/lib/ownership'
 import { matchesTxnSearch } from '@/lib/transactionSearch'
 import { maturityRolloverPrefill } from '@/lib/rollover'
 import { flatCostSeries } from '@/lib/costBasis'
-import { ArrowDown, ArrowUp, Repeat } from 'lucide-react'
+import { ArrowDown, ArrowUp, Pencil, Repeat, Trash2 } from 'lucide-react'
 import { InvestmentHeadline } from '@/components/InvestmentHeadline'
 
 type Props = {
@@ -240,20 +240,8 @@ export function TimeDepositDetail({
         </div>
         <div data-testid="tour-actions" className="flex gap-2">
           <HelpTourButton steps={tourSteps} />
-          {isActiveStatus(td.investment.status) && (
-            <>
-              <CreateAccruedInterestSnapshotDialog
-                currency={td.investment.native_currency}
-                mutation={createSnapshotMutation}
-              />
-              <ImportSnapshotsDialog
-                templateUrl={investmentImportTemplateUrl(td.investment.id)}
-                mutation={importSnapshotMutation}
-                currency={td.investment.native_currency}
-              />
-            </>
-          )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+            <Pencil className="mr-1 size-4" />
             {t('common:actions.edit')}
           </Button>
           <TerminatePositionDialog
@@ -269,6 +257,7 @@ export function TimeDepositDetail({
             size="sm"
             onClick={() => setDeleteOpen(true)}
           >
+            <Trash2 className="mr-1 size-4" />
             {t('common:delete')}
           </Button>
         </div>
@@ -438,10 +427,27 @@ export function TimeDepositDetail({
 
       <Card data-testid="tour-snapshots">
         <CardHeader>
-          <CardTitle>{t('investments:snapshotsCard.title')}</CardTitle>
-          <CardDescription>
-            {t('investments:timeDeposit.snapshotsDescription')}
-          </CardDescription>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <CardTitle>{t('investments:snapshotsCard.title')}</CardTitle>
+              <CardDescription>
+                {t('investments:timeDeposit.snapshotsDescription')}
+              </CardDescription>
+            </div>
+            {isActiveStatus(td.investment.status) && (
+              <div className="flex flex-wrap gap-2">
+                <CreateAccruedInterestSnapshotDialog
+                  currency={td.investment.native_currency}
+                  mutation={createSnapshotMutation}
+                />
+                <ImportSnapshotsDialog
+                  templateUrl={investmentImportTemplateUrl(td.investment.id)}
+                  mutation={importSnapshotMutation}
+                  currency={td.investment.native_currency}
+                />
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {!snapshots || snapshots.length === 0 ? (

@@ -12,7 +12,7 @@
     "deleteRowDescription": "{{name}} will be hidden from lists and reports. This can be undone via the database, not yet via the UI.",
     "deleteDetailDescription": "Snapshots and history will be hidden. This can be undone via the database, not yet via the UI.",
     "sortLatestBalance": "Latest balance",
-    "createTrigger": "+ New bank account",
+    "createTrigger": "New bank account",
     "createTitle": "New bank account",
     "createDescription": "Track a bank account in your household. You'll record monthly balance snapshots from your bank statements afterwards.",
     "editTitle": "Edit bank account",
@@ -24,7 +24,7 @@
     "chartDescription": "Monthly balance progression in {{currency}}.",
     "snapshotsTitle": "Snapshots",
     "snapshotsDescription": "Monthly balance readings from your bank statements.",
-    "snapshotsEmpty": "No snapshots yet. Click \"New snapshot\" to record this month's balance.",
+    "snapshotsEmpty": "No snapshots yet. Click \"New\" to record this month's balance.",
     "fields": {
       "bankName": "Bank name",
       "accountNumber": "Account number",
@@ -43,14 +43,14 @@
     "tour": {
       "overviewTitle": "Your account at a glance",
       "overviewBody": "Track this account's balance over time — record it each month to keep your net worth current.",
-      "actionsTitle": "Keep its balance current",
-      "actionsBody": "Tap “+ New snapshot” to record this month's balance, or “Import from spreadsheet” to add several months at once.",
+      "actionsTitle": "Manage this position",
+      "actionsBody": "Use “Edit” to change its details, “Close” to mark it ended — it then stops counting toward your net worth — or “Delete” to remove it entirely.",
       "detailsTitle": "The account's details",
       "detailsBody": "Bank, account type, and owner were set when you added the account. Use “Edit” to change them.",
       "chartTitle": "Balance over time",
       "chartBody": "Each point is a month's recorded balance, so you can see the trend at a glance.",
       "snapshotsTitle": "Monthly balances",
-      "snapshotsBody": "Each row is one month's balance. Add a snapshot whenever you check your statement."
+      "snapshotsBody": "Each row is one month's balance. Tap “New” to record this month's, or “Import” to add several at once."
     }
   },
   "property": {
@@ -66,7 +66,7 @@
     "deleteRowDescription": "{{name}} will be hidden from lists and reports. This can be undone via the database, not yet via the UI.",
     "deleteDetailDescription": "Snapshots and history will be hidden. This can be undone via the database, not yet via the UI.",
     "sortLatestValuation": "Latest valuation",
-    "createTrigger": "+ New property",
+    "createTrigger": "New property",
     "createTitle": "New property",
     "createDescription": "Track a property in your household. You'll record monthly value snapshots manually; an amortization rate helper UI will arrive later.",
     "editTitle": "Edit property",
@@ -81,7 +81,7 @@
     "chartDescription": "Monthly valuation progression in {{currency}}.",
     "snapshotsTitle": "Snapshots",
     "snapshotsDescription": "Monthly valuation readings (manual entry).",
-    "snapshotsEmpty": "No snapshots yet. Click \"New snapshot\" to record this month's valuation.",
+    "snapshotsEmpty": "No snapshots yet. Click \"New\" to record this month's valuation.",
     "fields": {
       "type": "Type",
       "address": "Address (optional)",
@@ -108,14 +108,14 @@
     "tour": {
       "overviewTitle": "Your property at a glance",
       "overviewBody": "Track this property's value over time — update it as the market moves.",
-      "actionsTitle": "Keep its value current",
-      "actionsBody": "Tap “+ New snapshot” to record its current value, or “Import from spreadsheet” for several months. The appreciation-rate helper can suggest a value.",
+      "actionsTitle": "Manage this position",
+      "actionsBody": "Use “Edit” to change its details, “Close” to mark it ended — it then stops counting toward your net worth — or “Delete” to remove it entirely.",
       "detailsTitle": "The property's details",
       "detailsBody": "Type, address, and acquisition details were set when you added it. The appreciation rate is a helper for estimating new values. Use “Edit” to change them.",
       "chartTitle": "Value over time",
       "chartBody": "Each point is a month's recorded value, showing how the property has appreciated.",
       "snapshotsTitle": "Recorded values",
-      "snapshotsBody": "Each row is one month's value. Update it whenever you revalue the property."
+      "snapshotsBody": "Each row is one month's value. Tap “New” to record the current value — the appreciation-rate helper can suggest one — or “Import” for several months."
     }
   },
   "vehicle": {
@@ -131,7 +131,7 @@
     "deleteRowDescription": "{{name}} will be hidden from lists and reports. This can be undone via the database, not yet via the UI.",
     "deleteDetailDescription": "Snapshots and history will be hidden. This can be undone via the database, not yet via the UI.",
     "sortLatestValuation": "Latest valuation",
-    "createTrigger": "+ New vehicle",
+    "createTrigger": "New vehicle",
     "createTitle": "New vehicle",
     "createDescription": "Track a vehicle in your household. You'll record monthly value snapshots manually; a depreciation rate helper UI will arrive later.",
     "editTitle": "Edit vehicle",
@@ -144,7 +144,7 @@
     "chartDescription": "Monthly valuation progression in {{currency}}.",
     "snapshotsTitle": "Snapshots",
     "snapshotsDescription": "Monthly valuation readings (manual entry).",
-    "snapshotsEmpty": "No snapshots yet. Click \"New snapshot\" to record this month's valuation.",
+    "snapshotsEmpty": "No snapshots yet. Click \"New\" to record this month's valuation.",
     "fields": {
       "type": "Type",
       "make": "Make (optional)",
@@ -174,14 +174,14 @@
     "tour": {
       "overviewTitle": "Your vehicle at a glance",
       "overviewBody": "Track this vehicle's value over time — it usually declines as it ages.",
-      "actionsTitle": "Keep its value current",
-      "actionsBody": "Tap “+ New snapshot” to record its current value, or “Import from spreadsheet” for several months. The depreciation-rate helper can suggest a value.",
+      "actionsTitle": "Manage this position",
+      "actionsBody": "Use “Edit” to change its details, “Close” to mark it ended — it then stops counting toward your net worth — or “Delete” to remove it entirely.",
       "detailsTitle": "The vehicle's details",
       "detailsBody": "Type and acquisition details were set when you added it. The depreciation rate is a helper for estimating new values. Use “Edit” to change them.",
       "chartTitle": "Value over time",
       "chartBody": "Each point is a month's recorded value, showing how the vehicle has depreciated.",
       "snapshotsTitle": "Recorded values",
-      "snapshotsBody": "Each row is one month's value. Update it whenever you revalue the vehicle."
+      "snapshotsBody": "Each row is one month's value. Tap “New” to record the current value — the depreciation-rate helper can suggest one — or “Import” for several months."
     }
   }
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -209,20 +210,8 @@ export function GoldDetail({ investmentId, onBack }: Props) {
         </div>
         <div data-testid="tour-actions" className="flex gap-2">
           <HelpTourButton steps={tourSteps} />
-          {isActiveStatus(gold.investment.status) && (
-            <>
-              <CreateQuantityPriceSnapshotDialog
-                currency={gold.investment.native_currency}
-                mutation={createSnapshotMutation}
-              />
-              <ImportSnapshotsDialog
-                templateUrl={investmentImportTemplateUrl(gold.investment.id)}
-                mutation={importSnapshotMutation}
-                currency={gold.investment.native_currency}
-              />
-            </>
-          )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+            <Pencil className="mr-1 size-4" />
             {t('common:actions.edit')}
           </Button>
           <TerminatePositionDialog
@@ -238,6 +227,7 @@ export function GoldDetail({ investmentId, onBack }: Props) {
             size="sm"
             onClick={() => setDeleteOpen(true)}
           >
+            <Trash2 className="mr-1 size-4" />
             {t('common:delete')}
           </Button>
         </div>
@@ -289,10 +279,27 @@ export function GoldDetail({ investmentId, onBack }: Props) {
 
       <Card data-testid="tour-snapshots">
         <CardHeader>
-          <CardTitle>{t('investments:snapshotsCard.title')}</CardTitle>
-          <CardDescription>
-            {t('investments:gold.snapshotsDescription')}
-          </CardDescription>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <CardTitle>{t('investments:snapshotsCard.title')}</CardTitle>
+              <CardDescription>
+                {t('investments:gold.snapshotsDescription')}
+              </CardDescription>
+            </div>
+            {isActiveStatus(gold.investment.status) && (
+              <div className="flex flex-wrap gap-2">
+                <CreateQuantityPriceSnapshotDialog
+                  currency={gold.investment.native_currency}
+                  mutation={createSnapshotMutation}
+                />
+                <ImportSnapshotsDialog
+                  templateUrl={investmentImportTemplateUrl(gold.investment.id)}
+                  mutation={importSnapshotMutation}
+                  currency={gold.investment.native_currency}
+                />
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {!snapshots || snapshots.length === 0 ? (

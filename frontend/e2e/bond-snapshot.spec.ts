@@ -14,7 +14,7 @@ test('bond accrued-interest snapshot create → delete', async ({ page }) => {
   await page.goto('/investments/bonds')
 
   // --- Create the bond position ---
-  await page.getByRole('button', { name: '+ New bond' }).first().click()
+  await page.getByRole('button', { name: 'New bond' }).first().click()
   const createDialog = page.getByRole('dialog')
   await expect(createDialog.getByText('New bond position')).toBeVisible()
   await createDialog.getByLabel('Display name').fill(name)
@@ -22,6 +22,7 @@ test('bond accrued-interest snapshot create → delete', async ({ page }) => {
   await createDialog.getByLabel('Face value').fill('1000000')
   await createDialog.getByLabel('Coupon rate (% per year)').fill('6.5')
   await createDialog.getByLabel('Maturity date').fill('2030-01-01')
+  await createDialog.getByLabel('Placement date').fill('2024-01-01')
   await createDialog.getByLabel('Risk profile').selectOption('medium')
   await createDialog.getByRole('button', { name: 'Create' }).click()
 
@@ -30,7 +31,7 @@ test('bond accrued-interest snapshot create → delete', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible()
 
   // --- Record an accrued-interest snapshot (total value + accrued) ---
-  await page.getByRole('button', { name: '+ New snapshot' }).click()
+  await page.getByRole('button', { name: 'New' }).click()
   const snapDialog = page.getByRole('dialog')
   await expect(snapDialog.getByText('Record monthly snapshot')).toBeVisible()
   await snapDialog.getByLabel('Total value (IDR)').fill('1010000')

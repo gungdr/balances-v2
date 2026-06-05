@@ -12,7 +12,7 @@
     "deleteRowDescription": "{{name}} akan disembunyikan dari daftar dan laporan. Bisa dipulihkan via database, belum via UI.",
     "deleteDetailDescription": "Snapshot dan riwayat akan disembunyikan. Bisa dipulihkan via database, belum via UI.",
     "sortLatestBalance": "Saldo terkini",
-    "createTrigger": "+ Rekening bank baru",
+    "createTrigger": "Rekening bank baru",
     "createTitle": "Rekening bank baru",
     "createDescription": "Lacak satu rekening bank di rumah tangga Anda. Anda akan mencatat snapshot saldo bulanan dari rekening koran setelahnya.",
     "editTitle": "Ubah rekening bank",
@@ -24,7 +24,7 @@
     "chartDescription": "Perkembangan saldo bulanan dalam {{currency}}.",
     "snapshotsTitle": "Snapshot",
     "snapshotsDescription": "Bacaan saldo bulanan dari rekening koran Anda.",
-    "snapshotsEmpty": "Belum ada snapshot. Klik \"Snapshot baru\" untuk mencatat saldo bulan ini.",
+    "snapshotsEmpty": "Belum ada snapshot. Klik \"Baru\" untuk mencatat saldo bulan ini.",
     "fields": {
       "bankName": "Nama bank",
       "accountNumber": "Nomor rekening",
@@ -43,14 +43,14 @@
     "tour": {
       "overviewTitle": "Sekilas tentang rekening Anda",
       "overviewBody": "Lacak saldo rekening ini dari waktu ke waktu — catat tiap bulan agar kekayaan bersih Anda selalu terkini.",
-      "actionsTitle": "Perbarui saldonya",
-      "actionsBody": "Ketuk “+ Snapshot baru” untuk mencatat saldo bulan ini, atau “Impor dari spreadsheet” untuk menambah beberapa bulan sekaligus.",
+      "actionsTitle": "Kelola posisi ini",
+      "actionsBody": "Gunakan “Ubah” untuk mengubah detailnya, “Tutup” untuk menandainya berakhir — setelah itu tidak lagi dihitung dalam kekayaan bersih Anda — atau “Hapus” untuk menghapusnya sepenuhnya.",
       "detailsTitle": "Detail rekening",
       "detailsBody": "Bank, jenis rekening, dan pemilik ditetapkan saat Anda menambahkannya. Gunakan “Ubah” untuk mengubahnya.",
       "chartTitle": "Saldo sepanjang waktu",
       "chartBody": "Setiap titik adalah saldo satu bulan, sehingga Anda bisa melihat trennya sekilas.",
       "snapshotsTitle": "Saldo bulanan",
-      "snapshotsBody": "Setiap baris adalah saldo satu bulan. Tambahkan snapshot setiap kali Anda memeriksa rekening."
+      "snapshotsBody": "Setiap baris adalah saldo satu bulan. Ketuk “Baru” untuk mencatat saldo bulan ini, atau “Impor” untuk menambah beberapa sekaligus."
     }
   },
   "property": {
@@ -66,7 +66,7 @@
     "deleteRowDescription": "{{name}} akan disembunyikan dari daftar dan laporan. Bisa dipulihkan via database, belum via UI.",
     "deleteDetailDescription": "Snapshot dan riwayat akan disembunyikan. Bisa dipulihkan via database, belum via UI.",
     "sortLatestValuation": "Valuasi terkini",
-    "createTrigger": "+ Properti baru",
+    "createTrigger": "Properti baru",
     "createTitle": "Properti baru",
     "createDescription": "Lacak satu properti di rumah tangga Anda. Anda akan mencatat snapshot nilai bulanan secara manual; helper UI untuk laju amortisasi akan datang menyusul.",
     "editTitle": "Ubah properti",
@@ -81,7 +81,7 @@
     "chartDescription": "Perkembangan valuasi bulanan dalam {{currency}}.",
     "snapshotsTitle": "Snapshot",
     "snapshotsDescription": "Bacaan valuasi bulanan (input manual).",
-    "snapshotsEmpty": "Belum ada snapshot. Klik \"Snapshot baru\" untuk mencatat valuasi bulan ini.",
+    "snapshotsEmpty": "Belum ada snapshot. Klik \"Baru\" untuk mencatat valuasi bulan ini.",
     "fields": {
       "type": "Jenis",
       "address": "Alamat (opsional)",
@@ -108,14 +108,14 @@
     "tour": {
       "overviewTitle": "Sekilas tentang properti Anda",
       "overviewBody": "Lacak nilai properti ini dari waktu ke waktu — perbarui seiring pergerakan pasar.",
-      "actionsTitle": "Perbarui nilainya",
-      "actionsBody": "Ketuk “+ Snapshot baru” untuk mencatat nilainya saat ini, atau “Impor dari spreadsheet” untuk beberapa bulan. Bantuan tingkat apresiasi dapat menyarankan nilainya.",
+      "actionsTitle": "Kelola posisi ini",
+      "actionsBody": "Gunakan “Ubah” untuk mengubah detailnya, “Tutup” untuk menandainya berakhir — setelah itu tidak lagi dihitung dalam kekayaan bersih Anda — atau “Hapus” untuk menghapusnya sepenuhnya.",
       "detailsTitle": "Detail properti",
       "detailsBody": "Jenis, alamat, dan detail perolehan ditetapkan saat Anda menambahkannya. Tingkat apresiasi adalah alat bantu untuk memperkirakan nilai baru. Gunakan “Ubah” untuk mengubahnya.",
       "chartTitle": "Nilai sepanjang waktu",
       "chartBody": "Setiap titik adalah nilai satu bulan, menunjukkan bagaimana properti terapresiasi.",
       "snapshotsTitle": "Nilai tercatat",
-      "snapshotsBody": "Setiap baris adalah nilai satu bulan. Perbarui setiap kali Anda menilai ulang properti."
+      "snapshotsBody": "Setiap baris adalah nilai satu bulan. Ketuk “Baru” untuk mencatat nilai saat ini — bantuan tingkat apresiasi dapat menyarankan nilainya — atau “Impor” untuk beberapa bulan."
     }
   },
   "vehicle": {
@@ -131,7 +131,7 @@
     "deleteRowDescription": "{{name}} akan disembunyikan dari daftar dan laporan. Bisa dipulihkan via database, belum via UI.",
     "deleteDetailDescription": "Snapshot dan riwayat akan disembunyikan. Bisa dipulihkan via database, belum via UI.",
     "sortLatestValuation": "Valuasi terkini",
-    "createTrigger": "+ Kendaraan baru",
+    "createTrigger": "Kendaraan baru",
     "createTitle": "Kendaraan baru",
     "createDescription": "Lacak satu kendaraan di rumah tangga Anda. Anda akan mencatat snapshot nilai bulanan secara manual; helper UI untuk laju penyusutan akan datang menyusul.",
     "editTitle": "Ubah kendaraan",
@@ -144,7 +144,7 @@
     "chartDescription": "Perkembangan valuasi bulanan dalam {{currency}}.",
     "snapshotsTitle": "Snapshot",
     "snapshotsDescription": "Bacaan valuasi bulanan (input manual).",
-    "snapshotsEmpty": "Belum ada snapshot. Klik \"Snapshot baru\" untuk mencatat valuasi bulan ini.",
+    "snapshotsEmpty": "Belum ada snapshot. Klik \"Baru\" untuk mencatat valuasi bulan ini.",
     "fields": {
       "type": "Jenis",
       "make": "Merek (opsional)",
@@ -174,14 +174,14 @@
     "tour": {
       "overviewTitle": "Sekilas tentang kendaraan Anda",
       "overviewBody": "Lacak nilai kendaraan ini dari waktu ke waktu — biasanya menurun seiring usia.",
-      "actionsTitle": "Perbarui nilainya",
-      "actionsBody": "Ketuk “+ Snapshot baru” untuk mencatat nilainya saat ini, atau “Impor dari spreadsheet” untuk beberapa bulan. Bantuan tingkat penyusutan dapat menyarankan nilainya.",
+      "actionsTitle": "Kelola posisi ini",
+      "actionsBody": "Gunakan “Ubah” untuk mengubah detailnya, “Tutup” untuk menandainya berakhir — setelah itu tidak lagi dihitung dalam kekayaan bersih Anda — atau “Hapus” untuk menghapusnya sepenuhnya.",
       "detailsTitle": "Detail kendaraan",
       "detailsBody": "Jenis dan detail perolehan ditetapkan saat Anda menambahkannya. Tingkat penyusutan adalah alat bantu untuk memperkirakan nilai baru. Gunakan “Ubah” untuk mengubahnya.",
       "chartTitle": "Nilai sepanjang waktu",
       "chartBody": "Setiap titik adalah nilai satu bulan, menunjukkan bagaimana kendaraan menyusut.",
       "snapshotsTitle": "Nilai tercatat",
-      "snapshotsBody": "Setiap baris adalah nilai satu bulan. Perbarui setiap kali Anda menilai ulang kendaraan."
+      "snapshotsBody": "Setiap baris adalah nilai satu bulan. Ketuk “Baru” untuk mencatat nilai saat ini — bantuan tingkat penyusutan dapat menyarankan nilainya — atau “Impor” untuk beberapa bulan."
     }
   }
 }

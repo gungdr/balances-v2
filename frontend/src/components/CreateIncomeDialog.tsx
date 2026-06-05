@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -151,7 +152,10 @@ export function CreateIncomeDialog({
     <Dialog open={open} onOpenChange={(o) => (o ? openDialog() : close())}>
       {!hideTrigger && (
         <DialogTrigger asChild>
-          <Button>{t('income:createTrigger')}</Button>
+          <Button>
+            <Plus className="mr-1 size-4" />
+            {t('income:createTrigger')}
+          </Button>
         </DialogTrigger>
       )}
       <DialogContent>

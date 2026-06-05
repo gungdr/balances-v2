@@ -11,7 +11,7 @@
   "deleteRowDescription": "{{name}} will be hidden from lists and reports. This can be undone via the database, not yet via the UI.",
   "deleteDetailDescription": "Snapshots and history will be hidden. This can be undone via the database, not yet via the UI.",
   "sortLatestBalance": "Latest balance",
-  "createTrigger": "+ New receivable",
+  "createTrigger": "New receivable",
   "createTitle": "New receivable",
   "createDescription": "Track money owed to your household — loans you've made, deposits you're due back, refunds in transit.",
   "editTitle": "Edit receivable",
@@ -24,7 +24,7 @@
   "chartDescription": "Monthly balance progression in {{currency}}.",
   "snapshotsTitle": "Snapshots",
   "snapshotsDescription": "Monthly outstanding-balance readings (manual entry).",
-  "snapshotsEmpty": "No snapshots yet. Click \"New snapshot\" to record this month's outstanding balance.",
+  "snapshotsEmpty": "No snapshots yet. Click \"New\" to record this month's outstanding balance.",
   "fields": {
     "counterparty": "Counterparty",
     "dueDate": "Due date (optional)"
@@ -37,13 +37,13 @@
   "tour": {
     "overviewTitle": "Your receivable at a glance",
     "overviewBody": "Track money owed to you over time — it counts toward your net worth until it's repaid.",
-    "actionsTitle": "Keep its balance current",
-    "actionsBody": "Tap “+ New snapshot” to record the outstanding amount this month, or “Import from spreadsheet” for several months at once.",
+    "actionsTitle": "Manage this position",
+    "actionsBody": "Use “Edit” to change its details, “Close” to mark it ended — it then stops counting toward your net worth — or “Delete” to remove it entirely.",
     "detailsTitle": "The receivable's details",
     "detailsBody": "Counterparty and due date were set when you added the receivable. Use “Edit” to change them.",
     "chartTitle": "Outstanding over time",
     "chartBody": "Each point is a month's outstanding amount, so you can watch it get repaid.",
     "snapshotsTitle": "Outstanding amounts",
-    "snapshotsBody": "Each row is one month's amount owed to you. Add a snapshot whenever you receive a repayment."
+    "snapshotsBody": "Each row is one month's amount owed to you. Tap “New” to record the outstanding amount this month, or “Import” for several months at once."
   }
 }

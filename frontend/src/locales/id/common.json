@@ -109,7 +109,7 @@
     "noActive_other": "Tidak ada {{nounPlural}} aktif. {{count}} {{noun}} non-aktif tersembunyi — centang \"Tampilkan {{nounPlural}} non-aktif\" untuk melihatnya."
   },
   "snapshot": {
-    "trigger": "+ Snapshot baru",
+    "trigger": "Baru",
     "createTitle": "Catat snapshot bulanan",
     "createDescription": "Masukkan nilai akhir bulan. Mata uang dikunci ke mata uang asal posisi ({{currency}}).",
     "editTitle": "Ubah snapshot",
@@ -126,8 +126,8 @@
     "amountPlaceholder": "mis. 12500000"
   },
   "terminate": {
-    "closeTrigger": "Tutup posisi",
-    "editTrigger": "Ubah status",
+    "closeTrigger": "Tutup",
+    "editTrigger": "Status",
     "closeTitle": "Tutup posisi",
     "editTitle": "Ubah status siklus hidup",
     "description": "Tandai posisi ini ditutup, terjual, atau dihentikan. Posisi yang dihentikan berhenti dihitung ke kekayaan bersih mulai bulan penghentian. Anda juga bisa membukanya kembali dengan kembali ke Aktif.",
@@ -137,7 +137,7 @@
     "notePlaceholder": "Dijual ke pembeli pribadi"
   },
   "import": {
-    "trigger": "Impor dari spreadsheet",
+    "trigger": "Impor",
     "title": "Impor snapshot",
     "description": "Tambahkan saldo bulanan secara massal dari spreadsheet — berguna untuk mengisi riwayat bertahun-tahun sekaligus.",
     "step1Label": "1. Unduh template",

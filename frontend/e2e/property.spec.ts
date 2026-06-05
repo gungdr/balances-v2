@@ -12,7 +12,7 @@ test('property create → edit → delete round-trip', async ({ page }) => {
   await page.goto('/assets/properties')
 
   // --- Create (display name only; type/currency default) ---
-  await page.getByRole('button', { name: '+ New property' }).first().click()
+  await page.getByRole('button', { name: 'New property' }).first().click()
   const createDialog = page.getByRole('dialog')
   await expect(createDialog.getByText('New property')).toBeVisible()
   await createDialog.getByLabel('Display name').fill(name)

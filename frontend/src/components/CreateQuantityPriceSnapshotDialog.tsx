@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
@@ -90,7 +91,10 @@ export function CreateQuantityPriceSnapshotDialog<TResult>({
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
-        <Button size="sm">{t('investments:quantityPriceSnapshot.trigger')}</Button>
+        <Button size="sm">
+          <Plus className="mr-1 size-4" />
+          {t('investments:quantityPriceSnapshot.trigger')}
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

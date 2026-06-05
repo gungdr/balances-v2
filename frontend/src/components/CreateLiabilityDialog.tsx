@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -83,7 +84,10 @@ export function CreateLiabilityDialog({ defaultSubtype = 'personal' }: Props) {
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
-        <Button>{t('liabilities:createTrigger')}</Button>
+        <Button>
+          <Plus className="mr-1 size-4" />
+          {t('liabilities:createTrigger')}
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>

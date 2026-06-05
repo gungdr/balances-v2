@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Plus } from 'lucide-react'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -85,7 +86,10 @@ export function CreateSnapshotDialog<TResult>({
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
-        <Button size="sm">{t('snapshot.trigger')}</Button>
+        <Button size="sm">
+          <Plus className="mr-1 size-4" />
+          {t('snapshot.trigger')}
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

@@ -16,7 +16,7 @@ test('stock buy + mismatched snapshot raises the reconciliation warning', async 
   await page.goto('/investments/stocks')
 
   // --- Create the stock position ---
-  await page.getByRole('button', { name: '+ New stock' }).first().click()
+  await page.getByRole('button', { name: 'New stock' }).first().click()
   const createDialog = page.getByRole('dialog')
   await expect(createDialog.getByText('New stock position')).toBeVisible()
   await createDialog.getByLabel('Display name').fill(name)
@@ -30,7 +30,7 @@ test('stock buy + mismatched snapshot raises the reconciliation warning', async 
   await expect(page.getByRole('heading', { level: 1, name })).toBeVisible()
 
   // --- Record a Buy: 100 sh @ 8500 (quantity-price transaction shape) ---
-  await page.getByRole('button', { name: '+ Buy' }).click()
+  await page.getByRole('button', { name: 'Buy' }).click()
   const buyDialog = page.getByRole('dialog')
   await expect(buyDialog.getByRole('heading', { name: 'Record Buy' })).toBeVisible()
   await buyDialog.getByLabel('Quantity (sh)').fill('100')
@@ -42,7 +42,7 @@ test('stock buy + mismatched snapshot raises the reconciliation warning', async 
   await expect(page.getByText(/match ledger total/)).toHaveCount(0)
 
   // --- Add a snapshot whose quantity (90) disagrees with the ledger (100) ---
-  await page.getByRole('button', { name: '+ New snapshot' }).click()
+  await page.getByRole('button', { name: 'New' }).click()
   const snapDialog = page.getByRole('dialog')
   await expect(snapDialog.getByText('Record monthly snapshot')).toBeVisible()
   await snapDialog.getByLabel('Quantity', { exact: true }).fill('90')

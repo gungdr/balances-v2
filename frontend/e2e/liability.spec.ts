@@ -13,7 +13,7 @@ test('liability create → edit → delete round-trip', async ({ page }) => {
   await page.goto('/liabilities/personal')
 
   // --- Create (display name + counterparty required; subtype fixed to Personal) ---
-  await page.getByRole('button', { name: '+ New liability' }).first().click()
+  await page.getByRole('button', { name: 'New liability' }).first().click()
   const createDialog = page.getByRole('dialog')
   await expect(createDialog.getByText('New liability')).toBeVisible()
   await createDialog.getByLabel('Display name').fill(name)

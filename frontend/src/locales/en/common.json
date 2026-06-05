@@ -109,7 +109,7 @@
     "noActive_other": "No active {{nounPlural}}. {{count}} inactive {{noun}} hidden — tick \"Show inactive {{nounPlural}}\" to see them."
   },
   "snapshot": {
-    "trigger": "+ New snapshot",
+    "trigger": "New",
     "createTitle": "Record monthly snapshot",
     "createDescription": "Enter the month-end value. Currency is locked to the position's native currency ({{currency}}).",
     "editTitle": "Edit snapshot",
@@ -126,8 +126,8 @@
     "amountPlaceholder": "e.g. 12500000"
   },
   "terminate": {
-    "closeTrigger": "Close position",
-    "editTrigger": "Edit status",
+    "closeTrigger": "Close",
+    "editTrigger": "Status",
     "closeTitle": "Close position",
     "editTitle": "Edit lifecycle status",
     "description": "Mark this position closed, sold, or otherwise terminated. A terminated position stops counting toward net worth from its termination month onward. You can also reopen it by switching back to Active.",
@@ -137,7 +137,7 @@
     "notePlaceholder": "Sold to a private buyer"
   },
   "import": {
-    "trigger": "Import from spreadsheet",
+    "trigger": "Import",
     "title": "Import snapshots",
     "description": "Bulk-add monthly balances from a spreadsheet — handy for backfilling years of history at once.",
     "step1Label": "1. Download the template",

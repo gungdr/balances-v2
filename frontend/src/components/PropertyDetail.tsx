@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
@@ -154,27 +155,8 @@ export function PropertyDetail({ assetId, onBack }: Props) {
         </div>
         <div data-testid="tour-actions" className="flex gap-2">
           <HelpTourButton steps={tourSteps} />
-          {isActiveStatus(asset.status) && (
-            <>
-              <CreateSnapshotDialog
-                currency={asset.native_currency}
-                mutation={createSnapshotMutation}
-                suggest={(yearMonth) =>
-                  suggestRevalued({
-                    newYearMonth: yearMonth,
-                    annualRatePct: details.annual_appreciation_rate,
-                    snapshots,
-                  })
-                }
-              />
-              <ImportSnapshotsDialog
-                templateUrl={importTemplateUrl(asset.id)}
-                mutation={importSnapshotMutation}
-                currency={asset.native_currency}
-              />
-            </>
-          )}
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+            <Pencil className="mr-1 size-4" />
             {t('common:actions.edit')}
           </Button>
           <TerminatePositionDialog
@@ -190,6 +172,7 @@ export function PropertyDetail({ assetId, onBack }: Props) {
             size="sm"
             onClick={() => setDeleteOpen(true)}
           >
+            <Trash2 className="mr-1 size-4" />
             {t('common:delete')}
           </Button>
         </div>
@@ -264,10 +247,34 @@ export function PropertyDetail({ assetId, onBack }: Props) {
 
       <Card data-testid="tour-snapshots">
         <CardHeader>
-          <CardTitle>{t('assets:property.snapshotsTitle')}</CardTitle>
-          <CardDescription>
-            {t('assets:property.snapshotsDescription')}
-          </CardDescription>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <CardTitle>{t('assets:property.snapshotsTitle')}</CardTitle>
+              <CardDescription>
+                {t('assets:property.snapshotsDescription')}
+              </CardDescription>
+            </div>
+            {isActiveStatus(asset.status) && (
+              <div className="flex flex-wrap gap-2">
+                <CreateSnapshotDialog
+                  currency={asset.native_currency}
+                  mutation={createSnapshotMutation}
+                  suggest={(yearMonth) =>
+                    suggestRevalued({
+                      newYearMonth: yearMonth,
+                      annualRatePct: details.annual_appreciation_rate,
+                      snapshots,
+                    })
+                  }
+                />
+                <ImportSnapshotsDialog
+                  templateUrl={importTemplateUrl(asset.id)}
+                  mutation={importSnapshotMutation}
+                  currency={asset.native_currency}
+                />
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {!snapshots || snapshots.length === 0 ? (

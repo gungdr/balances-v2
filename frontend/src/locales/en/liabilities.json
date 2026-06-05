@@ -23,7 +23,7 @@
   "deleteRowDescription": "{{name}} will be hidden from lists and reports. This can be undone via the database, not yet via the UI.",
   "deleteDetailDescription": "Snapshots and history will be hidden. This can be undone via the database, not yet via the UI.",
   "sortLatestBalance": "Latest balance",
-  "createTrigger": "+ New liability",
+  "createTrigger": "New liability",
   "createTitle": "New liability",
   "createDescription": "Track a debt your household owes. Personal liabilities are informal (family, friends); institutional are formal (mortgage, bank loan, credit-card balance).",
   "editTitle": "Edit liability",
@@ -44,7 +44,7 @@
   "chartDescription": "Monthly balance progression in {{currency}}.",
   "snapshotsTitle": "Snapshots",
   "snapshotsDescription": "Monthly outstanding-balance readings (manual entry).",
-  "snapshotsEmpty": "No snapshots yet. Click \"New snapshot\" to record this month's outstanding balance.",
+  "snapshotsEmpty": "No snapshots yet. Click \"New\" to record this month's outstanding balance.",
   "fields": {
     "subtype": "Subtype",
     "counterparty": "Counterparty",
@@ -70,13 +70,13 @@
   "tour": {
     "overviewTitle": "Your liability at a glance",
     "overviewBody": "Track what you owe over time — the balance lowers your net worth until it's paid off.",
-    "actionsTitle": "Keep its balance current",
-    "actionsBody": "Tap “+ New snapshot” to record the outstanding balance this month, or “Import from spreadsheet” for several months at once.",
+    "actionsTitle": "Manage this position",
+    "actionsBody": "Use “Edit” to change its details, “Close” to mark it ended — it then stops counting toward your net worth — or “Delete” to remove it entirely.",
     "detailsTitle": "The liability's terms",
     "detailsBody": "Principal, interest rate, term, and maturity were set when you added the liability. Use “Edit” to change them.",
     "chartTitle": "Balance over time",
     "chartBody": "Each point is a month's outstanding balance, so you can watch the debt shrink.",
     "snapshotsTitle": "Outstanding balances",
-    "snapshotsBody": "Each row is one month's balance owed. Add a snapshot whenever you make a payment or get a statement."
+    "snapshotsBody": "Each row is one month's balance owed. Tap “New” to record the outstanding balance this month, or “Import” for several months at once."
   }
 }

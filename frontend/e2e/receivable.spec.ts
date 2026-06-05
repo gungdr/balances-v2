@@ -14,7 +14,7 @@ test('receivable create → edit → delete round-trip', async ({ page }) => {
   await page.goto('/receivables')
 
   // --- Create (display name + counterparty required; currency/ownership default) ---
-  await page.getByRole('button', { name: '+ New receivable' }).first().click()
+  await page.getByRole('button', { name: 'New receivable' }).first().click()
   const createDialog = page.getByRole('dialog')
   await expect(createDialog.getByText('New receivable')).toBeVisible()
   await createDialog.getByLabel('Display name').fill(name)

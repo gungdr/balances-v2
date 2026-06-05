@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -130,6 +131,7 @@ export function CreateTimeDepositDialog({
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <DialogTrigger asChild>
         <Button variant={triggerVariant} size={triggerSize}>
+          <Plus className="mr-1 size-4" />
           {triggerLabel ?? t('investments:timeDeposit.createTrigger')}
         </Button>
       </DialogTrigger>

@@ -15,7 +15,7 @@ test('bank account snapshot create → edit → delete', async ({ page }) => {
   await page.goto('/assets/bank-accounts')
 
   // --- Create the parent bank account ---
-  await page.getByRole('button', { name: '+ New bank account' }).first().click()
+  await page.getByRole('button', { name: 'New bank account' }).first().click()
   const acctDialog = page.getByRole('dialog')
   await acctDialog.getByLabel('Display name').fill(account)
   await acctDialog.getByLabel('Bank name').fill('E2E Bank')
@@ -26,7 +26,7 @@ test('bank account snapshot create → edit → delete', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: account })).toBeVisible()
 
   // --- Create a snapshot (month defaults to the current month) ---
-  await page.getByRole('button', { name: '+ New snapshot' }).click()
+  await page.getByRole('button', { name: 'New' }).click()
   const createDialog = page.getByRole('dialog')
   await expect(createDialog.getByText('Record monthly snapshot')).toBeVisible()
   await createDialog.getByLabel('Amount (IDR)').fill('12500000')

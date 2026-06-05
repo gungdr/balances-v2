@@ -16,7 +16,7 @@ test('dashboard side-by-side currency: project net worth into USD', async ({ pag
 
   // --- Seed a net worth: bank account + one snapshot (IDR) ---
   await page.goto('/assets/bank-accounts')
-  await page.getByRole('button', { name: '+ New bank account' }).first().click()
+  await page.getByRole('button', { name: 'New bank account' }).first().click()
   const acctDialog = page.getByRole('dialog')
   await acctDialog.getByLabel('Display name').fill(account)
   await acctDialog.getByLabel('Bank name').fill('E2E Bank')
@@ -25,7 +25,7 @@ test('dashboard side-by-side currency: project net worth into USD', async ({ pag
 
   await page.getByRole('row', { name: new RegExp(account) }).getByText(account).click()
   await expect(page.getByRole('heading', { level: 1, name: account })).toBeVisible()
-  await page.getByRole('button', { name: '+ New snapshot' }).click()
+  await page.getByRole('button', { name: 'New' }).click()
   const snapDialog = page.getByRole('dialog')
   await snapDialog.getByLabel('Amount (IDR)').fill('12500000')
   await snapDialog.getByLabel('Description (optional)').fill(desc)
