@@ -51,6 +51,8 @@ the choice is non-obvious.
 | Distribution | Distribusi | Mutual-fund payouts. |
 | Fee | Biaya | _Avoid_: Fee (English loanword reads informal in totals). |
 | Maturity | Jatuh Tempo | Two words; canonical. Used as the transaction type ("Jatuh Tempo") and as the date label ("Tanggal Jatuh Tempo"). |
+| Selling price | Harga jual | Gold (issue #19): the dealer's selling price — what you pay to buy gold. The higher side of the spread. |
+| Buyback price | Harga buyback | Gold (issue #19): what a dealer pays you when you sell — the lower side of the spread and the price gold snapshots mark at. "Buyback" is the everyday Indonesian usage (Antam/Pegadaian use it directly); _Avoid_: "Harga beli kembali" (correct but stiff). |
 
 ## Lifecycle
 

@@ -435,6 +435,13 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     Settings Appearance card, mirroring the locale stack — `src/theme/` (`useTheme` + ThemeProvider
     + `useThemeReconcile`), an inline boot script in `index.html` for no-flash, and `AppLogo` now
     swaps its wordmark with the active theme.
+  - Gold buyback-price valuation (issue #19): gold snapshots mark at the **buyback** price (realisable
+    cash-out value), not the dealer selling price — net worth never overstates; the spread surfaces as
+    honest unrealised loss. No schema/backend change (Buy/Sell txns already carry their own prices;
+    realised P/L was always spread-correct). UI-enforced via an optional `priceHint` prop on the
+    shared `Create{QuantityPriceSnapshot,TradeTransaction}Dialog` (gold passes snapshot/buy/sell
+    hints; stock/MF/bond pass none) + a gold help-tour line. ADR-0009 + glossary (Harga jual / Harga
+    buyback) amended. Frontend + docs only.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

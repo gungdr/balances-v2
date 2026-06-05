@@ -290,6 +290,7 @@ export function GoldDetail({ investmentId, onBack }: Props) {
               <div className="flex flex-wrap gap-2">
                 <CreateQuantityPriceSnapshotDialog
                   currency={gold.investment.native_currency}
+                  priceHint={t('investments:gold.snapshotPriceHint')}
                   mutation={createSnapshotMutation}
                 />
                 <ImportSnapshotsDialog
@@ -360,12 +361,14 @@ export function GoldDetail({ investmentId, onBack }: Props) {
                   currency={gold.investment.native_currency}
                   txnType="buy"
                   quantityUnit={quantityUnit}
+                  priceHint={t('investments:gold.buyPriceHint')}
                   mutation={createTransactionMutation}
                 />
                 <CreateTradeTransactionDialog
                   currency={gold.investment.native_currency}
                   txnType="sell"
                   quantityUnit={quantityUnit}
+                  priceHint={t('investments:gold.sellPriceHint')}
                   mutation={createTransactionMutation}
                 />
                 <CreateFeeTransactionDialog

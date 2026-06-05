@@ -2410,6 +2410,29 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
   - **Verified.** vite build + tsc green, eslint 0 errors (13 pre-existing bare-JSX warnings in
     unrelated files), vitest 188/188. No e2e locator referenced the removed brand text; full `make
     e2e` left for the user to eyeball. Frontend + docs only; backend untouched.
+- **Gold buyback-price valuation convention (M6, frontend + docs — issue #19).** Gold trades on a
+  bid/ask spread (dealer sells high, buys back low). The decision — settled with the user — is that
+  gold valuation **snapshots mark at the buyback price** (what it cashes out for today), so net worth
+  is realisable, never optimistic. The spread surfaces as an honest immediate unrealised loss after
+  purchase.
+  - **No schema change, no backend change.** The two prices already live in the ledger: a Buy stores
+    `price_per_unit` = the selling price paid, a Sell stores the buyback received — so realised P/L is
+    already spread-correct via ADR-0008's `Δvalue + cash_out − cash_in`. The only open question was
+    the periodic snapshot's mark, now a UI-enforced convention.
+  - **Frontend.** `Create{QuantityPriceSnapshot,TradeTransaction}Dialog` gain an optional `priceHint`
+    prop (full-width muted line below the Quantity/Price grid — kept out of the price *cell* so the
+    two inputs stay aligned). `GoldDetail` wires three gold-only hints: snapshot → "use the buyback
+    price"; Buy → "dealer's selling price (higher)"; Sell → "buyback price you received". Stock / MF /
+    bond pass nothing → dialogs render unchanged. New keys `gold.{snapshotPriceHint,buyPriceHint,
+    sellPriceHint}` EN+ID; the gold help-tour `snapshotsBody` gained a buyback sentence.
+  - **Docs.** ADR-0009 grows a "Gold marks at the buyback price (issue #19)" section recording the
+    decision, the spread mechanics, and the two rejected alternatives (second price column; snapshot-
+    at-selling-price-then-fee-on-sale). `docs/glossary-id.md`: Selling price → Harga jual, Buyback
+    price → Harga buyback.
+  - **Edit dialogs intentionally unchanged** — correcting a stored figure is not the teaching moment;
+    the hint lives where the monthly which-price decision is made (the Create dialogs).
+  - **Verified.** eslint 0 errors (13 pre-existing warnings, none in changed files), vite build green,
+    vitest 188/188. Playwright not re-run (gold-tour copy grew) — left for the user to eyeball.
 
 ## What M4.2 shipped
 

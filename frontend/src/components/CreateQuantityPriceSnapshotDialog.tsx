@@ -21,6 +21,9 @@ import type { CreateInvestmentSnapshotPayload } from '@/hooks/useInvestmentSnaps
 
 type Props<TResult> = {
   currency: string
+  // Optional sub-field guidance under the price input. Gold passes a
+  // "use the buyback price" hint (issue #19); stock/mutual-fund omit it.
+  priceHint?: string
   // Mutation is owned by the parent so the same dialog drives stocks,
   // mutual funds, and gold — each subtype's detail page wires its own
   // useCreateInvestmentSnapshot result in.
@@ -56,6 +59,7 @@ function deriveAmount(quantity: string, pricePerUnit: string): string | null {
 
 export function CreateQuantityPriceSnapshotDialog<TResult>({
   currency,
+  priceHint,
   mutation,
 }: Props<TResult>) {
   const { t } = useTranslation(['investments', 'common'])
@@ -166,6 +170,10 @@ export function CreateQuantityPriceSnapshotDialog<TResult>({
               />
             </div>
           </div>
+
+          {priceHint && (
+            <p className="text-xs text-muted-foreground">{priceHint}</p>
+          )}
 
           <div className="rounded-md bg-muted px-3 py-2 text-sm">
             <span className="text-muted-foreground">

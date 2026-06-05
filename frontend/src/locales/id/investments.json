@@ -540,6 +540,9 @@
     "pricePerGramHeader": "Harga / gram",
     "quantityUnit": "g",
     "reconcileWarning": "Gram snapshot terkini ({{actual}} g) tidak cocok dengan total catatan ({{expected}} g). Snapshot tetap sumber kebenaran — periksa transaksi atau biaya jika ini tidak diharapkan.",
+    "snapshotPriceHint": "Gunakan harga buyback — harga dealer membeli kembali dari Anda hari ini, bukan harga jual yang lebih tinggi. Ini menjaga nilai kekayaan pada nilai yang benar-benar bisa dicairkan.",
+    "buyPriceHint": "Harga jual dealer — yang Anda bayar per gram (lebih tinggi dari harga buyback).",
+    "sellPriceHint": "Harga buyback — yang dealer benar-benar bayarkan kepada Anda per gram.",
     "goldForms": {
       "bar": "Batangan",
       "coin": "Koin",
@@ -567,7 +570,7 @@
       "chartTitle": "Nilai sepanjang waktu",
       "chartBody": "Area berarsir adalah nilai yang dicatat tiap bulan; garis di bawahnya adalah modal Anda. Selisih keduanya adalah keuntungan Anda.",
       "snapshotsTitle": "Nilai bulanan",
-      "snapshotsBody": "Setiap baris mencatat berat dan harga satu bulan. Ketuk “Baru” untuk mencatat nilai bulan ini (berat × harga), atau “Impor” untuk menambah beberapa sekaligus.",
+      "snapshotsBody": "Setiap baris mencatat berat dan harga satu bulan. Ketuk “Baru” untuk mencatat nilai bulan ini (berat × harga), atau “Impor” untuk menambah beberapa sekaligus. Gunakan harga buyback — yang dealer bayarkan kepada Anda — agar nilainya mencerminkan yang bisa dicairkan hari ini.",
       "transactionsTitle": "Pembelian dan penjualan",
       "transactionsBody": "Catat setiap Beli dan Jual, beserta biaya apa pun — itu menentukan modal Anda. Emas tidak memiliki dividen atau kupon."
     }

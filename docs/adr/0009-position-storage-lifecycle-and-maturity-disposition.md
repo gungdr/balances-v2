@@ -81,6 +81,37 @@ This is the entry half of the rule whose exit half is #25's 0-value close snapsh
 is excluded from investment return at **both** entry and exit, leaving only yield (coupons /
 interest / realized + unrealized gain).
 
+## Gold marks at the buyback price (issue #19)
+
+Physical/digital gold trades on a **bid/ask spread**: a dealer sells to you at the higher *selling
+price* ("harga jual") and buys back from you at the lower *buyback price* ("harga beli / buyback").
+The spread (Antam: ~Rp 50–100k/gram) is the cost of round-tripping the metal, not a separately
+itemised fee.
+
+The two prices already live in the ledger without any schema change: a **Buy** records
+`price_per_unit` = the selling price you paid, a **Sell** records `price_per_unit` = the buyback price
+you received. So realised P/L on a sale is already spread-correct via the existing
+`Δvalue + cash_out − cash_in` engine (ADR-0008).
+
+The only open decision was which price the periodic **valuation snapshot** carries between buy and
+sell. **Decision: gold snapshots mark at the buyback price** — what the holding could be cashed out
+for *today*, not what it would cost to re-acquire. This keeps net worth at realisable value and never
+overstates it. The consequence is honest and intentional: a gold position shows an immediate
+unrealised loss equal to the spread right after purchase, which closes only as the gold price rises
+past the spread. We chose this over the two alternatives considered:
+
+- **Track both prices on the snapshot** (a second price column) — rejected: it forks gold off the
+  shared quantity+price snapshot shape (ADR-0022) and adds monthly data-entry burden for a number
+  (the current selling price) the user doesn't need for valuation.
+- **Snapshot at the selling price, book the spread as a Fee on sale** — rejected: net worth would
+  read optimistically high for the entire hold, then correct in one lump at exit. Marking at buyback
+  is truthful continuously.
+
+No schema change: this is a **valuation convention** enforced by UI guidance — a "use the buyback
+price" hint under the snapshot price field, distinct buy/sell hints on the trade dialogs, and a line
+in the gold help tour (issue #23). Cost basis is unaffected (it replays the Buy prices actually
+paid), so the spread surfaces as unrealised P/L, exactly where it economically belongs.
+
 ## Lifecycle and status
 
 Status enums vary per group to keep values meaningful:

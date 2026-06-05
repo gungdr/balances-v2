@@ -26,6 +26,10 @@ type Props<TResult> = {
   currency: string
   txnType: 'buy' | 'sell'
   quantityUnit: string // "sh", "units", "g", etc.
+  // Optional sub-field guidance under the price input. Gold passes
+  // distinct buy/sell hints to spell out the bid/ask spread (issue #19);
+  // other subtypes omit it.
+  priceHint?: string
   mutation: UseMutationResult<
     TResult,
     unknown,
@@ -55,6 +59,7 @@ export function CreateTradeTransactionDialog<TResult>({
   currency,
   txnType,
   quantityUnit,
+  priceHint,
   mutation,
 }: Props<TResult>) {
   const { t } = useTranslation(['investments', 'common'])
@@ -160,6 +165,10 @@ export function CreateTradeTransactionDialog<TResult>({
               />
             </div>
           </div>
+
+          {priceHint && (
+            <p className="text-xs text-muted-foreground">{priceHint}</p>
+          )}
 
           <div className="rounded-md bg-muted px-3 py-2 text-sm">
             <span className="text-muted-foreground">

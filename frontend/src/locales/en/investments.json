@@ -540,6 +540,9 @@
     "pricePerGramHeader": "Price / gram",
     "quantityUnit": "g",
     "reconcileWarning": "Latest snapshot grams ({{actual}} g) don't match ledger total ({{expected}} g). Snapshots remain the source of truth — review trades or fees if this is unexpected.",
+    "snapshotPriceHint": "Use the buyback price — what a dealer would pay you today, not the higher selling price. This keeps your net worth at what the gold could actually be cashed out for.",
+    "buyPriceHint": "The dealer's selling price — what you paid per gram (higher than the buyback).",
+    "sellPriceHint": "The buyback price — what the dealer actually paid you per gram.",
     "goldForms": {
       "bar": "Bar",
       "coin": "Coin",
@@ -567,7 +570,7 @@
       "chartTitle": "Value over time",
       "chartBody": "The shaded area is the recorded value each month; the line beneath is your cost. The gap between them is your gain.",
       "snapshotsTitle": "Monthly values",
-      "snapshotsBody": "Each row records a month's weight and price. Tap “New” to record this month's value (weight × price), or “Import” to add several at once.",
+      "snapshotsBody": "Each row records a month's weight and price. Tap “New” to record this month's value (weight × price), or “Import” to add several at once. Use the buyback price — what a dealer would pay you — so the value reflects what you could cash out for today.",
       "transactionsTitle": "Buys and sells",
       "transactionsBody": "Record every Buy and Sell, plus any fees — they drive your cost basis. Gold has no dividends or coupons."
     }
