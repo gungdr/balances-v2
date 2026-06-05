@@ -1,4 +1,7 @@
-.PHONY: up down logs ps backend-run backend-build backend-test backend-migrate-up backend-migrate-down backend-migrate-status backend-tidy backend-sqlc frontend-install frontend-dev frontend-build backend-stop backend-restart frontend-stop frontend-restart restart servers-status e2e-db-create e2e-seed e2e-backend e2e-mock-oidc e2e
+.PHONY: help up down logs ps backend-run backend-build backend-test backend-migrate-up backend-migrate-down backend-migrate-status backend-tidy backend-sqlc frontend-install frontend-dev frontend-build backend-stop backend-restart frontend-stop frontend-restart restart servers-status e2e-db-create e2e-seed e2e-backend e2e-mock-oidc e2e
+
+# `make` with no target prints help.
+.DEFAULT_GOAL := help
 
 -include .env
 export
@@ -19,6 +22,45 @@ PG_CONTAINER := balances-v2-postgres-1
 PG_USER      := balances
 E2E_DB       := balances_e2e
 E2E_DATABASE_URL := $(shell echo "$(DATABASE_URL)" | sed 's|/balances?|/$(E2E_DB)?|')
+
+help:
+	@echo "balances-v2 — make targets (run 'make <target>')"
+	@echo ""
+	@echo "Docker (compose stack):"
+	@echo "  up                      start the stack (postgres etc.) in the background"
+	@echo "  down                    stop the stack"
+	@echo "  logs                    follow compose logs"
+	@echo "  ps                      show compose service status"
+	@echo ""
+	@echo "Backend (Go):"
+	@echo "  backend-run             run the backend in the foreground"
+	@echo "  backend-build           build the backend binary to backend/bin/balances"
+	@echo "  backend-test            run all Go tests"
+	@echo "  backend-migrate-up      apply pending DB migrations"
+	@echo "  backend-migrate-down    roll back the last DB migration"
+	@echo "  backend-migrate-status  show migration status"
+	@echo "  backend-tidy            go mod tidy"
+	@echo "  backend-sqlc            regenerate sqlc code"
+	@echo ""
+	@echo "Frontend (Vite/React):"
+	@echo "  frontend-install        npm install"
+	@echo "  frontend-dev            run the vite dev server in the foreground"
+	@echo "  frontend-build          production build"
+	@echo ""
+	@echo "Background dev servers (see issue #30):"
+	@echo "  backend-restart         restart the background backend (logs: $(BACKEND_LOG))"
+	@echo "  backend-stop            stop the background backend"
+	@echo "  frontend-restart        restart the background frontend (logs: $(FRONTEND_LOG))"
+	@echo "  frontend-stop           stop the background frontend"
+	@echo "  restart                 restart both background servers"
+	@echo "  servers-status          show which dev servers are running"
+	@echo ""
+	@echo "E2E (Playwright; ADR-0024):"
+	@echo "  e2e                     full run — create+seed db, start mock OIDC, run suite"
+	@echo "  e2e-db-create           create the balances_e2e database if missing"
+	@echo "  e2e-seed                migrate + reset balances_e2e to the fixture"
+	@echo "  e2e-backend             run the backend against balances_e2e (foreground)"
+	@echo "  e2e-mock-oidc           run the fake OIDC provider (foreground, :8090)"
 
 up:
 	docker compose up -d
