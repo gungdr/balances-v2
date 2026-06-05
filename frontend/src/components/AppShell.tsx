@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { UserAvatar } from '@/components/UserAvatar'
 import { AppSidebar } from '@/components/AppSidebar'
+import { AppLogo } from '@/components/AppLogo'
 import {
   SidebarInset,
   SidebarProvider,
@@ -48,7 +49,9 @@ export function AppShell() {
           <div className="flex items-center gap-2">
             {/* Drawer toggle: phones only — the sidebar is always visible on desktop. */}
             <SidebarTrigger className="md:hidden" />
-            <div className="font-semibold md:hidden">{t('brand')}</div>
+            <div className="md:hidden">
+              <AppLogo />
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">

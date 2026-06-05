@@ -2352,6 +2352,34 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
   - **Verified.** `make e2e` 21/21 green (5 new), tsc + eslint clean. Out of the coverage metric
     (behavioural net, ADR-0021). Frontend-only.
 
+- **Logo / brand mark (M6, frontend + docs).** First real visual identity for the app.
+  - **Concept.** A *balance scale* read three ways at once: a fulcrum **dot** = the monthly
+    **snapshot** (a point in time, not a transaction stream — the app's defining non-feature); a
+    **beam** with two hanging **stacks** where assets (left, indigo, taller) outweigh liabilities
+    (right, slate, shorter); the stacks double as **bar-chart** bars. Honours the project
+    constraints: non-technical audience (legible, no jargon), multi-currency (no currency glyph),
+    Indonesian-retail-neutral, and **no red/green** coding (liabilities aren't "bad", receivables
+    exist) — colour-blind safe. Indigo `#6366F1` accent is **constant across themes**; only the ink
+    (post/beam/hangers) swaps light↔dark.
+  - **Assets (`docs/brand/svg/`).** `icon-plated.svg` (256, full mark on navy plate, app/PWA/OS),
+    `favicon.svg` (64, **simplified** to one bar per side so it survives 16px), `glyph-light/dark`
+    (170×163, transparent, theme-tuned), `wordmark-light/dark` (284×88). Wordmark is **IBM Plex Sans
+    700, tracking −40, outlined to `<path>`** — zero font dependency (no `<text>`/`font-family`), so
+    it renders identically everywhere. IBM Plex is OFL; outlines in a logo carry no legal obligation,
+    but add `frontend/licenses/IBMPlexSans-OFL.txt` as courtesy attribution if/when desired.
+  - **Reproducible, not hand-drawn.** `docs/brand/gen.py` + `outline.py` generate every SVG from a
+    256 design grid + the pinned font instance; full recipe + colour tokens + geometry in
+    `docs/brand/logo.md`. The variable font (`IBMPlexSans-var.ttf`, fetched from google/fonts) and
+    the derived `wordmark_path.json` are gitignored.
+  - **Wired in (dark-only for now).** New `AppLogo` component (imports both theme variants, `theme`
+    prop defaults to `'dark'`, since `index.html` hardcodes `<html class="dark">`) replaces the text
+    brand in the **sidebar header**, the **mobile top bar** (`AppShell`), and the **sign-in card**
+    (`SignInScreen`). `public/favicon.svg` replaced. Per-user theme switching — at which point the
+    light variants go live via a `useTheme()` hook mirroring `useLocale` — is **issue #33**.
+  - **Verified.** vite build + tsc green, eslint 0 errors (13 pre-existing bare-JSX warnings in
+    unrelated files), vitest 188/188. No e2e locator referenced the removed brand text; full `make
+    e2e` left for the user to eyeball. Frontend + docs only; backend untouched.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

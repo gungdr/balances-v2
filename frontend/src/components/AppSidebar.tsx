@@ -15,6 +15,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { routes } from '@/lib/routes'
+import { AppLogo } from '@/components/AppLogo'
 
 // `labelKey` indexes into the `nav` namespace catalog rather than carrying the
 // EN string inline — keeps the structural NAV array translation-agnostic.
@@ -82,8 +83,8 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="px-2 py-1 text-xl font-semibold">
-          {t('brand', { ns: 'common' })}
+        <div className="px-2 py-1">
+          <AppLogo />
         </div>
       </SidebarHeader>
       <SidebarContent>

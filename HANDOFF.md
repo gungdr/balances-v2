@@ -428,6 +428,9 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     `driver-active-element` class on each `data-testid` target, chart-step pruning (< 2 snapshots →
     4 steps) + closed-position header anchor, the 5-vs-7 step variants, and an EN→ID locale switch
     via the Settings dropdown. `make e2e` 21/21. Behavioural net, out of coverage (ADR-0021).
+  - Logo / brand mark: snapshot-scale glyph + outlined IBM Plex Sans wordmark; canonical assets +
+    regeneration recipe in `docs/brand/`. Wired into sidebar, mobile header, and sign-in (dark-only
+    for now; both theme variants shipped). Per-user theme switcher deferred to issue #33.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

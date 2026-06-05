@@ -1,11 +1,11 @@
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
+import { AppLogo } from '@/components/AppLogo'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from '@/components/ui/card'
 
 export function SignInScreen() {
@@ -14,7 +14,7 @@ export function SignInScreen() {
     <div className="min-h-screen flex items-center justify-center bg-muted p-6">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>{t('brand')}</CardTitle>
+          <AppLogo />
           <CardDescription>{t('signIn.tagline')}</CardDescription>
         </CardHeader>
         <CardContent>
