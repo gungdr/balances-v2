@@ -2352,6 +2352,37 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
   - **Verified.** `make e2e` 21/21 green (5 new), tsc + eslint clean. Out of the coverage metric
     (behavioural net, ADR-0021). Frontend-only.
 
+- **Theme switcher (M6, full stack — issue #33).** Per-user light/dark, persisted server-side so it
+  follows the user across devices. Deliberately a mirror of the locale stack (ADR-0026) at every
+  layer, so it reads as boringly consistent rather than a second bespoke preference mechanism.
+  - **Backend.** Migration 00024 adds `users.theme TEXT NOT NULL DEFAULT 'dark' CHECK (theme IN
+    ('light','dark'))` — the default matches the dark-only status quo; the browser-preference bias is
+    a client concern (see reconcile). New `UpdateUserTheme` query mirrors `UpdateUserLocale`
+    (self-attributed, `updated_by = id`). `meResponse` gains `theme`; `handleUpdateMe` gains a
+    `theme` branch mirroring the `locale` branch (null/wrong-type → 400 `{field:"theme",
+    rule:"required"}`, off-enum → `{rule:"oneof"}`), guarded by a `supportedThemes` map that mirrors
+    the CHECK and the FE constant. `CreateUser` unchanged — the column default covers new rows.
+  - **Frontend `src/theme/`** (mirrors `src/i18n/`). `index.ts`: `SUPPORTED_THEMES`, `applyTheme`
+    (toggles the `dark` class on `<html>`), `resolveBootTheme` (localStorage → prefers-color-scheme →
+    dark), and the `ThemeContext`. `ThemeProvider` holds the active theme (init from
+    `resolveBootTheme`) and is the single writer — `setTheme` persists to localStorage, toggles the
+    class, and re-renders consumers. `useTheme` reads the context. `useThemeReconcile` mirrors
+    `useLocaleReconcile` with prefers-color-scheme in place of navigator.language: on first login
+    (localStorage empty) it biases to the OS appearance and PATCHes it; thereafter it trusts
+    `user.theme`.
+  - **No-flash boot.** `index.html` drops the hardcoded `class="dark"` and runs an inline
+    synchronous script (same precedence as `resolveBootTheme`) before first paint; the React
+    `ThemeProvider` re-reads the same sources so its initial state matches — no flip-on-hydrate.
+  - **Settings + logo.** A `ThemeCard` (Appearance) sits next to `LanguageCard`, same two-option
+    `<select>` shape (`data-testid="settings-theme-select"`), optimistic `setTheme` + `PATCH`.
+    `AppLogo` drops its `theme` prop and reads `useTheme()` directly, so the light wordmark now goes
+    live with the light palette. `settings` catalog gains a `theme` block (EN + ID).
+  - **Verified.** Backend `go test ./...` green (3 new `TestHandleUpdateMe` subtests + a combined
+    nickname/locale/theme case); migration applied to dev DB (v24), backend restarted, `/api/me`
+    serving 200 with the new field. Frontend tsc + build clean, eslint 0 errors, vitest 188/188. New
+    `e2e/theme.spec.ts` (mirrors `nickname.spec.ts`, self-cleaning back to dark) — full `make e2e`
+    left for the user to eyeball.
+
 - **Logo / brand mark (M6, frontend + docs).** First real visual identity for the app.
   - **Concept.** A *balance scale* read three ways at once: a fulcrum **dot** = the monthly
     **snapshot** (a point in time, not a transaction stream — the app's defining non-feature); a

@@ -11,6 +11,13 @@
     "description": "The language used for menus, labels, and date / number formatting.",
     "label": "Language"
   },
+  "theme": {
+    "title": "Appearance",
+    "description": "Choose a light or dark colour scheme. Your choice follows you across devices.",
+    "label": "Theme",
+    "light": "Light",
+    "dark": "Dark"
+  },
   "currency": {
     "title": "Currency",
     "description": "Net worth is reported in this currency. Turn on multi-currency to hold positions in other currencies and enter monthly exchange rates.",

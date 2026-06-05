@@ -11,6 +11,13 @@
     "description": "Bahasa yang dipakai untuk menu, label, dan format tanggal / angka.",
     "label": "Bahasa"
   },
+  "theme": {
+    "title": "Tampilan",
+    "description": "Pilih skema warna terang atau gelap. Pilihan Anda mengikuti di semua perangkat.",
+    "label": "Tema",
+    "light": "Terang",
+    "dark": "Gelap"
+  },
   "currency": {
     "title": "Mata Uang",
     "description": "Kekayaan bersih dilaporkan dalam mata uang ini. Aktifkan multi-mata-uang untuk menyimpan posisi dalam mata uang lain dan memasukkan kurs bulanan.",

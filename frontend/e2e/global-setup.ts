@@ -39,8 +39,18 @@ export default async function globalSetup() {
         // localStorage here additionally skips the AppShell's first-login
         // navigator reconciliation. To exercise the ID UI in a spec, switch
         // via the Settings dropdown rather than mutating this seed.
+        //
+        // balances.theme is pinned to 'dark' for the same reason: Playwright
+        // emulates prefers-color-scheme: light by default, so without this the
+        // theme reconcile (useThemeReconcile) would flip every spec's first
+        // login to light. The seeded row defaults to dark (users.theme, migration
+        // 00024); pinning localStorage to match skips the reconcile. To exercise
+        // the light UI, switch via the Settings dropdown (see theme.spec.ts).
         origin: 'http://localhost:5273',
-        localStorage: [{ name: 'balances.locale', value: 'en-GB' }],
+        localStorage: [
+          { name: 'balances.locale', value: 'en-GB' },
+          { name: 'balances.theme', value: 'dark' },
+        ],
       },
     ],
   }

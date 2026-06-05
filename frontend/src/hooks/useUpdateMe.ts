@@ -4,13 +4,15 @@ import type { Me } from '@/hooks/useSession'
 
 // Updates the current user's own profile. Fields are independent: pass
 // `nickname` to set/clear the compact owner label (null/"" clears), pass
-// `locale` to switch the UI language (BCP47, e.g. 'en-GB' / 'id-ID'). Both
-// in one payload is fine; the backend updates each independently. Refreshes
-// session (carries nickname for the "(you)" label and locale for boot
-// detection) and household-members (picker labels resolve via nickname).
+// `locale` to switch the UI language (BCP47, e.g. 'en-GB' / 'id-ID'), pass
+// `theme` to switch the UI theme ('light' / 'dark'). Any combination in one
+// payload is fine; the backend updates each independently. Refreshes session
+// (carries nickname for the "(you)" label, locale + theme for boot detection)
+// and household-members (picker labels resolve via nickname).
 export type UpdateMePayload = {
   nickname?: string | null
   locale?: string
+  theme?: string
 }
 
 export function useUpdateMe() {

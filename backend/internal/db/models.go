@@ -347,6 +347,7 @@ type User struct {
 	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
 	Nickname    *string            `json:"nickname"`
 	PictureUrl  *string            `json:"picture_url"`
+	Theme       string             `json:"theme"`
 }
 
 type VehicleDetail struct {

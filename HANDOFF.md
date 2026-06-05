@@ -431,6 +431,10 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
   - Logo / brand mark: snapshot-scale glyph + outlined IBM Plex Sans wordmark; canonical assets +
     regeneration recipe in `docs/brand/`. Wired into sidebar, mobile header, and sign-in (dark-only
     for now; both theme variants shipped). Per-user theme switcher deferred to issue #33.
+  - Per-user theme switcher (issue #33): `users.theme` flag (migration 00024; `light|dark`) +
+    Settings Appearance card, mirroring the locale stack — `src/theme/` (`useTheme` + ThemeProvider
+    + `useThemeReconcile`), an inline boot script in `index.html` for no-flash, and `AppLogo` now
+    swaps its wordmark with the active theme.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

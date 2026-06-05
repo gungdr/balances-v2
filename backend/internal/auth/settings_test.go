@@ -187,15 +187,42 @@ func TestHandleUpdateMe(t *testing.T) {
 		requireStatus(t, rec, http.StatusBadRequest)
 	})
 
-	t.Run("200 nickname + locale together", func(t *testing.T) {
+	t.Run("200 sets theme to light", func(t *testing.T) {
+		rec := h.do(t, "PATCH", "/me", map[string]any{"theme": "light"})
+		requireStatus(t, rec, http.StatusOK)
+		body := decodeBody[meResponse](t, rec)
+		if body.Theme != "light" {
+			t.Fatalf("theme: got %q, want light", body.Theme)
+		}
+	})
+
+	t.Run("200 sets theme to dark", func(t *testing.T) {
+		rec := h.do(t, "PATCH", "/me", map[string]any{"theme": "dark"})
+		requireStatus(t, rec, http.StatusOK)
+		body := decodeBody[meResponse](t, rec)
+		if body.Theme != "dark" {
+			t.Fatalf("theme: got %q, want dark", body.Theme)
+		}
+	})
+
+	t.Run("400 unsupported theme", func(t *testing.T) {
+		rec := h.do(t, "PATCH", "/me", map[string]any{"theme": "sepia"})
+		requireStatus(t, rec, http.StatusBadRequest)
+	})
+
+	t.Run("200 nickname + locale + theme together", func(t *testing.T) {
 		rec := h.do(t, "PATCH", "/me", map[string]any{
 			"nickname": "Bee",
 			"locale":   "en-GB",
+			"theme":    "light",
 		})
 		requireStatus(t, rec, http.StatusOK)
 		body := decodeBody[meResponse](t, rec)
 		if body.Locale != "en-GB" {
 			t.Errorf("locale: got %q, want en-GB", body.Locale)
+		}
+		if body.Theme != "light" {
+			t.Errorf("theme: got %q, want light", body.Theme)
 		}
 		if body.Nickname == nil || *body.Nickname != "Bee" {
 			t.Errorf("nickname: got %v, want \"Bee\"", body.Nickname)

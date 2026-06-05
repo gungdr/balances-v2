@@ -24,6 +24,8 @@ import { useUpdateMe } from '@/hooks/useUpdateMe'
 import { useUpdateHouseholdSettings } from '@/hooks/useHouseholdSettings'
 import { SUPPORTED_LOCALES, type Locale } from '@/i18n'
 import { useLocale } from '@/i18n/useLocale'
+import { SUPPORTED_THEMES, type Theme } from '@/theme'
+import { useTheme } from '@/theme/useTheme'
 import {
   useFxRates,
   useCreateFxRate,
@@ -64,6 +66,8 @@ export function SettingsScreen() {
       <NicknameCard />
 
       <LanguageCard />
+
+      <ThemeCard />
 
       <Card>
         <CardHeader>
@@ -225,6 +229,61 @@ function LanguageCard() {
               {SUPPORTED_LOCALES.map((l) => (
                 <option key={l} value={l}>
                   {LANGUAGE_LABELS[l]}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {updateMe.isError && (
+          <p className="text-sm text-destructive">
+            {errorMessage(updateMe.error)}
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+// ThemeCard mirrors LanguageCard: a two-option select bound to the active
+// theme. Selecting optimistically applies the theme (useTheme persists to
+// localStorage + toggles the `dark` class on <html>); the PATCH persists the
+// choice server-side so it follows the user across devices. Labels come from
+// the catalog so they render in the current UI language.
+function ThemeCard() {
+  const { t } = useTranslation('settings')
+  const { data: me } = useSession()
+  const { theme, setTheme } = useTheme()
+  const updateMe = useUpdateMe()
+
+  if (!me) return null
+
+  const onChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    const next = e.target.value as Theme
+    setTheme(next)
+    updateMe.mutate({ theme: next })
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">{t('theme.title')}</CardTitle>
+        <CardDescription>{t('theme.description')}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-end gap-3">
+          <div className="space-y-1">
+            <Label htmlFor="theme">{t('theme.label')}</Label>
+            <select
+              id="theme"
+              data-testid="settings-theme-select"
+              className="flex h-9 w-56 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              value={theme}
+              onChange={onChange}
+              disabled={updateMe.isPending}
+            >
+              {SUPPORTED_THEMES.map((th) => (
+                <option key={th} value={th}>
+                  {t(`theme.${th}`)}
                 </option>
               ))}
             </select>

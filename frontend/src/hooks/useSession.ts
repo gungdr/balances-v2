@@ -9,6 +9,7 @@ export type Me = {
   email: string
   picture_url: string | null
   locale: string
+  theme: string
   time_zone: string
   reporting_currency: string
   multi_currency_enabled: boolean

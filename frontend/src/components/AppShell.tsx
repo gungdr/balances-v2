@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/sidebar'
 import { useSession } from '@/hooks/useSession'
 import { useLocaleReconcile } from '@/i18n/useLocaleReconcile'
+import { useThemeReconcile } from '@/theme/useThemeReconcile'
 import { api } from '@/api/client'
 
 // The authenticated layout: persistent sidebar on desktop, a hamburger-opened
@@ -23,6 +24,7 @@ export function AppShell() {
   const { data: user } = useSession()
   const { t } = useTranslation('common')
   useLocaleReconcile(user)
+  useThemeReconcile(user)
 
   async function handleSignOut() {
     try {

@@ -318,6 +318,7 @@ type meResponse struct {
 	Email                string    `json:"email"`
 	PictureURL           *string   `json:"picture_url"`
 	Locale               string    `json:"locale"`
+	Theme                string    `json:"theme"`
 	TimeZone             string    `json:"time_zone"`
 	ReportingCurrency    string    `json:"reporting_currency"`
 	MultiCurrencyEnabled bool      `json:"multi_currency_enabled"`
@@ -332,6 +333,7 @@ func meResponseFor(user db.User, hh db.Household) meResponse {
 		Email:                user.Email,
 		PictureURL:           user.PictureUrl,
 		Locale:               user.Locale,
+		Theme:                user.Theme,
 		TimeZone:             user.TimeZone,
 		ReportingCurrency:    hh.ReportingCurrency,
 		MultiCurrencyEnabled: hh.MultiCurrencyEnabled,
@@ -365,6 +367,15 @@ var supportedLocales = map[string]struct{}{
 	"id-ID": {},
 }
 
+// supportedThemes mirrors the allowed set in the users.theme CHECK (migration
+// 00024) and the frontend's SUPPORTED_THEMES constant. Add a new theme by
+// extending all three. Validated here so a bad value is a 400 with a friendly
+// message rather than a 500 from the CHECK violation.
+var supportedThemes = map[string]struct{}{
+	"light": {},
+	"dark":  {},
+}
+
 // handleUpdateMe updates the current user's own profile. Editable today: the
 // self-set `nickname` (the compact owner label, falling back to display_name
 // on read) and the UI `locale` (ADR-0026). `display_name` stays Google-sourced
@@ -381,6 +392,9 @@ var supportedLocales = map[string]struct{}{
 //	          absent           → unchanged
 //	locale:   present + string → set (must be in supportedLocales, else 400)
 //	          present + null   → 400 (no clear semantics; locale always set)
+//	          absent           → unchanged
+//	theme:    present + string → set (must be in supportedThemes, else 400)
+//	          present + null   → 400 (no clear semantics; theme always set)
 //	          absent           → unchanged
 func (h *Handlers) handleUpdateMe(w http.ResponseWriter, r *http.Request) {
 	user, ok := UserFromContext(r.Context())
@@ -455,6 +469,34 @@ func (h *Handlers) handleUpdateMe(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			slog.Error("update user locale", "err", err)
+			httperr.Write(w, http.StatusInternalServerError, httperr.CodeInternal, nil)
+			return
+		}
+		updated = next
+	}
+
+	if themeRaw, present := raw["theme"]; present {
+		var theme *string
+		if err := json.Unmarshal(themeRaw, &theme); err != nil || theme == nil {
+			httperr.Write(w, http.StatusBadRequest, httperr.CodeValidation, map[string]any{
+				"field": "theme",
+				"rule":  "required",
+			})
+			return
+		}
+		if _, ok := supportedThemes[*theme]; !ok {
+			httperr.Write(w, http.StatusBadRequest, httperr.CodeValidation, map[string]any{
+				"field": "theme",
+				"rule":  "oneof",
+			})
+			return
+		}
+		next, err := h.q.UpdateUserTheme(r.Context(), db.UpdateUserThemeParams{
+			UpdatedBy: &user.ID,
+			Theme:     *theme,
+		})
+		if err != nil {
+			slog.Error("update user theme", "err", err)
 			httperr.Write(w, http.StatusInternalServerError, httperr.CodeInternal, nil)
 			return
 		}
