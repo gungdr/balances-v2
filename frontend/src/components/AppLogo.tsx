@@ -10,8 +10,17 @@ import wordmarkLight from '@/assets/brand/wordmark-light.svg'
 // — at which point the prop gets driven from a useTheme() hook — is issue #33.
 type Theme = 'dark' | 'light'
 
-export function AppLogo({ theme = 'dark' }: { theme?: Theme }) {
+// `className` controls sizing per placement: the default `h-7 w-auto` suits the
+// inline spots (mobile top bar, sign-in card); the sidebar passes `w-full h-auto`
+// so the wordmark spans the sidebar width.
+export function AppLogo({
+  theme = 'dark',
+  className = 'h-7 w-auto',
+}: {
+  theme?: Theme
+  className?: string
+}) {
   const { t } = useTranslation('common')
   const src = theme === 'dark' ? wordmarkDark : wordmarkLight
-  return <img src={src} alt={t('brand')} className="h-7 w-auto" />
+  return <img src={src} alt={t('brand')} className={className} />
 }

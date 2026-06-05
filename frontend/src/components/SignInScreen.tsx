@@ -14,7 +14,7 @@ export function SignInScreen() {
     <div className="min-h-screen flex items-center justify-center bg-muted p-6">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <AppLogo />
+          <AppLogo className="w-full h-auto" />
           <CardDescription>{t('signIn.tagline')}</CardDescription>
         </CardHeader>
         <CardContent>

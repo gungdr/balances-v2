@@ -84,7 +84,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader>
         <div className="px-2 py-1">
-          <AppLogo />
+          <AppLogo className="w-full h-auto" />
         </div>
       </SidebarHeader>
       <SidebarContent>
