@@ -423,6 +423,11 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     the derive is non-destructive — once the user types into the units field (`qtyTouched`) it
     stops, and Edit seeds `qtyTouched` from the saved quantity so stored figures are never
     clobbered. New `fee.derivedHint` key EN+ID. Frontend-only.
+  - E2E coverage for the help tours (issue #26): new `e2e/tour.spec.ts` (5 specs) drives the
+    driver.js guided tours — launch/Next/Back/Done + progress text, anchoring via the
+    `driver-active-element` class on each `data-testid` target, chart-step pruning (< 2 snapshots →
+    4 steps) + closed-position header anchor, the 5-vs-7 step variants, and an EN→ID locale switch
+    via the Settings dropdown. `make e2e` 21/21. Behavioural net, out of coverage (ADR-0021).
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

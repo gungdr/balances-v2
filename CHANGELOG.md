@@ -2329,6 +2329,29 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     pure-cash `dividend-fee.spec` path is unaffected (price blank → no derive; fills by label, not
     position). Frontend-only; backend untouched. Closes the Q12 M6 line.
 
+- **E2E coverage for the help tours (issue #26, closes it).** New `e2e/tour.spec.ts` — 5 specs that
+  drive the driver.js guided tours (#23) through the real UI, exercising the two structural variants
+  (non-investment bank account = 5 steps, investment bond = 7 steps incl. `investment-headline` +
+  `tour-transactions`). The deferred case list from #26 maps to:
+  - **Launch + navigate.** `data-testid="help-tour"` opens the overlay on step 1; Next advances,
+    Back returns, the last step swaps Next → Done and clicking it closes the popover. Progress text
+    asserted as `current of total` at each step.
+  - **Anchoring.** A shared `expectStep` helper asserts, per step, the popover title, the progress
+    text, and that driver.js stamped `driver-active-element` onto the step's anchor element — i.e.
+    the popover attached to the right `data-testid` (`tour-overview`/`-actions`/`-details`/`-chart`/
+    `-snapshots`/`-transactions` + `investment-headline`). Reads driver's portal-rendered text +
+    role="dialog", never a fixed DOM position (per `e2e/README.md`).
+  - **Step pruning.** Chart step skipped with < 2 snapshots (total drops to 4; the `Balance over
+    time` title — exact-match, since the overview body copy contains the phrase — never appears). On
+    a **closed** position the per-card New/Import buttons hide but the header `tour-actions` group
+    survives, so its step still anchors.
+  - **Locale.** Tour renders EN by default (the en-GB pin), then ID after toggling the
+    `settings-language-select` dropdown — chrome (`Lanjut`/`1 dari 4`) + a body string asserted.
+    Waits on the `PATCH /api/me` before the reload so `useLocaleReconcile` reads `id-ID` and doesn't
+    revert; restores en-GB at the end (waited on too) so later specs stay English.
+  - **Verified.** `make e2e` 21/21 green (5 new), tsc + eslint clean. Out of the coverage metric
+    (behavioural net, ADR-0021). Frontend-only.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:
