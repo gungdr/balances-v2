@@ -160,6 +160,7 @@
     "cashAmountPlaceholder": "50000",
     "descriptionPlaceholder": "annual storage fee",
     "incompleteHint": "If recording a unit-settled fee, fill in both quantity and price.",
+    "derivedHint": "Auto-filled from cash ÷ price. Edit to override.",
     "recordFee": "Record fee"
   },
   "maturityTxn": {

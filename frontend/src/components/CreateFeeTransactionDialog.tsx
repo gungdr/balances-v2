@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { errorMessage } from '@/lib/errorMessage'
 import { todayDate } from '@/lib/dateLimits'
+import { deriveFeeQuantity } from '@/lib/feeQuantity'
 import type { CreateInvestmentTransactionPayload } from '@/hooks/useInvestmentTransactions'
 
 // Fee shape: cash amount required; quantity + price_per_unit optional but
@@ -51,15 +52,34 @@ export function CreateFeeTransactionDialog<TResult>({
   const { t } = useTranslation(['investments', 'common'])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
+  // Once the user types into the units field we stop auto-deriving it, so their
+  // figure is never clobbered (cash→quantity helper, Q12).
+  const [qtyTouched, setQtyTouched] = useState(false)
 
   // Unit fee: both qty + price are filled; neither = pure cash fee.
   const hasQty = !!form.quantity
   const hasPrice = !!form.price_per_unit
   const unitFeeIncomplete = hasQty !== hasPrice
+  const qtyAutoDerived = !qtyTouched && !!form.quantity
+
+  // Patch the form, re-deriving units from cash ÷ price unless the user has
+  // taken over the units field. Computing in the change handler (not a useEffect
+  // on a mutation-bearing form) sidesteps the deps-array render loop.
+  function patch(next: Partial<ReturnType<typeof emptyForm>>) {
+    setForm((prev) => {
+      const merged = { ...prev, ...next }
+      if (!qtyTouched && ('amount' in next || 'price_per_unit' in next)) {
+        merged.quantity =
+          deriveFeeQuantity(merged.amount, merged.price_per_unit) ?? ''
+      }
+      return merged
+    })
+  }
 
   function close() {
     setOpen(false)
     setForm(emptyForm())
+    setQtyTouched(false)
     mutation.reset()
   }
 
@@ -125,26 +145,13 @@ export function CreateFeeTransactionDialog<TResult>({
                 required
                 inputMode="decimal"
                 value={form.amount}
-                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                onChange={(e) => patch({ amount: e.target.value })}
                 placeholder={t('investments:fee.cashAmountPlaceholder')}
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-2">
-              <Label htmlFor="fee_quantity">
-                {t('investments:fee.unitsDeductedLabel', { unit: quantityUnit })}
-              </Label>
-              <Input
-                id="fee_quantity"
-                inputMode="decimal"
-                value={form.quantity}
-                onChange={(e) =>
-                  setForm({ ...form, quantity: e.target.value })
-                }
-              />
-            </div>
             <div className="grid gap-2">
               <Label htmlFor="fee_price">
                 {t('investments:fee.conversionPriceLabel', { currency })}
@@ -153,10 +160,27 @@ export function CreateFeeTransactionDialog<TResult>({
                 id="fee_price"
                 inputMode="decimal"
                 value={form.price_per_unit}
-                onChange={(e) =>
-                  setForm({ ...form, price_per_unit: e.target.value })
-                }
+                onChange={(e) => patch({ price_per_unit: e.target.value })}
               />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="fee_quantity">
+                {t('investments:fee.unitsDeductedLabel', { unit: quantityUnit })}
+              </Label>
+              <Input
+                id="fee_quantity"
+                inputMode="decimal"
+                value={form.quantity}
+                onChange={(e) => {
+                  setQtyTouched(true)
+                  setForm((prev) => ({ ...prev, quantity: e.target.value }))
+                }}
+              />
+              {qtyAutoDerived && (
+                <p className="text-xs text-muted-foreground">
+                  {t('investments:fee.derivedHint')}
+                </p>
+              )}
             </div>
           </div>
 

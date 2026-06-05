@@ -160,6 +160,7 @@
     "cashAmountPlaceholder": "50000",
     "descriptionPlaceholder": "biaya penyimpanan tahunan",
     "incompleteHint": "Jika mencatat biaya yang dipotong unit, isi jumlah dan harga.",
+    "derivedHint": "Terisi otomatis dari kas ÷ harga. Ubah untuk menimpa.",
     "recordFee": "Catat biaya"
   },
   "maturityTxn": {

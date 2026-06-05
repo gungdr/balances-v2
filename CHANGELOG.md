@@ -2310,6 +2310,25 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
   - **Verified.** `tsc` clean, eslint 0 errors, vite build green, vitest 182/182, Playwright 16/16.
     ~54 files; backend untouched.
 
+- **Fee cash→quantity helper (Q12, M6).** A unit-settled fee removes units from the position at a
+  conversion price, so `cash_amount = quantity_deducted × price_per_unit` — three dependent values
+  the owner previously had to divide by hand. New pure `lib/feeQuantity.ts` (`deriveFeeQuantity`,
+  6 unit tests) computes `quantity = amount ÷ price` to 8dp (DECIMAL(20,8)), returning `null` on
+  blank/non-numeric/≤0 inputs so the call site renders nothing.
+  - **Dialogs.** `Create/EditFeeTransactionDialog` reordered the unit-fee row to read as a
+    calculator — **Cash amount** (top), then **Conversion price** → **Units deducted** — and
+    auto-fills the units field via a `patch()` change-handler (computed inline, *not* a `useEffect`
+    on the mutation-bearing form, per the deps-array render-loop gotcha). The derive is
+    non-destructive: a `qtyTouched` flag latches once the user types into the units field and stops
+    the auto-fill thereafter. Edit seeds `qtyTouched` from `transaction.quantity` so an existing
+    saved unit figure is never clobbered; the helper only kicks in for fees that had no units. A
+    muted `fee.derivedHint` line ("Auto-filled from cash ÷ price. Edit to override.") shows while the
+    field is auto-managed. The pure-cash fee (both fields blank) and the existing
+    quantity+price-must-pair validation are unchanged.
+  - **Verified.** vitest 188/188 (+6), eslint 0 errors on touched files, vite build green. The
+    pure-cash `dividend-fee.spec` path is unaffected (price blank → no derive; fills by label, not
+    position). Frontend-only; backend untouched. Closes the Q12 M6 line.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

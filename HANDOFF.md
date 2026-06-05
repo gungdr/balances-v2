@@ -417,6 +417,12 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     Pencil/Trash2/Archive) — with tour + `snapshotsEmpty` copy and e2e selectors repointed, both
     locales. Also fixed a pre-existing `bond-snapshot.spec` gap (unfilled required `placement_date`
     since #27; Playwright isn't in CI). Frontend-only.
+  - Fee cash→quantity helper (Q12): the unit-settled-fee dialogs (`Create/EditFeeTransactionDialog`)
+    now auto-derive units deducted from cash ÷ conversion price (new pure `lib/feeQuantity.ts`,
+    6 unit tests, 8dp). Fields reordered to read as a calculator (amount → price → derived units);
+    the derive is non-destructive — once the user types into the units field (`qtyTouched`) it
+    stops, and Edit seeds `qtyTouched` from the saved quantity so stored figures are never
+    clobbered. New `fee.derivedHint` key EN+ID. Frontend-only.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
@@ -434,7 +440,6 @@ always reports one stable status so a future branch protection has a safe requir
 M6 is the v1-polish milestone (see `docs/ROADMAP.md`). Still open in M6:
 
 - **PDF export** of monthly reports (user requirement, Q22).
-- **Fee cash→quantity helper** (Q12).
 - **Migration consolidation** — squash the ~15 accumulated pre-alpha migrations into one
   initial-schema migration before the first production deploy.
 - **Deploy** — choose a hosting target and ship it; configure a real Resend domain for production
