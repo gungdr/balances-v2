@@ -442,6 +442,11 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     shared `Create{QuantityPriceSnapshot,TradeTransaction}Dialog` (gold passes snapshot/buy/sell
     hints; stock/MF/bond pass none) + a gold help-tour line. ADR-0009 + glossary (Harga jual / Harga
     buyback) amended. Frontend + docs only.
+  - Security CI layer: CodeQL SAST (`codeql.yml`, Go + TS, weekly cron), govulncheck (`backend-vuln`
+    job, in `ci-gate`), Dependabot (gomod/npm/github-actions). Fixed 7 reachable vulns en route —
+    `golang.org/x/crypto`→v0.52.0 + Go toolchain→1.26.4. Deferred items (e2e-in-CI, SHA-pinning,
+    gitleaks) + the SonarQube-declined rationale live in `docs/ci-tooling.md`; **reassess before
+    alpha.**
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

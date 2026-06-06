@@ -2434,6 +2434,30 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
   - **Verified.** eslint 0 errors (13 pre-existing warnings, none in changed files), vite build green,
     vitest 188/188. Playwright not re-run (gold-tour copy grew) — left for the user to eyeball.
 
+- **Security CI layer (M6, CI/infra).** Added three GitHub-native security tools on top of the
+  existing lint/test/coverage pipeline, scoped deliberately at "what a public financial app's threat
+  surface actually needs" rather than more lint (SonarQube was evaluated and declined — heavy overlap
+  with golangci-lint/eslint, and its quality-gate would compete with the existing `ci-gate` +
+  Codecov). The full considered/deferred record lives in `docs/ci-tooling.md`, flagged for
+  reassessment before alpha.
+  - **CodeQL (`.github/workflows/codeql.yml`).** SAST for Go *and* TS/JS via a 2-language matrix
+    (`go` build-mode `manual` → setup-go + `go build ./...`; `javascript-typescript` build-mode
+    `none`). Runs per-PR/push + a weekly Monday cron so query-pack updates re-scan unchanged code.
+    Own workflow (not folded into `ci.yml`) because it needs `security-events: write`. Free for
+    public repos; would need GitHub Advanced Security if the repo ever goes private.
+  - **govulncheck (`backend-vuln` job in `ci.yml`).** Reachability-based Go vuln scan, path-gated on
+    `backend/**` and wired into the `ci-gate` aggregator so a reachable vuln blocks merges. First run
+    immediately earned its keep: **7 reachable vulns** — 2 stdlib (`net/textproto`, `crypto/x509`)
+    and 5 in `golang.org/x/crypto@v0.50.0` (the latter all reached only via `internal/testutil/db.go`
+    → testcontainers → ssh, i.e. test-only). Fixed by bumping `golang.org/x/crypto`→**v0.52.0** and
+    the go directive `1.25.7`→**1.26.4** (vuln DB lists backports at 1.25.11 / 1.26.4; chose the 1.26
+    line to match the toolchain already running locally). Post-fix: `No vulnerabilities found`,
+    `go build ./...` green, full `-race` suite green, golangci-lint v2.12.2 0 issues.
+  - **Dependabot (`.github/dependabot.yml`).** Weekly update PRs + security alerts across all three
+    ecosystems: `gomod` (backend), `npm` (frontend, dev-deps grouped into one PR), and
+    `github-actions` — the last so the Actions versions stay current (and would feed SHA-pinning if
+    that deferred item is later adopted).
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

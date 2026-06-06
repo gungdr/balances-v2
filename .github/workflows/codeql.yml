@@ -1,0 +1,63 @@
+name: CodeQL
+
+# Static application security testing (SAST). Runs GitHub's CodeQL analysers
+# over the Go backend and the TS/JS frontend, surfacing findings in the
+# Security tab and as PR annotations. Free for public repositories.
+#
+# Separate workflow (not folded into ci.yml) because CodeQL needs its own
+# permissions block (security-events: write) and a weekly scheduled run so the
+# query packs catch newly-published rules against unchanged code.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly, Monday 06:00 UTC — re-scan against updated query packs even when
+    # no code changed.
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      # Needed to upload results to the code-scanning dashboard.
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: go
+            build-mode: manual
+          - language: javascript-typescript
+            build-mode: none
+    steps:
+      - uses: actions/checkout@v6
+
+      # Go is a compiled language: CodeQL traces the build to find source.
+      # We build manually so the module in backend/ resolves correctly rather
+      # than relying on autobuild guessing the subdirectory.
+      - if: matrix.language == 'go'
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - if: matrix.language == 'go'
+        name: Build backend
+        working-directory: backend
+        run: go build ./...
+
+      - uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"

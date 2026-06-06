@@ -1,0 +1,28 @@
+version: 2
+
+# Automated dependency-update PRs + security alerts. Config-only, no CI job.
+# Covers all three ecosystems in play: Go modules (backend), npm (frontend),
+# and the GitHub Actions pinned in our workflows.
+updates:
+  - package-ecosystem: gomod
+    directory: /backend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Collapse the dev-tooling churn (eslint, vitest, types, etc.) into one
+      # PR so it doesn't drown the runtime-dependency bumps.
+      dev-dependencies:
+        dependency-type: development
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

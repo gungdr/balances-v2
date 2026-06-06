@@ -110,6 +110,25 @@ jobs:
           flags: backend
           fail_ci_if_error: true
 
+  backend-vuln:
+    name: Backend vuln scan
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      # Official Go vuln scanner. Reachability-based: only fails on
+      # vulnerabilities our code actually calls, not every transitive CVE.
+      - name: Run govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
   frontend-checks:
     name: Frontend checks
     needs: changes
@@ -143,7 +162,7 @@ jobs:
   ci-gate:
     name: CI gate
     if: always()
-    needs: [changes, backend-lint, backend-test, frontend-checks]
+    needs: [changes, backend-lint, backend-test, backend-vuln, frontend-checks]
     runs-on: ubuntu-latest
     steps:
       - name: Verify no required job failed
@@ -152,6 +171,7 @@ jobs:
             "${{ needs.changes.result }}" \
             "${{ needs.backend-lint.result }}" \
             "${{ needs.backend-test.result }}" \
+            "${{ needs.backend-vuln.result }}" \
             "${{ needs.frontend-checks.result }}"; do
             if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then
               echo "A required job did not pass (result: $r)"
