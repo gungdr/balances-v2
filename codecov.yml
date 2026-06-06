@@ -2,6 +2,8 @@ codecov:
   require_ci_to_pass: true
 
 coverage:
+  # Badge colour tiers: red below 70, yellow gradient 70–80, green at/above 80.
+  range: "70...80"
   status:
     project:
       default:
