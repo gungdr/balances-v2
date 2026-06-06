@@ -94,6 +94,20 @@ row rather than flipping `terminated_at` back to NULL — keeping termination pe
 the historical record. This applies uniformly, including to TimeDeposit auto-rollovers: each
 rollover creates a fresh TimeDeposit Position with a new `placement_date`.
 
+### Tags
+
+**Tag**: A household-defined label attached to a Position to group it on a breakdown report. Each
+Position carries **at most one** Tag (default none → it falls into an **Untagged** bucket). A Tag is
+free-form — the Household names it and picks its colour from a fixed swatch palette — and carries no
+built-in financial meaning: "by bank", "by goal", "by risk bucket" are all expressed as Tag values
+the Household chooses, not a fixed taxonomy. Tags are orthogonal to every domain field (a Tag is
+*not* the bank-account `bank_name`) and assert nothing about where a Position's value is held.
+**Income is not taggable** — it is a flow event, not a Position. The Tag-breakdown report sums each
+Tag's Positions by most-recent-snapshot value (the net-worth carry-forward rule), per currency with
+no FX conversion, showing Liabilities as their own negative slice plus the Untagged bucket so
+proportions stay honest. _Avoid_: Group (reserved for the four top-level groups), Category (reserved
+for Income categories), Label.
+
 ### Identity and ownership
 
 **Household**: The unit of access and aggregation — the people sharing economic life and tracking
@@ -200,6 +214,8 @@ spending.
   per month.
 - An **Investment** instrument additionally has zero or more **Transactions** — independent of its
   Snapshots.
+- Every **Asset / Liability / Receivable / Investment** optionally carries **one Tag** (a
+  household-defined grouping label); a Tag groups many Positions. **Income** is not taggable.
 - A **TimeDeposit** auto-renewal terminates the old instrument and creates a new one; the chain is
   implicit, not modelled as a parent-child link.
 - Every **Income** event belongs to exactly one **Household** and carries an **Ownership** mode.
