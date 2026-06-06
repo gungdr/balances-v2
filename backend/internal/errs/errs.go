@@ -75,4 +75,9 @@ var (
 	// terminal). Mapped to 409 Conflict: the request is well-formed but the
 	// position's state forbids it.
 	ErrPositionNotActive = errors.New("repo: position is not active")
+
+	// ErrTagNameExists is returned when creating or renaming a Tag to a name
+	// that already exists (case-insensitive) among the household's living
+	// Tags — the (household, lower(name)) partial unique index. Mapped to 409.
+	ErrTagNameExists = errors.New("repo: tag name already exists")
 )

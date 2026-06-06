@@ -29,6 +29,7 @@ type Asset struct {
 	UpdatedBy       *uuid.UUID         `json:"updated_by"`
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
+	TagID           *uuid.UUID         `json:"tag_id"`
 }
 
 type AssetSnapshot struct {
@@ -142,6 +143,7 @@ type Investment struct {
 	DeletedAt              pgtype.Timestamptz `json:"deleted_at"`
 	RiskProfile            string             `json:"risk_profile"`
 	RolledFromInvestmentID *uuid.UUID         `json:"rolled_from_investment_id"`
+	TagID                  *uuid.UUID         `json:"tag_id"`
 }
 
 type InvestmentSnapshot struct {
@@ -206,6 +208,7 @@ type Liability struct {
 	UpdatedBy        *uuid.UUID         `json:"updated_by"`
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt        pgtype.Timestamptz `json:"deleted_at"`
+	TagID            *uuid.UUID         `json:"tag_id"`
 }
 
 type LiabilitySnapshot struct {
@@ -289,6 +292,7 @@ type Receivable struct {
 	UpdatedBy        *uuid.UUID         `json:"updated_by"`
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt        pgtype.Timestamptz `json:"deleted_at"`
+	TagID            *uuid.UUID         `json:"tag_id"`
 }
 
 type ReceivableSnapshot struct {
@@ -319,6 +323,18 @@ type StockDetail struct {
 	InvestmentID uuid.UUID `json:"investment_id"`
 	Ticker       string    `json:"ticker"`
 	Exchange     string    `json:"exchange"`
+}
+
+type Tag struct {
+	ID          uuid.UUID          `json:"id"`
+	HouseholdID uuid.UUID          `json:"household_id"`
+	Name        string             `json:"name"`
+	Color       string             `json:"color"`
+	CreatedBy   *uuid.UUID         `json:"created_by"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedBy   *uuid.UUID         `json:"updated_by"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt   pgtype.Timestamptz `json:"deleted_at"`
 }
 
 type TimeDepositDetail struct {

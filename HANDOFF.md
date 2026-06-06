@@ -449,6 +449,12 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     alpha.**
   - First Dependabot batch triaged: chi 5.3.0 bump dropped `middleware.RealIP` (deprecated for
     IP-spoofing; no trusted proxy in front, nothing reads `RemoteAddr`) — see CHANGELOG.
+  - User-defined position Tags (issue #28, ADR-0028; **slice 1 of 2 — assignment UI still pending,
+    #28 stays open**): a household-scoped grouping label, ≤1 per Position (nullable `tag_id` on the 4
+    shared parent tables, migration 00025), orthogonal to `bank_name`. Backend CRUD + unified
+    `PUT /api/tags/assignments` + `GET /api/tags/breakdown` (per-currency Σ value, Untagged bucket);
+    Settings Tags management card + `/tags` pie+table report. Slice 2 = a shared `DetailTagControl`
+    on the 10 detail screens + tests. Reframed from the original "banks as a lookup" ask.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
@@ -465,6 +471,10 @@ always reports one stable status so a future branch protection has a safe requir
 
 M6 is the v1-polish milestone (see `docs/ROADMAP.md`). Still open in M6:
 
+- **Position Tags slice 2 (issue #28)** — the assignment UI: a shared `DetailTagControl` on the 10
+  position detail screens (calls `PUT /api/tags/assignments`), plus the backend tenancy/breakdown Go
+  test, a vitest for `lib/tagBreakdown`, and an e2e smoke. Slice 1 (backend + management + report) is
+  shipped above. Close #28 when slice 2 lands.
 - **PDF export** of monthly reports (user requirement, Q22).
 - **Migration consolidation** — squash the ~15 accumulated pre-alpha migrations into one
   initial-schema migration before the first production deploy.

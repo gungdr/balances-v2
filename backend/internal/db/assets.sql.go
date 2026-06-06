@@ -20,7 +20,7 @@ INSERT INTO assets (
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $8
 )
-RETURNING id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at
+RETURNING id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at, tag_id
 `
 
 type CreateAssetParams struct {
@@ -63,12 +63,13 @@ func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset
 		&i.UpdatedBy,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.TagID,
 	)
 	return i, err
 }
 
 const getAssetByID = `-- name: GetAssetByID :one
-SELECT id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at
+SELECT id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at, tag_id
 FROM assets
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
 `
@@ -98,12 +99,13 @@ func (q *Queries) GetAssetByID(ctx context.Context, arg GetAssetByIDParams) (Ass
 		&i.UpdatedBy,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.TagID,
 	)
 	return i, err
 }
 
 const listAssetsByHousehold = `-- name: ListAssetsByHousehold :many
-SELECT id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at
+SELECT id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at, tag_id
 FROM assets
 WHERE household_id = $1
   AND ($2::text IS NULL OR subtype = $2::text)
@@ -142,6 +144,7 @@ func (q *Queries) ListAssetsByHousehold(ctx context.Context, arg ListAssetsByHou
 			&i.UpdatedBy,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.TagID,
 		); err != nil {
 			return nil, err
 		}
@@ -184,7 +187,7 @@ SET display_name       = $3,
     updated_by         = $7,
     updated_at         = now()
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
-RETURNING id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at
+RETURNING id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at, tag_id
 `
 
 type UpdateAssetParams struct {
@@ -225,6 +228,7 @@ func (q *Queries) UpdateAsset(ctx context.Context, arg UpdateAssetParams) (Asset
 		&i.UpdatedBy,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.TagID,
 	)
 	return i, err
 }
@@ -237,7 +241,7 @@ SET status           = $3,
     updated_by       = $6,
     updated_at       = now()
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
-RETURNING id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at
+RETURNING id, household_id, display_name, description, subtype, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, created_by, created_at, updated_by, updated_at, deleted_at, tag_id
 `
 
 type UpdateAssetLifecycleParams struct {
@@ -276,6 +280,7 @@ func (q *Queries) UpdateAssetLifecycle(ctx context.Context, arg UpdateAssetLifec
 		&i.UpdatedBy,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.TagID,
 	)
 	return i, err
 }

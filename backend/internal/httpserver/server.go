@@ -16,6 +16,7 @@ import (
 	"github.com/kerti/balances-v2/backend/internal/liabilities"
 	"github.com/kerti/balances-v2/backend/internal/receivables"
 	"github.com/kerti/balances-v2/backend/internal/reports"
+	"github.com/kerti/balances-v2/backend/internal/tags"
 )
 
 type Server struct {
@@ -29,6 +30,7 @@ type Server struct {
 	incomeH      *income.Handlers
 	reportsH     *reports.Handlers
 	fxRatesH     *fxrates.Handlers
+	tagsH        *tags.Handlers
 	router       chi.Router
 }
 
@@ -43,6 +45,7 @@ func New(
 	incomeH *income.Handlers,
 	reportsH *reports.Handlers,
 	fxRatesH *fxrates.Handlers,
+	tagsH *tags.Handlers,
 ) *Server {
 	s := &Server{
 		pool:         pool,
@@ -55,6 +58,7 @@ func New(
 		incomeH:      incomeH,
 		reportsH:     reportsH,
 		fxRatesH:     fxRatesH,
+		tagsH:        tagsH,
 	}
 	s.router = s.buildRouter()
 	return s
@@ -86,6 +90,7 @@ func (s *Server) buildRouter() chi.Router {
 		s.incomeH.Mount(r)
 		s.reportsH.Mount(r)
 		s.fxRatesH.Mount(r)
+		s.tagsH.Mount(r)
 	})
 
 	return r

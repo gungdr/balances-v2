@@ -47,5 +47,8 @@ export const routes = {
   // Income — flow event, not a position group: a flat list at its own path.
   income: '/income',
 
+  // Tags — the cross-group breakdown report; flat, no detail pages.
+  tags: '/tags',
+
   settings: '/settings',
 } as const

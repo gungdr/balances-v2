@@ -105,6 +105,10 @@ const (
 	// rejection.
 	CodeCannotInviteSelf Code = "CANNOT_INVITE_SELF"
 
+	// CodeTagNameExists maps repo.ErrTagNameExists -> 409 — a Tag with that
+	// name (case-insensitive) already exists in the household.
+	CodeTagNameExists Code = "TAG_NAME_EXISTS"
+
 	// CodeUnauthorized is the 401 emitted by the session middleware when the
 	// request has no valid session cookie. Distinct from the repo's
 	// unreachable ErrUnauthenticated — this one is the real, client-facing

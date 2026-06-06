@@ -1,0 +1,32 @@
+{
+  "field": {
+    "label": "Tag",
+    "none": "Tanpa tag"
+  },
+  "manage": {
+    "title": "Tag",
+    "description": "Kelompokkan posisi sesuka Anda, lalu lihat totalnya di laporan Tag.",
+    "empty": "Belum ada tag. Tambahkan di bawah.",
+    "newLabel": "Tag baru",
+    "namePlaceholder": "mis. BCA, Dana Pensiun",
+    "add": "Tambah",
+    "edit": "Ubah tag",
+    "delete": "Hapus tag",
+    "deleteTitle": "Hapus \"{{name}}\"?",
+    "deleteDescription": "Ini menghapus tag dan melepasnya dari semua posisi. Posisinya sendiri tidak ikut terhapus."
+  },
+  "report": {
+    "title": "Tag",
+    "subtitle": "Bagaimana kepemilikan Anda terbagi di antara tag yang Anda buat.",
+    "untagged": "Tanpa tag",
+    "empty": "Belum ada yang ditampilkan. Beri tag pada beberapa posisi untuk melihat rinciannya.",
+    "currencyHeading": "{{currency}}",
+    "col": {
+      "tag": "Tag",
+      "holdings": "Kepemilikan",
+      "liabilities": "Liabilitas",
+      "net": "Bersih"
+    },
+    "total": "Total"
+  }
+}

@@ -32,6 +32,7 @@ import (
 	"github.com/kerti/balances-v2/backend/internal/receivables"
 	"github.com/kerti/balances-v2/backend/internal/repo"
 	"github.com/kerti/balances-v2/backend/internal/reports"
+	"github.com/kerti/balances-v2/backend/internal/tags"
 )
 
 func main() {
@@ -154,7 +155,10 @@ func serveCmd() error {
 	fxRateRepo := repo.NewFxRateRepo(pool)
 	fxRatesH := fxrates.New(fxRateRepo)
 
-	srv := httpserver.New(pool, cfg, authH, assetsH, liabilitiesH, receivablesH, investmentsH, incomeH, reportsH, fxRatesH)
+	tagRepo := repo.NewTagRepo(pool)
+	tagsH := tags.New(tagRepo)
+
+	srv := httpserver.New(pool, cfg, authH, assetsH, liabilitiesH, receivablesH, investmentsH, incomeH, reportsH, fxRatesH, tagsH)
 
 	httpSrv := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),

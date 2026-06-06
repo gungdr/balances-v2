@@ -72,11 +72,25 @@ anything. One optional FK makes Tags a **partition** — every Position lands in
 normalisation rule. Multi-tag is a deferred escalation (a `position_tags` join table) if a real
 multi-membership need appears; there is no signal for it yet, and YAGNI applies.
 
+### Assignment is a dedicated endpoint, not a create/update field
+
+Because a Tag is orthogonal to a Position's identity, assignment is a single unified endpoint —
+`PUT /api/tags/assignments` with `{group, position_id, tag_id|null}` (`group` ∈ asset / liability
+/ receivable / investment) — rather than a `tag_id` field threaded through all eleven position
+create/update request shapes. This keeps the existing create/update flows untouched, gives the
+tenancy check one home, and lets a future "drag a position between tags" surface reuse the same
+route. The trade-off is that creating a Position *with* a Tag is two calls (create, then assign)
+instead of one atomic insert; for a cosmetic grouping with no financial-integrity stake that is an
+acceptable seam. The current `tag_id` value rides back on every Position read for nothing extra:
+the position queries are `SELECT *`, so the new column surfaces on GET/LIST automatically and the
+edit dialog preselects from it.
+
 ### Tenancy: belt + suspenders, as everywhere
 
 Assigning a Tag validates `tag.household_id == position.household_id` in SQL, not just middleware —
-the same rule every position-touching query already follows. A Tag from another household is
-`ErrNotFound` on assign, never a silent cross-tenant link.
+the same rule every position-touching query already follows. The `UPDATE … SET tag_id` filters the
+Position by `household_id` and guards the Tag with a `household_id`-scoped subquery, so a Tag or
+Position from another household is `ErrNotFound`, never a silent cross-tenant link.
 
 ### The report: Σ value by Tag, per currency
 
@@ -94,8 +108,9 @@ net worth uses, CONTEXT "Net Worth"). Conventions:
 
 UI: a dedicated `/tags` route (flat nav group, like Receivables / Income) renders a pie
 (proportion) + table (sums) per currency. Tag management (create / rename / recolor / delete) is a
-card in Settings, mirroring the locale + theme cards ([[adr-0026]]). Assignment is a single-select
-Tag dropdown defaulting to "No tag" in every Position Create/Edit dialog.
+card in Settings, mirroring the locale + theme cards ([[adr-0026]]). A single-select Tag dropdown
+defaulting to "No tag" sits in every Position Create/Edit dialog; on save the dialog fires the
+position mutation and, if the selection changed, the assign call.
 
 ## Out of scope
 
@@ -107,9 +122,9 @@ Tag dropdown defaulting to "No tag" in every Position Create/Edit dialog.
 
 ## Consequences
 
-- One migration (00025): the `tags` table + four `tag_id` columns + the four sqlc query sets gain a
-  tag parameter on create/update and select the column. No backfill — every existing Position reads
-  as Untagged.
+- One migration (00025): the `tags` table + four nullable `tag_id` columns. No backfill — every
+  existing Position reads as Untagged, and `SELECT *` surfaces the column on every Position read
+  without touching the existing create/update/select queries.
 - The Position Create/Edit dialogs across all ten groups gain a shared Tag-select component;
   Settings gains a Tags card; a new `/tags` report screen and one nav entry land.
 - Because the FK is nullable and defaults NULL, the feature is fully additive — no existing flow

@@ -33,6 +33,7 @@ import {
 } from '@/hooks/useFxRates'
 import { formatYearMonth } from '@/lib/format'
 import { InviteForm } from '@/components/InviteForm'
+import { TagsCard } from '@/components/TagsCard'
 
 export function SettingsScreen() {
   const { t } = useTranslation(['settings', 'common'])
@@ -68,6 +69,8 @@ export function SettingsScreen() {
       <LanguageCard />
 
       <ThemeCard />
+
+      <TagsCard />
 
       <Card>
         <CardHeader>

@@ -21,7 +21,7 @@ INSERT INTO receivables (
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $9
 )
-RETURNING id, household_id, display_name, description, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, counterparty_name, due_date, created_by, created_at, updated_by, updated_at, deleted_at
+RETURNING id, household_id, display_name, description, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, counterparty_name, due_date, created_by, created_at, updated_by, updated_at, deleted_at, tag_id
 `
 
 type CreateReceivableParams struct {
@@ -67,12 +67,13 @@ func (q *Queries) CreateReceivable(ctx context.Context, arg CreateReceivablePara
 		&i.UpdatedBy,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.TagID,
 	)
 	return i, err
 }
 
 const getReceivableByID = `-- name: GetReceivableByID :one
-SELECT id, household_id, display_name, description, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, counterparty_name, due_date, created_by, created_at, updated_by, updated_at, deleted_at
+SELECT id, household_id, display_name, description, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, counterparty_name, due_date, created_by, created_at, updated_by, updated_at, deleted_at, tag_id
 FROM receivables
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
 `
@@ -103,12 +104,13 @@ func (q *Queries) GetReceivableByID(ctx context.Context, arg GetReceivableByIDPa
 		&i.UpdatedBy,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.TagID,
 	)
 	return i, err
 }
 
 const listReceivablesByHousehold = `-- name: ListReceivablesByHousehold :many
-SELECT id, household_id, display_name, description, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, counterparty_name, due_date, created_by, created_at, updated_by, updated_at, deleted_at
+SELECT id, household_id, display_name, description, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, counterparty_name, due_date, created_by, created_at, updated_by, updated_at, deleted_at, tag_id
 FROM receivables
 WHERE household_id = $1
   AND deleted_at IS NULL
@@ -142,6 +144,7 @@ func (q *Queries) ListReceivablesByHousehold(ctx context.Context, householdID uu
 			&i.UpdatedBy,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.TagID,
 		); err != nil {
 			return nil, err
 		}
@@ -186,7 +189,7 @@ SET display_name       = $3,
     updated_by         = $9,
     updated_at         = now()
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
-RETURNING id, household_id, display_name, description, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, counterparty_name, due_date, created_by, created_at, updated_by, updated_at, deleted_at
+RETURNING id, household_id, display_name, description, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, counterparty_name, due_date, created_by, created_at, updated_by, updated_at, deleted_at, tag_id
 `
 
 type UpdateReceivableParams struct {
@@ -232,6 +235,7 @@ func (q *Queries) UpdateReceivable(ctx context.Context, arg UpdateReceivablePara
 		&i.UpdatedBy,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.TagID,
 	)
 	return i, err
 }
@@ -244,7 +248,7 @@ SET status           = $3,
     updated_by       = $6,
     updated_at       = now()
 WHERE id = $1 AND household_id = $2 AND deleted_at IS NULL
-RETURNING id, household_id, display_name, description, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, counterparty_name, due_date, created_by, created_at, updated_by, updated_at, deleted_at
+RETURNING id, household_id, display_name, description, ownership_type, sole_owner_user_id, native_currency, status, terminated_at, termination_note, counterparty_name, due_date, created_by, created_at, updated_by, updated_at, deleted_at, tag_id
 `
 
 type UpdateReceivableLifecycleParams struct {
@@ -284,6 +288,7 @@ func (q *Queries) UpdateReceivableLifecycle(ctx context.Context, arg UpdateRecei
 		&i.UpdatedBy,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.TagID,
 	)
 	return i, err
 }

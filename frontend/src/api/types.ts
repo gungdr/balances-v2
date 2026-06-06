@@ -2,6 +2,35 @@
 // changes them — any field tweaks here must be matched by an API change
 // (we don't have shared codegen yet).
 
+// ----- tags (ADR-0028) --------------------------------------------------
+
+// The position groups a Tag can attach to; the assign endpoint switches on
+// this. Mirrors repo.TagGroup. Income is excluded (flow event, not a Position).
+export type TagGroup = 'asset' | 'liability' | 'receivable' | 'investment'
+
+export type Tag = {
+  id: string
+  household_id: string
+  name: string
+  color: string
+  created_by: string | null
+  created_at: string
+  updated_by: string | null
+  updated_at: string
+  deleted_at: string | null
+}
+
+// One row of the breakdown report: the summed most-recent-snapshot value of a
+// (tag, group, currency) cell. tag_id null is the Untagged bucket; `total` is
+// a decimal string. Liabilities ride back under group='liability' so the
+// report can render them as their own negative slice.
+export type TagBreakdownRow = {
+  tag_id: string | null
+  group: TagGroup
+  currency: string
+  total: string
+}
+
 export type Asset = {
   id: string
   household_id: string
@@ -11,6 +40,7 @@ export type Asset = {
   ownership_type: 'sole' | 'joint'
   sole_owner_user_id: string | null
   native_currency: string
+  tag_id: string | null
   status: 'active' | 'closed' | 'sold' | 'disposed'
   terminated_at: string | null
   termination_note: string | null
@@ -112,6 +142,7 @@ export type Liability = {
   ownership_type: 'sole' | 'joint'
   sole_owner_user_id: string | null
   native_currency: string
+  tag_id: string | null
   status: 'active' | 'paid_off' | 'forgiven' | 'written_off'
   terminated_at: string | null
   termination_note: string | null
@@ -156,6 +187,7 @@ export type Receivable = {
   ownership_type: 'sole' | 'joint'
   sole_owner_user_id: string | null
   native_currency: string
+  tag_id: string | null
   status: 'active' | 'collected' | 'written_off'
   terminated_at: string | null
   termination_note: string | null
@@ -213,6 +245,7 @@ export type Investment = {
   // Set when this position was rolled over from a matured one (issue #29) —
   // seeds a future rollover-chain view; null for a fresh position.
   rolled_from_investment_id: string | null
+  tag_id: string | null
   status: 'active' | 'sold' | 'matured'
   terminated_at: string | null
   termination_note: string | null

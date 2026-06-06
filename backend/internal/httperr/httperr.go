@@ -63,6 +63,8 @@ func WriteRepo(w http.ResponseWriter, op string, err error) {
 		Write(w, http.StatusConflict, CodeForeignPositionsExist, nil)
 	case errors.Is(err, errs.ErrPositionNotActive):
 		Write(w, http.StatusConflict, CodePositionNotActive, nil)
+	case errors.Is(err, errs.ErrTagNameExists):
+		Write(w, http.StatusConflict, CodeTagNameExists, nil)
 	default:
 		slog.Error(op, "err", err)
 		Write(w, http.StatusInternalServerError, CodeInternal, nil)

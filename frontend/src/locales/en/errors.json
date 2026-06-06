@@ -20,6 +20,7 @@
     "FX_RATE_EXISTS": "An FX rate already exists for that month and currency.",
     "FOREIGN_POSITIONS_EXIST": "Foreign-currency positions exist; remove them before turning off multi-currency.",
     "POSITION_NOT_ACTIVE": "This position is no longer active.",
+    "TAG_NAME_EXISTS": "A tag with that name already exists.",
     "INVALID_RATE": "Rate must be greater than zero.",
     "INVALID_IMPORT_MODE": "Import mode must be preview or commit.",
     "INVALID_FILE_UPLOAD": "Missing or oversized file upload.",

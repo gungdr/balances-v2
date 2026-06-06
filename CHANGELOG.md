@@ -2471,6 +2471,48 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
   Dependabot PRs (#38–42) had only failed on the Codecov-token step (Dependabot auto-runs get no
   repo secrets); unrelated to code, cleared once the token was in place.
 
+- **User-defined position Tags (M6 — issue #28, ADR-0028; slice 1 of 2).** Issue #28 started as
+  "reshape Banks from free text into a lookup, attach as custodian, report exposure per institution."
+  A long grilling round unwound it: the real RDN settlement bank is not the legal custodian (KSEI is)
+  and doesn't generalise past stocks (MF/gold have no per-investor RDN); reframed to LPS deposit-
+  insurance coverage; then the user dropped all financial framing for a **neutral grouping
+  primitive**. A **Tag** is a household-scoped label, **≤1 per Position** (single nullable FK, chosen
+  over multi-tag specifically so the report's pie proportions partition cleanly to 100%), orthogonal
+  to the bank-account/TD `bank_name` (left untouched — "banks as a lookup" is superseded, not
+  deferred). Income is excluded (flow event, not a Position). The DJP/LPS reasoning is deliberately
+  kept *out* of ADR-0028 — the rationale there is customized asset grouping only.
+  - **Backend.** Migration `00025_tags.sql` (`tags` table — name + swatch `color`, soft-deleted,
+    `(household_id, lower(name))` partial-unique among the living — plus a nullable `tag_id` on each
+    of the four shared parent tables `assets`/`liabilities`/`receivables`/`investments`; no backfill,
+    every existing Position reads Untagged; `SELECT *` surfaces the column on existing reads with no
+    query edits). `queries/tags.sql` + `repo/tags.go` (`TagRepo`, CRUD, `TagGroup`; **assignment is a
+    dedicated unified endpoint** `PUT /api/tags/assignments {group, position_id, tag_id|null}` rather
+    than a field threaded through 11 create/update shapes — expresses the orthogonality, one tenancy
+    path; the trade-off is a two-call create-with-tag, acceptable for a cosmetic grouping). Belt +
+    suspenders tenancy: a non-nil Tag is `GetTag`-validated for household ownership (cross-tenant →
+    404) and the `UPDATE … SET tag_id` filters the Position by `household_id`; soft-deleting a Tag
+    clears it off every Position in the same tx so none dangles. New `ErrTagNameExists` /
+    `CodeTagNameExists` (409). `GET /api/tags/breakdown` returns, per `(tag, group, currency)`, the
+    summed most-recent-snapshot value of contributing Positions (the net-worth carry-forward +
+    termination rule, in one UNION-ALL query with a lateral latest-snapshot per group). Verified
+    against the real dev DB (create/list/breakdown/assign + dup-409 + cross-tenant-404), test rows
+    reverted; `go build` + `golangci-lint` clean.
+  - **Frontend.** `Tag`/`TagBreakdownRow`/`TagGroup` types + `tag_id` on the 4 core position types;
+    `useTags` hooks; `lib/tagColors.ts` (10-swatch palette); pure `lib/tagBreakdown.ts` (folds the
+    flat rows into per-currency cells: holdings = asset+receivable+investment, liabilities kept
+    separate, Untagged bucket, holdings-desc sort with Untagged last). `TagBadge` + `TagSelect`; a
+    **Settings → Tags card** (create / inline rename / recolour / delete-with-confirm); a dedicated
+    **`/tags` report route** + nav entry rendering, per currency, a holdings pie (reusing
+    `InvestmentPieChart`) + a holdings/liabilities/net table with an Untagged row and a totals row —
+    no FX, one card per currency matching the list/home convention. New `tags` i18n namespace EN+ID
+    (registered in `i18n/index.ts` + `catalogs.test.ts`), `TAG_NAME_EXISTS` errors copy, nav label.
+    FE lint 0, `npm run build` green, 219 vitest pass.
+  - **Still pending (slice 2):** the assignment surface in the UI — a shared `DetailTagControl` on
+    each of the 10 position **detail** screens (user chose this over a Tag dropdown in all 20
+    create/edit dialogs: lower risk, retag without entering edit mode, shows the current tag) — plus
+    the backend tenancy/breakdown Go test, a vitest for `lib/tagBreakdown`, and an e2e smoke. #28
+    stays **open** until slice 2 lands.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

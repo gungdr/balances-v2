@@ -23,4 +23,5 @@ var (
 	ErrFxRateExists            = errs.ErrFxRateExists
 	ErrForeignPositionsExist   = errs.ErrForeignPositionsExist
 	ErrPositionNotActive       = errs.ErrPositionNotActive
+	ErrTagNameExists           = errs.ErrTagNameExists
 )

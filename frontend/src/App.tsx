@@ -36,6 +36,7 @@ import { TimeDepositDetail } from '@/components/TimeDepositDetail'
 import { GoldsScreen } from '@/components/GoldsScreen'
 import { GoldDetail } from '@/components/GoldDetail'
 import { IncomeScreen } from '@/components/IncomeScreen'
+import { TagsScreen } from '@/components/TagsScreen'
 import { SettingsScreen } from '@/components/SettingsScreen'
 
 // The list screens and detail pages predate the router: they take an
@@ -334,6 +335,9 @@ const router = createBrowserRouter([
 
       // Income (flat flow event)
       { path: 'income', element: <IncomeScreen /> },
+
+      // Tags breakdown report (flat, like Income — no detail pages).
+      { path: 'tags', element: <TagsScreen /> },
 
       { path: 'settings', element: <SettingsScreen /> },
 

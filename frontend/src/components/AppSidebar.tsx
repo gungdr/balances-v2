@@ -57,6 +57,7 @@ const NAV: Section[] = [
     ],
   },
   { labelKey: 'income', to: routes.income },
+  { labelKey: 'tags', to: routes.tags },
   { labelKey: 'settings', to: routes.settings },
 ]
 
