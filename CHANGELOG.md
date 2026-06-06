@@ -2507,11 +2507,20 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     no FX, one card per currency matching the list/home convention. New `tags` i18n namespace EN+ID
     (registered in `i18n/index.ts` + `catalogs.test.ts`), `TAG_NAME_EXISTS` errors copy, nav label.
     FE lint 0, `npm run build` green, 219 vitest pass.
-  - **Still pending (slice 2):** the assignment surface in the UI — a shared `DetailTagControl` on
-    each of the 10 position **detail** screens (user chose this over a Tag dropdown in all 20
-    create/edit dialogs: lower risk, retag without entering edit mode, shows the current tag) — plus
-    the backend tenancy/breakdown Go test, a vitest for `lib/tagBreakdown`, and an e2e smoke. #28
-    stays **open** until slice 2 lands.
+  - **Slice 2 (assignment UI + tests — closes #28).** A shared `DetailTagControl` (single-select Tag
+    dropdown writing straight through `PUT /api/tags/assignments`, optimistic local state + a wait on
+    the response) on all 10 position **detail** screens — chosen over a dropdown in all 20 create/edit
+    dialogs (lower risk: one shared component + 10 one-line insertions at the uniform title-block
+    boundary, vs 20 bespoke post-create assign orchestrations with divergent created-entity id paths;
+    also better UX — retag without entering edit mode, current tag visible). Tests: Go `TestTagRepo`
+    (tenancy on CRUD + assign, cross-tenant 404, dup-name 409, assign→breakdown, delete-clears-
+    assignments), a vitest for `lib/tagBreakdown` (per-currency split, Untagged-last sort, holdings vs
+    liabilities), and an `e2e/tags.spec` smoke (create in Settings → assign on a bank-account detail →
+    reload-persist → `/tags` route → self-cleaning). The tag-delete confirm gained an explicit
+    "Delete" label. Net green: vitest 225, `go test ./...` + golangci-lint clean, `tags.spec` passes.
+    **Aside:** the e2e run surfaced 3 *pre-existing* failures (`trade`/`dividend-fee`/`maturity`) —
+    verified by stash-and-rerun that they fail on the committed baseline too, i.e. unrelated to tags
+    (investment transaction-dialog drift, unnoticed because Playwright isn't in CI); filed as #48.
 
 ## What M4.2 shipped
 

@@ -36,6 +36,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { SnapshotRow } from '@/components/SnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
 import { HelpTourButton, type TourStep } from '@/components/HelpTourButton'
+import { DetailTagControl } from '@/components/DetailTagControl'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatDate, formatSignedPercent } from '@/lib/format'
@@ -152,6 +153,7 @@ export function PropertyDetail({ assetId, onBack }: Props) {
             {typeLabel}
             {details.address && ` · ${details.address}`}
           </p>
+          <DetailTagControl group="asset" positionId={property.asset.id} currentTagId={property.asset.tag_id} />
         </div>
         <div data-testid="tour-actions" className="flex gap-2">
           <HelpTourButton steps={tourSteps} />

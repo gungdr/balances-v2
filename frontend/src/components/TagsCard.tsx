@@ -141,7 +141,7 @@ export function TagsCard() {
 }
 
 function TagRow({ tag }: { tag: Tag }) {
-  const { t } = useTranslation('tags')
+  const { t } = useTranslation(['tags', 'common'])
   const updateTag = useUpdateTag(tag.id)
   const deleteTag = useDeleteTag()
 
@@ -242,6 +242,7 @@ function TagRow({ tag }: { tag: Tag }) {
         onOpenChange={setConfirmOpen}
         title={t('manage.deleteTitle', { name: tag.name })}
         description={t('manage.deleteDescription')}
+        confirmLabel={t('common:delete')}
         destructive
         pending={deleteTag.isPending}
         onConfirm={() =>

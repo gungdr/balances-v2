@@ -56,6 +56,7 @@ import { matchesTxnSearch } from '@/lib/transactionSearch'
 import { computeCostBasis, costBasisSeries } from '@/lib/costBasis'
 import { InvestmentHeadline } from '@/components/InvestmentHeadline'
 import { HelpTourButton, type TourStep } from '@/components/HelpTourButton'
+import { DetailTagControl } from '@/components/DetailTagControl'
 
 type Props = {
   investmentId: string
@@ -253,6 +254,7 @@ export function BondDetail({ investmentId, onBack }: Props) {
             status={bond.investment.status}
             terminatedAt={bond.investment.terminated_at}
           />
+          <DetailTagControl group="investment" positionId={bond.investment.id} currentTagId={bond.investment.tag_id} />
         </div>
         <div data-testid="tour-actions" className="flex gap-2">
           <HelpTourButton steps={tourSteps} />

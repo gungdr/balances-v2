@@ -46,6 +46,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { QuantityPriceSnapshotRow } from '@/components/QuantityPriceSnapshotRow'
 import { SnapshotChart } from '@/components/SnapshotChart'
 import { HelpTourButton, type TourStep } from '@/components/HelpTourButton'
+import { DetailTagControl } from '@/components/DetailTagControl'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useSession } from '@/hooks/useSession'
 import { formatGoldPurity } from '@/lib/gold'
@@ -207,6 +208,7 @@ export function GoldDetail({ investmentId, onBack }: Props) {
             status={gold.investment.status}
             terminatedAt={gold.investment.terminated_at}
           />
+          <DetailTagControl group="investment" positionId={gold.investment.id} currentTagId={gold.investment.tag_id} />
         </div>
         <div data-testid="tour-actions" className="flex gap-2">
           <HelpTourButton steps={tourSteps} />
