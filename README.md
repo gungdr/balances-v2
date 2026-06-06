@@ -11,7 +11,7 @@ The domain glossary lives in `CONTEXT.md`. The decisions behind the design and t
 
 ## Local development
 
-Prerequisites: Docker (OrbStack recommended on macOS), Go 1.25+, Node 22+.
+Prerequisites: Docker (OrbStack recommended on macOS), Go 1.26.4+, Node 22+.
 
 ```sh
 cp .env.example .env
