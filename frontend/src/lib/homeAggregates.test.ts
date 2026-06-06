@@ -159,6 +159,28 @@ describe('aggregateHomePositions', () => {
     ])
   })
 
+  it('skips positions with a null latestValue in both pies', () => {
+    // A position that has never been snapshotted carries latestValue === null;
+    // it must not contribute to (nor zero out) the current category/risk mix.
+    const r = aggregateHomePositions([
+      pos({ id: 'a', category: 'stock', riskProfile: 'low', latestValue: 500 }),
+      pos({
+        id: 'b',
+        category: 'stock',
+        riskProfile: 'low',
+        latestValue: null,
+      }),
+    ])
+    expect(r.categoryPieByCurrency.get('IDR')).toContainEqual({
+      category: 'stock',
+      value: 500,
+    })
+    expect(r.riskPieByCurrency.get('IDR')).toContainEqual({
+      profile: 'low',
+      value: 500,
+    })
+  })
+
   it('excludes terminated positions from headline + pies but keeps them in time + category series', () => {
     // Issue #21: closed positions show historically up to the month BEFORE
     // their terminated_at month, then drop out (Option A — the termination

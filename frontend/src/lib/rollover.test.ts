@@ -56,6 +56,7 @@ describe('addMonths', () => {
     expect(addMonths('', 6)).toBe('')
     expect(addMonths('2026-06-01', 0)).toBe('')
     expect(addMonths('2026-06-01', Number.NaN)).toBe('')
+    expect(addMonths('not-a-date', 6)).toBe('')
   })
 })
 
@@ -140,5 +141,60 @@ describe('maturityRolloverPrefill', () => {
     ])
     expect(r?.rolledAmount).toBe(5000000)
     expect(r?.prefill.principal).toBe('5000000')
+  })
+
+  it('short-circuits when a successor deposit already exists (issue #29)', () => {
+    const r = maturityRolloverPrefill(td(true), [
+      maturity({
+        principal: '100000000',
+        interest: '5000000',
+        principalDisp: 'rolled_to_new',
+        interestDisp: 'rolled_to_new',
+      }),
+    ])
+    expect(r).toBeNull()
+  })
+
+  it('returns null when there is no maturity transaction', () => {
+    expect(maturityRolloverPrefill(td(), [])).toBeNull()
+    expect(maturityRolloverPrefill(td(), undefined)).toBeNull()
+  })
+
+  it('returns null when both principal and interest were cashed out', () => {
+    const r = maturityRolloverPrefill(td(), [
+      maturity({
+        principal: '100000000',
+        interest: '5000000',
+        principalDisp: 'cash_out',
+        interestDisp: 'cash_out',
+      }),
+    ])
+    expect(r).toBeNull()
+  })
+
+  it('treats null rolled amounts as zero (nullish fallback)', () => {
+    // Disposition says rolled, but the amount fields are null — coalesces to 0,
+    // so nothing rolls and the helper returns null.
+    const r = maturityRolloverPrefill(td(), [
+      maturity({
+        principal: null,
+        interest: null,
+        principalDisp: 'rolled_to_new',
+        interestDisp: 'rolled_to_new',
+      }),
+    ])
+    expect(r).toBeNull()
+  })
+
+  it('defaults a null position description to an empty string in the prefill', () => {
+    const base = td()
+    const noDesc = {
+      ...base,
+      investment: { ...base.investment, description: null },
+    } as TimeDeposit
+    const r = maturityRolloverPrefill(noDesc, [
+      maturity({ principal: '100000000', principalDisp: 'rolled_to_new' }),
+    ])
+    expect(r?.prefill.description).toBe('')
   })
 })

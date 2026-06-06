@@ -140,4 +140,24 @@ describe('suggestRevalued', () => {
       }),
     ).toBeNull()
   })
+
+  it('returns null on a well-formed but out-of-range month (mo > 12)', () => {
+    expect(
+      suggestRevalued({
+        newYearMonth: '2025-13',
+        annualRatePct: '5',
+        snapshots: [{ year_month: '2025-08', amount: '20000000' }],
+      }),
+    ).toBeNull()
+  })
+
+  it('returns null when the anchor snapshot value is zero or negative', () => {
+    expect(
+      suggestRevalued({
+        newYearMonth: '2026-02',
+        annualRatePct: '5',
+        snapshots: [{ year_month: '2025-08', amount: '0' }],
+      }),
+    ).toBeNull()
+  })
 })

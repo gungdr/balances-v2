@@ -115,6 +115,22 @@ describe('computeCostBasis', () => {
     expect(r.cost).toBeCloseTo(500, 6)
     expect(r.heldQty).toBeCloseTo(5, 6)
   })
+
+  it('ignores a sell with a missing/non-finite quantity', () => {
+    const r = computeCostBasis([
+      txn('buy', '2026-01-01', { amount: '1000', quantity: '10' }),
+      txn('sell', '2026-02-01', { amount: '500', quantity: null }),
+    ])
+    expect(r).toEqual({ cost: 1000, heldQty: 10 })
+  })
+
+  it('ignores a fee with a missing/non-finite amount', () => {
+    const r = computeCostBasis([
+      txn('buy', '2026-01-01', { amount: '1000', quantity: '10' }),
+      txn('fee', '2026-02-01', { amount: null }),
+    ])
+    expect(r).toEqual({ cost: 1000, heldQty: 10 })
+  })
 })
 
 describe('costBasisSeries', () => {

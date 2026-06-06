@@ -109,6 +109,28 @@ describe('aggregateListPositions — time series', () => {
     ])
   })
 
+  it('records a cost month that precedes the first snapshot (value 0)', () => {
+    // A buy can land in a month before the position's first value snapshot —
+    // the cost point then has no snapshot to merge with, so the month enters
+    // the series at value 0 with the carried cost.
+    const r = aggregateListPositions([
+      pos({
+        id: 'a',
+        latestValue: 200,
+        cost: 50,
+        snapshots: [{ year_month: '2026-02', amount: '200' }],
+        costSeries: [
+          { year_month: '2026-01', cost: 50 },
+          { year_month: '2026-02', cost: 50 },
+        ],
+      }),
+    ])
+    expect(r.timeSeriesByCurrency.get('IDR')).toEqual([
+      { year_month: '2026-01', value: 0, cost: 50 },
+      { year_month: '2026-02', value: 200, cost: 50 },
+    ])
+  })
+
   it('carry-forwards the previous value when no current-month snapshot', () => {
     const r = aggregateListPositions([
       pos({
