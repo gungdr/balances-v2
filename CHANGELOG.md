@@ -2458,6 +2458,19 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     `github-actions` — the last so the Actions versions stay current (and would feed SHA-pinning if
     that deferred item is later adopted).
 
+- **chi 5.3.0 bump + `middleware.RealIP` removal (M6, CI/infra).** The first Dependabot batch landed
+  green except the `go-chi/chi/v5` 5.2.5→5.3.0 PR (#36), which `golangci-lint` failed on a new
+  `SA1019` deprecation: chi deprecated `middleware.RealIP` over IP-spoofing advisories
+  (GHSA-3fxj-6jh8-hvhx et al.) — it trusts client-supplied `X-Forwarded-For` / `X-Real-IP` /
+  `True-Client-IP`. We had it wired in `httpserver/server.go` but **no trusted proxy in front**
+  (`docker-compose.yml` is just postgres + mailpit) and **nothing reads `r.RemoteAddr`** except the
+  logger on the next line — so RealIP was pure downside, letting any client spoof its logged IP.
+  Dropped the middleware (with a comment flagging a trusted-CIDR-aware extractor as the fix if we
+  ever deploy behind a known proxy) rather than replacing it; logger now records the real TCP peer.
+  Bump + removal landed together on `main` and #36 was closed as superseded. The five frontend
+  Dependabot PRs (#38–42) had only failed on the Codecov-token step (Dependabot auto-runs get no
+  repo secrets); unrelated to code, cleared once the token was in place.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

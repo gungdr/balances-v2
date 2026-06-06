@@ -67,7 +67,10 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) buildRouter() chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
+	// No middleware.RealIP: it trusts X-Forwarded-For / X-Real-IP, which any
+	// client can spoof when no trusted proxy sits in front (our case — see
+	// docker-compose.yml). chi deprecated it for this reason (GHSA-3fxj-6jh8-hvhx).
+	// If we ever deploy behind a known proxy, add a trusted-CIDR-aware extractor.
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(s.authH.SessionMiddleware)

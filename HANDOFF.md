@@ -447,6 +447,8 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     `golang.org/x/crypto`→v0.52.0 + Go toolchain→1.26.4. Deferred items (e2e-in-CI, SHA-pinning,
     gitleaks) + the SonarQube-declined rationale live in `docs/ci-tooling.md`; **reassess before
     alpha.**
+  - First Dependabot batch triaged: chi 5.3.0 bump dropped `middleware.RealIP` (deprecated for
+    IP-spoofing; no trusted proxy in front, nothing reads `RemoteAddr`) — see CHANGELOG.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage
