@@ -15,6 +15,7 @@
     "inProgress": "in progress",
     "firstTrackedMonth": "first tracked month",
     "vs": "vs {{when}}",
+    "vsYoY": "vs {{when}} · YoY",
     "stalePositions_one": "⚠ {{count}} position carried forward — record {{when}} snapshot to keep this up to date.",
     "stalePositions_other": "⚠ {{count}} positions carried forward — record {{when}} snapshots to keep this up to date."
   },

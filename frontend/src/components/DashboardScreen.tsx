@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import {
@@ -68,6 +68,9 @@ export function DashboardScreen() {
     reports.find((r) => r.year_month === selectedMonth) ?? latest
   const selectedIdx = reports.indexOf(selected)
   const previous = selectedIdx > 0 ? reports[selectedIdx - 1] : null
+  const [selYear, selMon] = selected.year_month.slice(0, 7).split('-')
+  const prevYearPrefix = `${Number(selYear) - 1}-${selMon}`
+  const previousYear = reports.find((r) => r.year_month.startsWith(prevYearPrefix)) ?? null
   const isProvisional = selected === latest
   const currency = selected.reporting_currency
 
@@ -94,6 +97,7 @@ export function DashboardScreen() {
       <HeadlineCard
         selected={selected}
         previous={previous}
+        previousYear={previousYear}
         isProvisional={isProvisional}
         currency={currency}
         secondary={secondary}
@@ -223,6 +227,7 @@ function DashboardHeader({
 function HeadlineCard({
   selected,
   previous,
+  previousYear,
   isProvisional,
   currency,
   secondary,
@@ -230,6 +235,7 @@ function HeadlineCard({
 }: {
   selected: MonthlyReport
   previous: MonthlyReport | null
+  previousYear: MonthlyReport | null
   isProvisional: boolean
   currency: string
   secondary: string
@@ -240,11 +246,11 @@ function HeadlineCard({
   return (
     <Card>
       <CardContent className="space-y-3 pt-6">
-        <div className="flex items-baseline gap-3 flex-wrap">
+        <div className="flex items-end gap-3 flex-wrap">
           <span className="text-4xl font-semibold tracking-tight">
             {formatCurrency(selected.nw_total, currency)}
           </span>
-          <Trend selected={selected} previous={previous} currency={currency} />
+          <Trend selected={selected} previous={previous} previousYear={previousYear} currency={currency} />
           {isProvisional && (
             <span className="text-xs text-muted-foreground">
               {'· '}
@@ -336,10 +342,12 @@ function SecondaryAmount({
 function Trend({
   selected,
   previous,
+  previousYear,
   currency,
 }: {
   selected: MonthlyReport
   previous: MonthlyReport | null
+  previousYear: MonthlyReport | null
   currency: string
 }) {
   const { t } = useTranslation('dashboard')
@@ -350,20 +358,39 @@ function Trend({
       </span>
     )
   }
-  // Display-only arithmetic at household scale (see lib/format.ts). The signed
-  // month-over-month change becomes a backend figure (ΔNW) in M5 slice 2.
-  const delta = Number(selected.nw_total) - Number(previous.nw_total)
-  const prevAbs = Math.abs(Number(previous.nw_total))
-  const pct = prevAbs > 0 ? (delta / prevAbs) * 100 : null
-  const up = delta >= 0
-  return (
-    <span className={`text-sm font-medium ${up ? 'text-emerald-600' : 'text-destructive'}`}>
-      {up ? '▲' : '▼'} {formatCurrency(String(Math.abs(delta)), currency)}
-      {pct !== null && ` (${up ? '+' : '−'}${Math.abs(pct).toFixed(1)}%)`}{' '}
-      <span className="font-normal text-muted-foreground">
-        {t('headline.vs', { when: formatYearMonth(previous.year_month) })}
+  const momDelta = Number(selected.nw_total) - Number(previous.nw_total)
+  const momPrevAbs = Math.abs(Number(previous.nw_total))
+  const momPct = momPrevAbs > 0 ? (momDelta / momPrevAbs) * 100 : null
+  const momUp = momDelta >= 0
+
+  let yoySpan: React.ReactNode = null
+  if (previousYear) {
+    const yoyDelta = Number(selected.nw_total) - Number(previousYear.nw_total)
+    const yoyPrevAbs = Math.abs(Number(previousYear.nw_total))
+    const yoyPct = yoyPrevAbs > 0 ? (yoyDelta / yoyPrevAbs) * 100 : null
+    const yoyUp = yoyDelta >= 0
+    yoySpan = (
+      <span className={`text-sm font-medium ${yoyUp ? 'text-emerald-600' : 'text-destructive'}`}>
+        {yoyUp ? '▲' : '▼'} {formatCurrency(String(Math.abs(yoyDelta)), currency)}
+        {yoyPct !== null && ` (${yoyUp ? '+' : '−'}${Math.abs(yoyPct).toFixed(1)}%)`}{' '}
+        <span className="font-normal text-muted-foreground">
+          {t('headline.vsYoY', { when: formatYearMonth(previousYear.year_month) })}
+        </span>
       </span>
-    </span>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className={`text-sm font-medium ${momUp ? 'text-emerald-600' : 'text-destructive'}`}>
+        {momUp ? '▲' : '▼'} {formatCurrency(String(Math.abs(momDelta)), currency)}
+        {momPct !== null && ` (${momUp ? '+' : '−'}${Math.abs(momPct).toFixed(1)}%)`}{' '}
+        <span className="font-normal text-muted-foreground">
+          {t('headline.vs', { when: formatYearMonth(previous.year_month) })}
+        </span>
+      </span>
+      {yoySpan}
+    </div>
   )
 }
 

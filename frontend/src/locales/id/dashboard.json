@@ -15,6 +15,7 @@
     "inProgress": "berjalan",
     "firstTrackedMonth": "bulan pelacakan pertama",
     "vs": "vs {{when}}",
+    "vsYoY": "vs {{when}} · YoY",
     "stalePositions_one": "⚠ {{count}} posisi dilanjutkan — catat snapshot {{when}} agar tetap terkini.",
     "stalePositions_other": "⚠ {{count}} posisi dilanjutkan — catat snapshot {{when}} agar tetap terkini."
   },
