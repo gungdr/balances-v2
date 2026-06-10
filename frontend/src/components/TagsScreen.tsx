@@ -38,7 +38,7 @@ export function TagsScreen() {
   const breakdowns =
     rows && tags ? aggregateTagBreakdown(rows, tags, untaggedLabel) : []
 
-  function isChecked(currency: string, key: string, cells: TagCell[]) {
+  function isChecked(currency: string, key: string) {
     return checked[currency]?.has(key) ?? true
   }
 
@@ -70,7 +70,7 @@ export function TagsScreen() {
 
       {breakdowns.map((bd) => {
         const slices: PieSlice[] = bd.cells
-          .filter((c) => c.holdings > 0 && isChecked(bd.currency, cellKey(c), bd.cells))
+          .filter((c) => c.holdings > 0 && isChecked(bd.currency, cellKey(c)))
           .map((c) => ({
             key: cellKey(c),
             label: c.name,
@@ -111,7 +111,7 @@ export function TagsScreen() {
                 <TableBody>
                   {bd.cells.map((c) => {
                     const key = cellKey(c)
-                    const on = isChecked(bd.currency, key, bd.cells)
+                    const on = isChecked(bd.currency, key)
                     return (
                       <TableRow key={key}>
                         <TableCell>
