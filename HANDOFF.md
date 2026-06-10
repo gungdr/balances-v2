@@ -19,11 +19,11 @@ Read these first, in order:
 
 ## Where we are now
 
-M1–M5 are complete; **M6 (v1 polish) is nearly closed.** CI is green. **`v0.6.0-alpha.1` is
-DEPLOYED** to the `preview` environment (`https://preview.<personal-domain>`) via the tag-driven
-pipeline (ADR-0029/0030/0031). Single-origin: one Fly app (region `sin`) serves the SPA + `/api`;
-Neon Postgres (preview branch), Resend mail, Google OAuth (Testing mode). Custom domain on Cloudflare
-DNS-only with Fly-managed TLS.
+M1–M5 are complete; **M6 (v1 polish) is closed** with the alpha. CI is green. **`v0.6.0-alpha.2` is
+the latest DEPLOYED** release (two batched alphas cut so far: alpha.1 then alpha.2) on the `preview`
+environment (`https://preview.<personal-domain>`) via the tag-driven pipeline (ADR-0029/0030/0031).
+Single-origin: one Fly app (region `sin`) serves the SPA + `/api`; Neon Postgres (preview branch),
+Resend mail, Google OAuth (Testing mode). Custom domain on Cloudflare DNS-only with Fly-managed TLS.
 
 - **M1–M3** — walking skeleton, Google OAuth + invites, first vertical slice (bank-account asset
   with snapshots), all tenancy-tested.
@@ -36,54 +36,23 @@ DNS-only with Fly-managed TLS.
 - **M5** — materialized monthly net-worth report + dashboard (net-worth headline,
   comprehensive-income lines, side-by-side currency display, Q15c).
 
-**M6 shipped** (detail in the matching closed issue / the alpha release notes):
-
-- **Importer & owner UX** — xlsx snapshot importer (all 10 groups + 5 investment subtypes); self-set
-  `users.nickname`; Google profile-picture avatar (`users.picture_url`); list-screen polish swept
-  across all 10 groups.
-- **Routing & nav** — React Router migration + shadcn Sidebar shell (ADR-0025); fixes mobile tab
-  overflow.
-- **Internationalization (EN+ID)** — full `t()` sweep across every screen, issues #5–#11 (chrome,
-  dashboard, bank-accounts template, properties/vehicles, liabilities/receivables, income,
-  investments); e2e locale pin #12; bundled-resource i18next init; canonical `docs/glossary-id.md`.
-- **Backend error-code envelope** (ADR-0027, issue #13) — `{code, args}` wire shape, `internal/httperr`
-  + `internal/errs`; frontend envelope sweep with `errors:code.*` catalogs.
-- **Investment analytics** — cost-basis + unrealised P/L headlines and time graphs, cross-subtype
-  `/investments` dashboard, continuous month-walk graphs, closed-position handling (issues #14, #18,
-  #21, #22, #24); backend `cost_basis` on ListItems + `GET /api/investments/time-series`.
-- **Investment correctness** — capital excluded at entry and exit; truthful 0-value close snapshots;
-  maturity/rollover return-continuity; rollover helper + successor linking (issues #16, #17, #25,
-  #27, #29, #61). ADR-0008/0009 amended.
-- **Valuations & taxonomy** — gold marked at buyback price (#19); mutual-fund `fund_type` enum (#20);
-  property/vehicle revaluation-rate helper (rename → `annual_appreciation_rate`).
-- **Guidance & approachability** — driver.js guided help tours on all detail screens (#23) + e2e
-  (#26); built-in instruction copy EN+ID.
-- **UX polish** — date 4-digit-year caps (#15); month-picker popover; position-control buttons (#31);
-  fee cash→quantity helper (Q12); faster dev-server restart (#30).
-- **Theming & brand** — per-user theme switcher (#33); logo / brand mark (`docs/brand/`).
-- **User-defined position Tags** (ADR-0028, issue #28) — household-scoped grouping label, ≤1 per
-  position; `PUT /api/tags/assignments` + `GET /api/tags/breakdown`; Settings card + `/tags` report.
-- **Migration baseline** (ADR-0031) — 25 incremental migrations squashed to one `00001_baseline.sql`;
-  existing DBs' goose markers collapsed in place after a zero-drift check.
-- **Security & CI** — CodeQL SAST + govulncheck + Dependabot; path-gated CI with a `ci-gate`
-  aggregator giving one stable status for future branch protection. Coverage thresholds
-  informational until alpha. **Reassess deferred security items before alpha** (`docs/ci-tooling.md`).
-- **Sidebar footer** (#75) — app version + deploy-env chip + GitHub/maintainer links; version & env
-  baked into the SPA bundle at build via `deploy.yml --build-arg` → Dockerfile `ARG` → Vite `VITE_*`.
-- **Toast feedback for buttonless autosaves** (#54, ADR-0032) — sonner `<Toaster>` at root;
-  Tag-dropdown / Language / Appearance selects confirm via accent toast (errors stay destructive,
-  optimistic value rolls back on failure).
-- **Unrecorded-position drill-down** (#50) — dashboard's carried-forward warning is now an
-  expandable list; each row names the position (label · group · last-recorded month) and deep-links
-  to its detail page. `stale_positions` now carries name/group/subtype/last_month, not bare UUIDs.
+- **M6** — v1 polish + approachability, shipped across alpha.1/alpha.2. Themes: xlsx importer + owner
+  UX; React Router + shadcn Sidebar (ADR-0025); EN+ID i18n (#5–#12, `docs/glossary-id.md`); error-code
+  envelope (ADR-0027); investment analytics + correctness (ADR-0008/0009 amended); valuations/taxonomy;
+  driver.js help tours; per-user theming + brand; position Tags (ADR-0028); migration baseline
+  (ADR-0031); CodeQL/govulncheck/Dependabot + path-gated CI; sidebar footer; autosave toasts
+  (ADR-0032); unrecorded-position drill-down. Per-item detail lives in the closed issues + the
+  alpha.1/alpha.2 GitHub Release notes (ADR-0029).
 
 ## What's next
 
 Alpha is deployed; M6 effectively closes with it. Open work, in rough priority:
 
-- **Alpha bug fixes** (dogfood targets) — #53 (tag assign not reflected), #56 (maturity snapshot not
-  instant), #58 (maturity-date edit doesn't update termination) are the recommended alpha blockers;
-  #57 (edit snapshot month-year) is a fast-follow. Fix via branch → PR → squash-merge.
+- **Alpha bug fixes** (dogfood targets) — #56 (maturity snapshot not instant) and #58 (maturity-date
+  edit doesn't update termination) are the open alpha blockers; #76 (snapshot month integrity —
+  keep `year_month` immutable, educate delete-and-redo + validate `as_of_date`, reframes the
+  closed #57) is the fast-follow. #53 (tag assign not reflected) shipped. Fix via branch → PR →
+  squash-merge.
 - **PDF export** of monthly reports (Q22) — still open.
 - **Hardening / follow-ups** — bump `actions/checkout` (Node 20 deprecation), add an HSTS header,
   wire the `cloudflared` dev-tunnel (`make dev-tunnel`), document DB backup/restore (Neon branch +
@@ -143,8 +112,11 @@ These are not ADRs because they're tactical, but they're load-bearing:
   post-create because all categories share one row shape (unlike
   `investment_transactions.transaction_type` which would invalidate the DB CHECK). When adding new
   income categories: extend the income CHECK in the baseline migration, the validator `oneof=…` tag in
-  both `createReq` and `updateReq` in `internal/income/income.go`, and the `IncomeCategory` union +
-  `CATEGORY_LABEL` map in the frontend.
+  both `createReq` and `updateReq` in `internal/income/income.go`, the `IncomeCategory` union in
+  `api/types.ts`, and the `categoryOptions.<key>` labels in both locale catalogs (`locales/{en,id}/
+  income.json`) — there is no `CATEGORY_LABEL` TS map anymore (i18n sweep, #11). Note `regularity`
+  (`routine`/`incidental`) is an independent stored field with its own `oneof` validator, not derived
+  from category — adding a category does not touch it.
 - **Transaction validation is two-layer.** DB CHECK enforces type→shape integrity (e.g., `buy/sell`
   rows must have quantity AND price_per_unit). The repo's
   `validateInvestmentTransactionType(subtype, type)` enforces the subtype→type matrix (e.g.,
@@ -167,27 +139,39 @@ These are not ADRs because they're tactical, but they're load-bearing:
   wrapper line in the router config; don't reach for `useNavigate` inside a screen.
 - **Nav is the shadcn Sidebar** (`AppSidebar`, data-driven from a single `NAV` array): persistent on
   desktop, drawer on phones. Subtyped groups (Assets, Liabilities, Investments) show always-expanded
-  sub-items and get a placeholder **group home** page (`/assets`, `/liabilities`, `/investments`) —
-  stubs for the future per-group dashboards. Flat groups (Receivables, Income) list at their root
+  sub-items and get a **group home** page (`/assets`, `/liabilities`, `/investments`). `/investments`
+  is a real dashboard (`InvestmentsHome`, cost-basis + time-series + pie/stack charts, #14);
+  `/assets` + `/liabilities` are still placeholder stubs awaiting their per-group dashboards. Flat
+  groups (Receivables, Income) list at their root
   path, no home. Liability **detail nests under its subtype** (`/liabilities/personal/:id`) so the
   dynamic `:id` never overlaps the literal subtype segments. Add a destination = add it to `NAV`.
 - **E2E navigates by URL.** Specs `goto('/path')` to enter a screen; for mid-test nav that must avoid
   a reload, click persistent sidebar `link`s (the old `getByRole('tab', …)` nav is gone). See
   `rebuild.spec` (preserves client-side `['reports']` invalidation) and `currency-display.spec`.
+- **Reports auto-invalidate after every write.** A global `MutationCache` in `main.tsx` calls
+  `invalidateQueries({ queryKey: ['reports'] })` on every successful mutation, so monthly reports +
+  dashboard regenerate lazily on next read (ADR-0006) without each mutation hook opting in. Don't
+  hand-wire per-screen `['reports']` invalidation, and keep report-feeding queries under the
+  `['reports']` key prefix so they're swept by it.
 - **React Query useEffect gotcha.** Never put a `useMutation` result in a `useEffect` deps array —
-  it's recreated every render and will loop. There's a comment to this effect in
-  `EditSnapshotDialog`; replicate the pattern when needed.
-- **Decimals are strings on the wire**, `decimal.Decimal` in Go, with DECIMAL(20,4) for amounts and
-  DECIMAL(20,8) for rates/FX. ADR-0011.
+  it's recreated every render and will loop. Edit dialogs sidestep this entirely (no `useEffect`;
+  form state seeded from the entity prop with `key={entity.id}` remount); keep it that way.
+- **Decimals are strings on the wire**, `decimal.Decimal` in Go. Three precision shapes (ADR-0011):
+  DECIMAL(20,4) for monetary amounts, DECIMAL(20,8) for instrument quantities **and** rates/FX. Lone
+  exception: `gold_details.purity` is DECIMAL(5,4) (a 0–1 fraction). A new quantity column takes
+  (20,8), not (20,4).
 - **Rates are stored as percentage** (e.g., `5.5` for 5.5%), not as decimal fraction. Frontend
   reads/writes the same number the user sees on screen — no client-side scaling. Applies to
   `liabilities.interest_rate`, `property_details.annual_appreciation_rate`,
   `vehicle_details.annual_depreciation_rate`, `bond_details.coupon_rate`,
   `time_deposit_details.interest_rate`.
-- **Maturity urgency styling** (`lib/maturity.ts`): 4-tier — default (>90d, muted), approaching
-  (≤90d, bold), imminent (≤30d, bold + amber, countdown format), matured (muted + ⚠ prefix). Bond +
-  TimeDeposit list rows + detail pages share this helper. Don't reinvent the date-comparison logic
-  inline.
+- **Maturity urgency styling** (`lib/maturity.ts`): 4 states, 3 colour treatments — default (>90d,
+  muted) and matured (<0d, muted + ⚠ prefix) share `text-muted-foreground`; approaching (≤90d, bold)
+  and imminent (≤30d, bold + amber, countdown format) are the two distinct accents. States differ by
+  label even where colour repeats. Used by **Bond + TimeDeposit list rows only** — detail pages
+  dropped the inline urgency label (#55) and just show `formatDate(maturity_date)`. List rows
+  **suppress the label when the position is terminated** (`!terminated && …`). Don't reinvent the
+  date-comparison logic inline.
 - **Soft-delete everything**, including snapshots. ADR-0007. Hard-delete is not a UI feature — "can
   be undone via the database" is the line we use in confirm dialogs.
 - **Backend lint is enforced.** `golangci-lint run` from `backend/` must be clean. Config at repo
@@ -219,7 +203,9 @@ These are not ADRs because they're tactical, but they're load-bearing:
   a `<div>`, not a heading). **No spec uses `page.locator()` structural selectors.** Stable
   role/label selectors (`getByRole('button'|'link')`, `getByLabel` on properly-associated inputs) and
   `getByText` for stable copy are fine to keep; the point is to ban brittle structural traversal, not
-  to testid every button. When you add a new structural-locator need, add a test id instead.
+  to testid every button. When you add a new structural-locator need, add a test id instead. **Lone
+  exception:** `theme.spec.ts` uses `page.locator('html')` to assert the dark-mode class on the root
+  element — the `<html>` node can't carry a test id.
 - **Tenancy test pattern**: every position group's `*_tenancy_test.go` covers both the cross-tenant
   rejection path (bob attempts X, expects `ErrNotFound`) and the alice-side happy-path CRUD success
   (update + delete on entity and snapshot, then verify Get/List). Cross-tenant alone leaves
