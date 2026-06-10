@@ -13,9 +13,10 @@ import type { PieSlice } from './InvestmentPieChart'
 type Props = {
   slices: PieSlice[]
   currency: string
+  legendPosition?: 'bottom' | 'right'
 }
 
-export default function InvestmentPieChartImpl({ slices, currency }: Props) {
+export default function InvestmentPieChartImpl({ slices, currency, legendPosition = 'bottom' }: Props) {
   // Drop empty slices so the pie's `nameKey`-driven legend stays tight.
   const present = slices.filter((s) => s.value > 0)
   const total = present.reduce((s, sl) => s + sl.value, 0)
@@ -33,8 +34,10 @@ export default function InvestmentPieChartImpl({ slices, currency }: Props) {
     fill: s.color,
   }))
 
+  const isRight = legendPosition === 'right'
+
   return (
-    <ChartContainer config={chartConfig} className="h-64 w-full">
+    <ChartContainer config={chartConfig} className={isRight ? 'h-80 w-full max-w-sm mx-auto' : 'h-64 w-full'}>
       <PieChart>
         <ChartTooltip
           content={
@@ -54,8 +57,8 @@ export default function InvestmentPieChartImpl({ slices, currency }: Props) {
           data={data}
           dataKey="value"
           nameKey="key"
-          innerRadius={48}
-          outerRadius={88}
+          innerRadius={isRight ? 60 : 48}
+          outerRadius={isRight ? 110 : 88}
           paddingAngle={1}
           isAnimationActive={false}
         >
@@ -63,7 +66,16 @@ export default function InvestmentPieChartImpl({ slices, currency }: Props) {
             <Cell key={d.key} fill={d.fill} stroke="var(--background)" />
           ))}
         </Pie>
-        <ChartLegend content={<ChartLegendContent nameKey="key" />} />
+        {isRight ? (
+          <ChartLegend
+            layout="vertical"
+            verticalAlign="middle"
+            align="right"
+            content={<ChartLegendContent nameKey="key" className="flex-col items-start" />}
+          />
+        ) : (
+          <ChartLegend content={<ChartLegendContent nameKey="key" />} />
+        )}
       </PieChart>
     </ChartContainer>
   )

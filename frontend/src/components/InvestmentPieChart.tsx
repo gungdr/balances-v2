@@ -21,16 +21,17 @@ export type PieSlice = {
 type Props = {
   slices: PieSlice[]
   currency: string
+  legendPosition?: 'bottom' | 'right'
 }
 
 const InvestmentPieChartImpl = lazy(() => import('./InvestmentPieChartImpl'))
 
-export function InvestmentPieChart({ slices, currency }: Props) {
+export function InvestmentPieChart({ slices, currency, legendPosition = 'bottom' }: Props) {
   const total = slices.reduce((s, sl) => s + sl.value, 0)
   if (total <= 0) return null
   return (
     <Suspense fallback={<div className="h-64 w-full" />}>
-      <InvestmentPieChartImpl slices={slices} currency={currency} />
+      <InvestmentPieChartImpl slices={slices} currency={currency} legendPosition={legendPosition} />
     </Suspense>
   )
 }
