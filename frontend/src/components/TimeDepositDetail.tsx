@@ -52,7 +52,6 @@ import { DetailTagControl } from '@/components/DetailTagControl'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatDate } from '@/lib/format'
-import { maturityClass, maturityInfo } from '@/lib/maturity'
 import { ownershipLabel } from '@/lib/ownership'
 import { matchesTxnSearch } from '@/lib/transactionSearch'
 import { maturityRolloverPrefill } from '@/lib/rollover'
@@ -157,7 +156,6 @@ export function TimeDepositDetail({
   // Maturity is uniquely terminal: posting it flips the position to 'matured'
   // (backend hard guard, ADR-0009), after which the transaction-create row is
   // gated off entirely by isActiveStatus below.
-  const mInfo = maturityInfo(td.details.maturity_date)
   const ratePct = Number(td.details.interest_rate).toFixed(2)
   const rolloverLabel = t(
     `investments:timeDeposit.rolloverPolicy.${td.details.rollover_policy}`,
@@ -330,10 +328,7 @@ export function TimeDepositDetail({
             <span className="text-muted-foreground">
               {t('investments:timeDeposit.maturityLabel')}
             </span>{' '}
-            {formatDate(td.details.maturity_date)}{' '}
-            <span className={maturityClass(mInfo.state)}>
-              ({mInfo.label})
-            </span>
+            {formatDate(td.details.maturity_date)}
           </p>
           <p>
             <span className="text-muted-foreground">

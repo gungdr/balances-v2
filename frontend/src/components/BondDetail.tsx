@@ -50,7 +50,6 @@ import { SnapshotChart } from '@/components/SnapshotChart'
 import { useHouseholdMembers } from '@/hooks/useHouseholdMembers'
 import { useSession } from '@/hooks/useSession'
 import { formatCurrency, formatDate } from '@/lib/format'
-import { maturityClass, maturityInfo } from '@/lib/maturity'
 import { ownershipLabel } from '@/lib/ownership'
 import { matchesTxnSearch } from '@/lib/transactionSearch'
 import { computeCostBasis, costBasisSeries } from '@/lib/costBasis'
@@ -167,7 +166,6 @@ export function BondDetail({ investmentId, onBack }: Props) {
   // Maturity is uniquely terminal: posting it flips the position to 'matured'
   // (backend hard guard, ADR-0009), after which the transaction-create row is
   // gated off entirely by isActiveStatus below.
-  const mInfo = maturityInfo(bond.details.maturity_date)
   const couponPct = Number(bond.details.coupon_rate).toFixed(2)
   const bondTypeLabel = t(
     bond.details.bond_type === 'govt_primary'
@@ -320,10 +318,7 @@ export function BondDetail({ investmentId, onBack }: Props) {
             <span className="text-muted-foreground">
               {t('investments:bond.maturityLabel')}
             </span>{' '}
-            {formatDate(bond.details.maturity_date)}{' '}
-            <span className={maturityClass(mInfo.state)}>
-              ({mInfo.label})
-            </span>
+            {formatDate(bond.details.maturity_date)}
           </p>
           {bond.investment.description && (
             <p className="pt-1">{bond.investment.description}</p>

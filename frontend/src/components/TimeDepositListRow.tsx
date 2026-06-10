@@ -69,9 +69,11 @@ export function TimeDepositListRow({ item, onSelect }: Props) {
               months: item.details.term_months,
             })}
           </div>
-          <div className={`text-xs ${maturityClass(mInfo.state)}`}>
-            {mInfo.label}
-          </div>
+          {!terminated && (
+            <div className={`text-xs ${maturityClass(mInfo.state)}`}>
+              {mInfo.label}
+            </div>
+          )}
         </TableCell>
         <TableCell>
           <StatusBadge group="investments" status={item.investment.status} />

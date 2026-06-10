@@ -87,9 +87,11 @@ export function BondListRow({ item, onSelect }: Props) {
               frequency,
             })}
           </div>
-          <div className={`text-xs ${maturityClass(mInfo.state)}`}>
-            {mInfo.label}
-          </div>
+          {!terminated && (
+            <div className={`text-xs ${maturityClass(mInfo.state)}`}>
+              {mInfo.label}
+            </div>
+          )}
         </TableCell>
         <TableCell>
           <StatusBadge group="investments" status={item.investment.status} />
