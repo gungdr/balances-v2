@@ -86,8 +86,8 @@ Transaction → cash-flow mapping (columns per migration 00010):
   snapshots alone capture it (old → 0, the successor's first snapshot carries the rolled amount). That
   holds **only** when the matured TD's closing snapshot equals the full terminal value. Real
   statement snapshots under-accrue the final period's interest, so the close-to-0 drop exceeded the
-  (absent) offset and the matured principal read as a **phantom loss** — a real case surfaced a
-  −IDR 25M May-2026 investment-loss headline that was entirely a rollover artifact. A rolled TD
+  (absent) offset and the matured principal read as a **phantom loss** — a real case surfaced a large
+  negative investment-return headline for a month when net worth had actually risen. A rolled TD
   therefore also takes **no** synthetic placement `cash_in` (see the birth-month bullet) — its
   funding is the rollover `cash_in` above, not `td_principal`; using `td_principal` would cancel only
   the principal and leave the rolled-in interest as a phantom *gain*. See CHANGELOG "Time-deposit
