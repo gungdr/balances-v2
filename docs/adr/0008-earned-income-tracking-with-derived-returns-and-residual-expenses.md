@@ -90,8 +90,8 @@ Transaction → cash-flow mapping (columns per migration 00010):
   negative investment-return headline for a month when net worth had actually risen. A rolled TD
   therefore also takes **no** synthetic placement `cash_in` (see the birth-month bullet) — its
   funding is the rollover `cash_in` above, not `td_principal`; using `td_principal` would cancel only
-  the principal and leave the rolled-in interest as a phantom *gain*. See CHANGELOG "Time-deposit
-  rollover return-continuity fix (M6)".
+  the principal and leave the rolled-in interest as a phantom *gain*. See the pre-alpha changelog
+  (`docs/history/CHANGELOG-pre-alpha.md`) "Time-deposit rollover return-continuity fix (M6)".
 - **Birth month**: `value(M−1) = 0` when no snapshot ≤ M−1 — correct under the expected workflow
   (buy during the month, snapshot the position at month-end): `ΔSnapshot − cash_in` = unrealised
   gain since purchase. **This depends on placement being a `cash_in` to cancel the `0 → principal`

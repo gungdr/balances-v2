@@ -1,4 +1,9 @@
-# Changelog — milestone history
+# Changelog — milestone history (FROZEN at pre-alpha)
+
+> **Frozen.** This file is the pre-alpha development journal (M1–M6), kept as a historical record.
+> It is **no longer maintained.** From `v0.6.0-alpha.1` onward, "what changed" lives in
+> **GitHub Releases** (per-tag notes) and the **closed issues / PRs** behind them — see ADR-0029.
+> The live project state is in `HANDOFF.md`.
 
 The **historical record** of balances-v2: the blow-by-blow of what each milestone shipped, plus the
 design decisions settled during each grilling round. Split out of `HANDOFF.md` on 2026-05-29 so the

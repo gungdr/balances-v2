@@ -300,7 +300,7 @@ Each slice ships independently, CI-green.
 - **HANDOFF gains an "error envelope" convention** under the existing FE-lint / BE-lint
   bullets: `code` is the wire contract; FE catalogs are the source of human copy; no `message`
   field; OAuth-callback redirects are exempt.
-- **CHANGELOG entry under M6** lists the envelope landing alongside the i18n stream's #1–#12.
+- **Pre-alpha changelog (M6 section)** records the envelope landing alongside the i18n stream's #1–#12.
 - **Future locales: error catalogs are JSON-only**, like the other namespaces. Adding French
   is `src/locales/fr/errors.json` + the same backend zero edits.
 
