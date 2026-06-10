@@ -348,21 +348,23 @@ func (q *Queries) ListInvestmentTransactionsForReport(ctx context.Context, house
 
 const listInvestmentsForReport = `-- name: ListInvestmentsForReport :many
 SELECT i.id, i.subtype, i.ownership_type, i.sole_owner_user_id, i.terminated_at,
-       i.native_currency, td.principal AS td_principal, td.placement_date AS td_placement_date
+       i.native_currency, i.rolled_from_investment_id,
+       td.principal AS td_principal, td.placement_date AS td_placement_date
 FROM investments i
 LEFT JOIN time_deposit_details td ON td.investment_id = i.id
 WHERE i.household_id = $1 AND i.deleted_at IS NULL
 `
 
 type ListInvestmentsForReportRow struct {
-	ID              uuid.UUID        `json:"id"`
-	Subtype         string           `json:"subtype"`
-	OwnershipType   string           `json:"ownership_type"`
-	SoleOwnerUserID *uuid.UUID       `json:"sole_owner_user_id"`
-	TerminatedAt    *time.Time       `json:"terminated_at"`
-	NativeCurrency  string           `json:"native_currency"`
-	TdPrincipal     *decimal.Decimal `json:"td_principal"`
-	TdPlacementDate *time.Time       `json:"td_placement_date"`
+	ID                     uuid.UUID        `json:"id"`
+	Subtype                string           `json:"subtype"`
+	OwnershipType          string           `json:"ownership_type"`
+	SoleOwnerUserID        *uuid.UUID       `json:"sole_owner_user_id"`
+	TerminatedAt           *time.Time       `json:"terminated_at"`
+	NativeCurrency         string           `json:"native_currency"`
+	RolledFromInvestmentID *uuid.UUID       `json:"rolled_from_investment_id"`
+	TdPrincipal            *decimal.Decimal `json:"td_principal"`
+	TdPlacementDate        *time.Time       `json:"td_placement_date"`
 }
 
 // native_currency + the time_deposit placement fields let the engine synthesize
@@ -385,6 +387,7 @@ func (q *Queries) ListInvestmentsForReport(ctx context.Context, householdID uuid
 			&i.SoleOwnerUserID,
 			&i.TerminatedAt,
 			&i.NativeCurrency,
+			&i.RolledFromInvestmentID,
 			&i.TdPrincipal,
 			&i.TdPlacementDate,
 		); err != nil {

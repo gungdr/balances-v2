@@ -2522,6 +2522,38 @@ columns). The status ladder below is a point-in-time snapshot; the live ladder i
     verified by stash-and-rerun that they fail on the committed baseline too, i.e. unrelated to tags
     (investment transaction-dialog drift, unnoticed because Playwright isn't in CI); filed as #48.
 
+- **Time-deposit rollover return-continuity fix (M6 — issue #61, ADR-0008 amended).** A user asked why
+  May 2026 showed a **−IDR 25M total investment loss**. Tracing it: `investment_return_time_deposit`
+  was **−23,159,040**, and the whole line came from one TD rollover — `Permata 05.31-R3` matured
+  2026-05-31 (principal 24,000,000 + interest 3,119,098, both disposition `rolled_to_new`) into the
+  new `Permata 05.31-R4`. The return engine read it as a near-total loss because of two coupled gaps:
+  - `transactionCashFlows` booked a maturity's `cash_out` **only** for `cash_out`-disposition
+    portions, so a `rolled_to_new` maturity booked nothing. R3's snapshot dropping 26,278,138 → 0 had
+    no offsetting outflow → `(0 − 26,278,138) + 0 = −26,278,138`.
+  - R4 (a rolled TD) still took the issue-#27 synthetic placement `cash_in = td_principal`
+    (24,000,000), which cancels only the principal, not the rolled-in interest → `(27,119,098 − 0) −
+    24,000,000 = +3,119,098`. Net of the two legs: **−23,159,040**. The old
+    `TestEngine_MaturityRolledNoDoubleCount` passed only because its closing snapshot exactly equalled
+    the full terminal value, making the two phantom errors cancel — a fragility that real,
+    under-accrued statement snapshots break.
+  - **Fix (two coupled changes, both in the report engine).** (1) A maturity now books its **full
+    terminal value** (`principal_amount + interest_amount`) as `cash_out` regardless of disposition —
+    the value leaves the matured TD whether paid to the bank or rolled. (2) A rolled TD
+    (`rolled_from_investment_id` set) takes **no** `td_principal` placement; instead the engine routes
+    the predecessor maturity's `rolled_to_new` total as a `cash_in` into the successor at the maturity
+    month (= the successor's placement month). The two legs now cancel **across** the rollover: R3 =
+    `(0 − 26,278,138) + 27,119,098 = +840,960` (the genuine final-month accrual the April snapshot
+    under-recorded), R4 = `(27,119,098 − 0) − 27,119,098 = 0`. May TD return **−23,159,040 →
+    +840,960**; total investment return **−25,625,188 → −1,625,188** (the residual red is real: stock
+    −3,913,458, mutual_fund −1,306,069, partly offset by bond +2,753,379). The user confirmed the
+    derived living-expenses line also became sensible once the phantom loss cleared.
+  - **Plumbing.** `ListInvestmentsForReport` gained `rolled_from_investment_id` (sqlc regen);
+    `reportPosition` gained a `rolledFrom *uuid.UUID`. Tests: `TestEngine_TransactionCashFlows`
+    maturity cases updated (rolled now books full terminal `cash_out`); `TestEngine_Maturity`
+    `RolledNoDoubleCount` rewritten to set `rolledFrom` **and** use a deliberately under-accrued
+    `90 → 0` close so it proves continuity under the exact condition that broke production (asserts
+    return = 15, not the old coincidental 5). All months rebuilt; full backend suite green.
+
 ## What M4.2 shipped
 
 Code lives where you'd expect from the M4.1 pattern. Specifics worth knowing:

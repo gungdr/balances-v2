@@ -136,7 +136,8 @@ WHERE household_id = $1 AND deleted_at IS NULL;
 -- td.placement_date are NULL for non-TD subtypes.
 -- name: ListInvestmentsForReport :many
 SELECT i.id, i.subtype, i.ownership_type, i.sole_owner_user_id, i.terminated_at,
-       i.native_currency, td.principal AS td_principal, td.placement_date AS td_placement_date
+       i.native_currency, i.rolled_from_investment_id,
+       td.principal AS td_principal, td.placement_date AS td_placement_date
 FROM investments i
 LEFT JOIN time_deposit_details td ON td.investment_id = i.id
 WHERE i.household_id = $1 AND i.deleted_at IS NULL;

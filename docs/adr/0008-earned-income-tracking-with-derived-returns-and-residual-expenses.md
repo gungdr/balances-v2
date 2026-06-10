@@ -72,15 +72,26 @@ Transaction → cash-flow mapping (columns per migration 00010):
 | Sell | — | `amount` |
 | Coupon / Dividend / Distribution | — | `amount` |
 | Fee | `amount` **only if `quantity IS NULL`** | — |
-| Maturity | — | `principal_amount` if `principal_disposition='cash_out'` + `interest_amount` if `interest_disposition='cash_out'` |
+| Maturity | — (rolled portions re-enter the *successor* TD — see below) | `principal_amount + interest_amount` (**full terminal value, regardless of disposition**) |
 
 - **Unit-deducting fees are NOT a cash flow** (`quantity` set): the deducted units lower the next
   snapshot, so the fee is already in `ΔSnapshot`. Only pure cash fees hit `cash_in`. This makes
   "fees absorbed into the snapshot delta" precise for both fee flavors.
-- **Rolled maturity portions are NOT a cash flow**: a `rolled_to_new` portion is captured by
-  snapshots (old position drops to 0, the new position's first snapshot carries the rolled amount).
-  The formula yields the same total whether the user accrues interest in snapshots over the term or
-  recognizes it lump-sum at maturity.
+- **Maturity books the full terminal value as `cash_out`, and a rollover re-enters the successor as
+  `cash_in` (M6 correction).** Both legs run *regardless of disposition*: the matured TD's terminal
+  value leaves it (drop-to-0 offset), and for a `rolled_to_new` portion the same amount enters the
+  successor TD (linked by `investments.rolled_from_investment_id`) as a `cash_in` at the maturity
+  month. The two legs cancel **across** the rollover, leaving only genuine new interest as return.
+  *Original (broken) model:* a rolled maturity booked **no** cash flow at all, on the theory that
+  snapshots alone capture it (old → 0, the successor's first snapshot carries the rolled amount). That
+  holds **only** when the matured TD's closing snapshot equals the full terminal value. Real
+  statement snapshots under-accrue the final period's interest, so the close-to-0 drop exceeded the
+  (absent) offset and the matured principal read as a **phantom loss** — a real case surfaced a
+  −IDR 25M May-2026 investment-loss headline that was entirely a rollover artifact. A rolled TD
+  therefore also takes **no** synthetic placement `cash_in` (see the birth-month bullet) — its
+  funding is the rollover `cash_in` above, not `td_principal`; using `td_principal` would cancel only
+  the principal and leave the rolled-in interest as a phantom *gain*. See CHANGELOG "Time-deposit
+  rollover return-continuity fix (M6)".
 - **Birth month**: `value(M−1) = 0` when no snapshot ≤ M−1 — correct under the expected workflow
   (buy during the month, snapshot the position at month-end): `ΔSnapshot − cash_in` = unrealised
   gain since purchase. **This depends on placement being a `cash_in` to cancel the `0 → principal`
@@ -91,6 +102,9 @@ Transaction → cash-flow mapping (columns per migration 00010):
   time deposit's placement `cash_in` is **synthesized by the engine** from
   `time_deposit_details.principal` at `placement_date` (a TD records no Buy). With that `cash_in` the
   placement month nets to `0` and only later yield (coupon / accrued interest) is booked as return.
+  **Exception: a rolled TD takes no synthetic placement** — it is funded by its predecessor's
+  rollover `cash_in` instead (see the maturity/rollover bullet above), so synthesizing a
+  `td_principal` placement on top would double-count.
 - **Termination/maturity month — the liquidation-to-0 assumption (made explicit, issue #25).** The
   formula's correctness at the end of a position's life *depends on the close-month snapshot being
   `0`*. A matured/sold position holds nothing at month-end — the principal and any interest/proceeds

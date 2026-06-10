@@ -370,11 +370,17 @@ func (r *MonthlyReportRepo) loadEngineInput(ctx context.Context, hid uuid.UUID, 
 		p := reportPosition{
 			id: i.ID, group: groupInvestment, subtype: i.Subtype, ownershipType: i.OwnershipType,
 			soleOwnerID: i.SoleOwnerUserID, terminatedAt: i.TerminatedAt,
+			rolledFrom: i.RolledFromInvestmentID,
 		}
 		// TimeDeposit placement cash_in (issue #27): the principal + placement
 		// date feed the engine's synthetic flow so the placement month nets to 0
 		// return. Other subtypes record a real Buy instead, so these stay nil.
-		if i.Subtype == "time_deposit" && i.TdPrincipal != nil && i.TdPlacementDate != nil {
+		// A rolled-over TD is funded by its predecessor's maturity instead — the
+		// engine routes that terminal value here as cash_in, so it takes no
+		// synthetic TdPrincipal placement (which would understate the rolled-in
+		// interest and double-count against the rollover cash_in).
+		if i.Subtype == "time_deposit" && i.RolledFromInvestmentID == nil &&
+			i.TdPrincipal != nil && i.TdPlacementDate != nil {
 			p.placementAmount = i.TdPrincipal
 			p.placementMonth = i.TdPlacementDate
 			p.currency = i.NativeCurrency

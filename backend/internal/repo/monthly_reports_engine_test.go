@@ -175,8 +175,12 @@ func TestEngine_EmptyIsNil(t *testing.T) {
 	}
 }
 
-// The transaction → cash mapping (ADR-0008): unit-deducting fees and rolled
-// maturity portions move no cash; cash fees and cash-out dispositions do.
+// The transaction → cash mapping (ADR-0008): unit-deducting fees move no cash;
+// cash fees and Buys move cash in. A maturity always books its full terminal
+// value (principal + interest) as cash_out of the matured TD regardless of
+// disposition — the value leaves the position whether paid out or rolled over.
+// The rollover's matching cash_in into the successor TD is a separate engine
+// pass (issue #27 rollover), not part of this per-transaction mapping.
 func TestEngine_TransactionCashFlows(t *testing.T) {
 	amt := func(s string) *decimal.Decimal { v := dec(s); return &v }
 	str := func(s string) *string { return &s }
@@ -193,8 +197,8 @@ func TestEngine_TransactionCashFlows(t *testing.T) {
 		{"fee cash", reportTransaction{txnType: "fee", amount: amt("10")}, "10", "0"},
 		{"fee unit-deducted", reportTransaction{txnType: "fee", amount: amt("10"), quantity: amt("2")}, "0", "0"},
 		{"maturity both cash_out", reportTransaction{txnType: "maturity", principalAmount: amt("1000"), interestAmount: amt("55"), principalDisposition: str("cash_out"), interestDisposition: str("cash_out")}, "0", "1055"},
-		{"maturity both rolled", reportTransaction{txnType: "maturity", principalAmount: amt("1000"), interestAmount: amt("55"), principalDisposition: str("rolled_to_new"), interestDisposition: str("rolled_to_new")}, "0", "0"},
-		{"maturity P rolled / I cash", reportTransaction{txnType: "maturity", principalAmount: amt("1000"), interestAmount: amt("55"), principalDisposition: str("rolled_to_new"), interestDisposition: str("cash_out")}, "0", "55"},
+		{"maturity both rolled", reportTransaction{txnType: "maturity", principalAmount: amt("1000"), interestAmount: amt("55"), principalDisposition: str("rolled_to_new"), interestDisposition: str("rolled_to_new")}, "0", "1055"},
+		{"maturity P rolled / I cash", reportTransaction{txnType: "maturity", principalAmount: amt("1000"), interestAmount: amt("55"), principalDisposition: str("rolled_to_new"), interestDisposition: str("cash_out")}, "0", "1055"},
 	}
 	for _, c := range cases {
 		cf := transactionCashFlows(c.txn)
@@ -418,10 +422,15 @@ func TestEngine_MaturityCashOutBooksInterestOnly(t *testing.T) {
 	}
 }
 
-// Rolled TimeDeposit (#25): the old position closes to 0 and the new position
-// carries the rolled principal; neither the principal nor its roll is a cash
-// flow (ADR-0008). The combined return is interest only and the maturity month
-// shows no double-counted principal in net worth.
+// Rolled TimeDeposit (#25/#27 rollover): the old position closes to 0 and the
+// new position carries the rolled principal + interest. The maturity books the
+// terminal value as a cash_out of the old TD; the engine routes the matching
+// cash_in into the rolled-from successor. The two legs cancel across the
+// rollover, so the combined return is interest only and the maturity month shows
+// no double-counted principal in net worth. Crucially this holds even when the
+// old TD's last snapshot under-accrues the final interest (see the 90→0 close
+// below), unlike the old fragile model that relied on the closing snapshot
+// equalling the full terminal value.
 func TestEngine_MaturityRolledNoDoubleCount(t *testing.T) {
 	oldTD, newTD := uuid.New(), uuid.New()
 	feb := ym(2026, time.February)
@@ -429,12 +438,12 @@ func TestEngine_MaturityRolledNoDoubleCount(t *testing.T) {
 	in := reportEngineInput{
 		positions: []reportPosition{
 			{id: oldTD, group: groupInvestment, subtype: "time_deposit", ownershipType: "joint", terminatedAt: &feb},
-			{id: newTD, group: groupInvestment, subtype: "time_deposit", ownershipType: "joint"},
+			{id: newTD, group: groupInvestment, subtype: "time_deposit", ownershipType: "joint", rolledFrom: &oldTD},
 		},
 		snapshots: []reportSnapshot{
-			{positionID: oldTD, yearMonth: ym(2026, time.January), amount: dec("100")},
-			{positionID: oldTD, yearMonth: feb, amount: dec("0")},   // old closes
-			{positionID: newTD, yearMonth: feb, amount: dec("105")}, // rolled principal + interest
+			{positionID: oldTD, yearMonth: ym(2026, time.January), amount: dec("90")}, // under-accrued: final interest not yet in the snapshot
+			{positionID: oldTD, yearMonth: feb, amount: dec("0")},                     // old closes
+			{positionID: newTD, yearMonth: feb, amount: dec("105")},                   // rolled principal + interest
 		},
 		transactions: []reportTransaction{
 			{investmentID: oldTD, yearMonth: feb, txnType: "maturity",
@@ -447,16 +456,17 @@ func TestEngine_MaturityRolledNoDoubleCount(t *testing.T) {
 	jan := findMonth(t, reports, ym(2026, time.January))
 	m := findMonth(t, reports, feb)
 
-	// old: (0−100)+0 = −100; new: 105−0 = 105; total = 5 (interest only).
-	if m.investmentReturn == nil || !m.investmentReturn.total.Equal(dec("5")) {
-		t.Fatalf("rolled return: %+v, want total=5", m.investmentReturn)
+	// old: (0−90) + 105 cash_out = 15 (the final accrual the snapshot missed);
+	// new: (105−0) − 105 rollover cash_in = 0; total = 15 (interest only).
+	if m.investmentReturn == nil || !m.investmentReturn.total.Equal(dec("15")) {
+		t.Fatalf("rolled return: %+v, want total=15", m.investmentReturn)
 	}
 	// No double-count: NW investments = 0 (old) + 105 (new) = 105, not 205.
 	if !m.nwInvestments.Equal(dec("105")) {
 		t.Errorf("rolled month nwInvestments: got %s, want 105 (old→0, new 105)", m.nwInvestments)
 	}
-	if !jan.nwTotal.Equal(dec("100")) {
-		t.Errorf("Jan nwTotal: got %s, want 100", jan.nwTotal)
+	if !jan.nwTotal.Equal(dec("90")) {
+		t.Errorf("Jan nwTotal: got %s, want 90", jan.nwTotal)
 	}
 }
 

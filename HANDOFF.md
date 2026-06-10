@@ -456,6 +456,11 @@ M1–M5 are complete; **M6 (v1 polish) is in progress.** CI is green.
     `/tags` pie+table report, and a shared `DetailTagControl` on all 10 position detail screens for
     assignment. Reframed from the original "banks as a lookup" ask (RDN/custodian → LPS → neutral
     grouping primitive — the financial framing was deliberately kept out of the ADR).
+  - TD rollover return-continuity fix (issue #61, ADR-0008 amended): a `rolled_to_new` maturity no longer reads
+    as a phantom loss of the matured principal. Maturity now books its full terminal value as
+    `cash_out`; the engine routes the matching `cash_in` into the `rolled_from` successor, so the two
+    legs cancel and only genuine new interest shows as return. Surfaced by a real −IDR 25M May-2026
+    investment-loss headline that was entirely a rollover artifact.
 
 A CI/coverage side quest (post-M4.2) stood up GitHub Actions: golangci-lint + `go test -race
 -coverprofile` + Codecov + ESLint + `npm run build` on every push to `main` and every PR. Coverage

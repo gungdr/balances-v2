@@ -51,6 +51,11 @@ type reportPosition struct {
 	placementAmount *decimal.Decimal
 	placementMonth  *time.Time
 	currency        string
+	// Predecessor TD when this position was opened by rolling over a matured TD
+	// (issue #27 rollover). nil for fresh placements. The rollover's funding is
+	// the predecessor's maturity terminal value, routed here as a cash_in, so a
+	// rolled TD takes no synthetic TdPrincipal placement.
+	rolledFrom *uuid.UUID
 }
 
 // reportSnapshot is one monthly observation in its native currency.
@@ -352,6 +357,62 @@ func generateMonthlyReports(in reportEngineInput) []monthlyReportData {
 		m[mi] = c
 	}
 
+	// Rollover funding cash_in (issue #27 rollover). A rolled TD takes no
+	// TdPrincipal placement; instead the terminal value that rolled out of its
+	// predecessor's maturity (the rolled_to_new portions) enters here as a
+	// cash_in, in the maturity month (= the successor's placement month). This is
+	// the inflow leg that matches the maturity's cash_out outflow leg, so the
+	// rolled capital nets to 0 return on both TDs and only genuine new interest
+	// shows as yield. Same FX handling as the placement flow above.
+	successorOf := make(map[uuid.UUID]uuid.UUID) // predecessor id -> successor id
+	for _, p := range in.positions {
+		if p.rolledFrom != nil {
+			successorOf[*p.rolledFrom] = p.id
+		}
+	}
+	for _, t := range in.transactions {
+		if t.txnType != "maturity" {
+			continue
+		}
+		succ, ok := successorOf[t.investmentID]
+		if !ok {
+			continue
+		}
+		var rolled decimal.Decimal
+		if t.principalDisposition != nil && *t.principalDisposition == "rolled_to_new" {
+			rolled = rolled.Add(decOrZero(t.principalAmount))
+		}
+		if t.interestDisposition != nil && *t.interestDisposition == "rolled_to_new" {
+			rolled = rolled.Add(decOrZero(t.interestAmount))
+		}
+		if rolled.IsZero() {
+			continue
+		}
+		mi := monthIndex(t.yearMonth)
+		inC, rate, ok := fx.convert(rolled, t.currency, mi)
+		if !ok {
+			if txnMissing[mi] == nil {
+				txnMissing[mi] = make(map[string]bool)
+			}
+			txnMissing[mi][t.currency] = true
+			continue
+		}
+		if fx.foreign(t.currency) {
+			if txnRates[mi] == nil {
+				txnRates[mi] = make(map[string]decimal.Decimal)
+			}
+			txnRates[mi][t.currency] = rate
+		}
+		m := cashByPos[succ]
+		if m == nil {
+			m = make(map[int]cashFlow)
+			cashByPos[succ] = m
+		}
+		c := m[mi]
+		c.in = c.in.Add(inC)
+		m[mi] = c
+	}
+
 	lastIdx := maxIdx
 	if ci := monthIndex(in.currentMonth); ci > lastIdx {
 		lastIdx = ci
@@ -532,14 +593,12 @@ func transactionCashFlows(t reportTransaction) cashFlow {
 		}
 		return cashFlow{}
 	case "maturity":
-		var out decimal.Decimal
-		if t.principalDisposition != nil && *t.principalDisposition == "cash_out" {
-			out = out.Add(decOrZero(t.principalAmount))
-		}
-		if t.interestDisposition != nil && *t.interestDisposition == "cash_out" {
-			out = out.Add(decOrZero(t.interestAmount))
-		}
-		return cashFlow{out: out}
+		// The matured TD's terminal value leaves the position regardless of where
+		// it lands — paid out to the bank (cash_out) or rolled into a successor TD
+		// (rolled_to_new). Either disposition is an outflow that offsets the
+		// snapshot's drop to 0; booking both as cash_out keeps a rollover from
+		// reading as a phantom loss of the matured principal.
+		return cashFlow{out: decOrZero(t.principalAmount).Add(decOrZero(t.interestAmount))}
 	}
 	return cashFlow{}
 }
