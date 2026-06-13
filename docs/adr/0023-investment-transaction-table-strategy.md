@@ -138,12 +138,21 @@ history per ADR-0007.
 - Adding a new Investment subtype means updating the matrix in `validateInvestmentTransactionType`
   to declare its allowed types (alongside the existing subtype CHECK + snapshot-shape mapping from
   ADR-0009 + ADR-0022).
-- The Maturity transaction is uniquely terminal — recording one conceptually transitions the
-  position to `status = 'matured'`. The current schema does **not** enforce uniqueness at the DB
-  level (no partial unique index on `(investment_id) WHERE transaction_type = 'maturity' AND
-  deleted_at IS NULL`), and the Maturity transaction does **not** auto-flip status. The frontend has
-  a band-aid that hides the `+ Maturity` button once one exists. Hard guards land with M4.8
-  lifecycle UI (editable status, `terminated_at`, `termination_note`) — see HANDOFF deferred items.
+- The Maturity transaction is uniquely terminal — recording one transitions the position to
+  `status = 'matured'`. This **is** enforced in the repo: `CreateInvestmentTransaction` flips the
+  status, sets `terminated_at` to the maturity date, and upserts a truthful 0-value close snapshot at
+  the maturity month, atomically with the insert (issues #25/#17). The post-maturity freeze guard
+  (`status != active → ErrPositionNotActive`) then rejects any further transaction. The schema does
+  **not** enforce maturity uniqueness at the DB level (no partial unique index on `(investment_id)
+  WHERE transaction_type = 'maturity' AND deleted_at IS NULL`); the freeze guard makes a second one
+  unreachable through the live API, and the create-from-list seed (issue #90) rejects a second
+  maturity row in its preview. The create-from-list import reuses this terminal behavior to restore a
+  matured position faithfully (decision (b), #90): it seeds the ledger with the Maturity row last so
+  the write-order matches the terminal-event model, producing the matured status + close snapshot.
+  Note the seed inserts via the unguarded db query (not the guarded
+  `repo.CreateInvestmentTransaction`), so intra-ledger order is not enforced by the freeze guard
+  during seeding; the load-bearing ordering is snapshots-before-ledger, so the 0 close overwrites any
+  seeded snapshot in the maturity month.
 - Per ADR-0003, no transaction type auto-propagates to bank-account snapshots. The user reads cash
   off their bank statement at the next month-end.
 - Per-shape frontend dialog forks (`Trade` / `CashIncome` / `Fee` / `Maturity`) mirror the snapshot
