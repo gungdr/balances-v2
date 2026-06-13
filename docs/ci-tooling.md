@@ -18,6 +18,7 @@ Last reviewed: 2026-06-13 (pre-alpha hardening, #70).
 | **govulncheck** | Go dependency vuln scan (reachability-based) | `ci.yml` → `backend-vuln` | added 2026-06-06 |
 | **Dependabot** | Weekly update PRs + security alerts | `dependabot.yml` | added 2026-06-06; gomod + npm + github-actions |
 | **SHA-pinned actions** | Third-party Actions pinned to commit SHA (supply-chain) | all `.github/workflows/*` | added 2026-06-13 (#70); `# vN` comment lets Dependabot bump pins |
+| **E2E (Playwright)** | Smoke gate per-PR + nightly full suite | `e2e.yml` → `e2e-run.yml` | added 2026-06-13 (#70); tiered via `{ tag: '@smoke' }`; offline harness (mock-oidc + `services: postgres`) |
 
 ## Why these three
 
@@ -38,15 +39,12 @@ version bumps. All GitHub-native, zero infra, free for public repos.
 
 Deferred items worth a second look once the app faces real users:
 
-1. **e2e in CI.** Playwright is local-only today (`make e2e`); nothing stops a
-   merge that greens unit tests but breaks a user flow. Options: per-PR
-   (flake-blocks merges) vs nightly (catches regressions without blocking).
-   Uses `data-testid` selectors already, so the suite is CI-stable.
-2. **gitleaks** — secret scanning in CI/history. Marginal if GitHub
+1. **gitleaks** — secret scanning in CI/history. Marginal if GitHub
    push-protection is enabled; cheap insurance for a money app.
-3. **Concurrency cancellation** — `cancel-in-progress` to stop paying for stale
-   runs on rapid pushes. Pure cost hygiene.
-4. **Container/Trivy scanning** — deferred with deployment; reassess when the
+2. **Concurrency cancellation** — `cancel-in-progress` to stop paying for stale
+   runs on rapid pushes. Pure cost hygiene. `e2e.yml` already does this; `ci.yml`
+   and `codeql.yml` still open.
+3. **Container/Trivy scanning** — deferred with deployment; reassess when the
    deploy story lands.
 
 ## Setup notes / one-time actions
