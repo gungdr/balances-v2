@@ -30,6 +30,24 @@ export function LocalAuthForm() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
 
+  // Public demo (ADR-0041, #217): pre-fill the shared demo login once methods
+  // loads, so a visitor can just click Sign in. The caption below repeats the
+  // same credentials in plain text as a fail-safe against the visitor's typing
+  // clobbering these fields — there is no confidentiality cost, every visitor
+  // shares this one identity regardless of whether the values are shown.
+  //
+  // Adjusted during render (React's documented pattern for syncing state from
+  // a prop/query that resolves later) rather than in an effect, so it applies
+  // before the first paint instead of flashing empty fields then refilling.
+  const [demoPrefilled, setDemoPrefilled] = useState(false);
+  if (!demoPrefilled && methods) {
+    setDemoPrefilled(true);
+    if (methods.demo_mode) {
+      setEmail(methods.demo_email ?? "");
+      setPassword(methods.demo_password ?? "");
+    }
+  }
+
   const login = useMutation({
     mutationFn: () =>
       api("/api/auth/local/login", {
@@ -94,6 +112,18 @@ export function LocalAuthForm() {
           {t("signIn.local.registerTab")}
         </button>
       </div>
+
+      {mode === "signin" && methods?.demo_mode && (
+        <p
+          data-testid="local-demo-hint"
+          className="text-xs text-muted-foreground"
+        >
+          {t("signIn.local.demoHint", {
+            email: methods.demo_email,
+            password: methods.demo_password,
+          })}
+        </p>
+      )}
 
       {mode === "register" && (
         <div className="space-y-1">
