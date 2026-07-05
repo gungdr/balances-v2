@@ -93,6 +93,21 @@ func gunzip(t *testing.T, b []byte) []byte {
 	return raw
 }
 
+// gzipBytes gzip-compresses b, for tests that need to hand-build a gzip stream
+// smaller than a real backup export.
+func gzipBytes(t *testing.T, b []byte) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	gw := gzip.NewWriter(&buf)
+	if _, err := gw.Write(b); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	if err := gw.Close(); err != nil {
+		t.Fatalf("close gzip writer: %v", err)
+	}
+	return buf.Bytes()
+}
+
 // covers: INV-BACKUP-06, INV-BACKUP-07, INV-BACKUP-08
 func TestRestoreParseValidate(t *testing.T) {
 	tdb := testutil.NewTestDB(t)
@@ -132,6 +147,19 @@ func TestRestoreParseValidate(t *testing.T) {
 
 	t.Run("truncated gzip is corrupt", func(t *testing.T) {
 		_, err := Parse(bytes.NewReader(gzipped[:len(gzipped)-5]))
+		if !errors.Is(err, ErrCorruptBackup) {
+			t.Errorf("err = %v, want ErrCorruptBackup", err)
+		}
+	})
+
+	// covers: INV-BACKUP-07
+	t.Run("gzip bomb past the decompressed ceiling is corrupt, not OOM", func(t *testing.T) {
+		// A real 500 MB ceiling isn't worth exercising literally per test run —
+		// inject a tiny one via the same seam parseWith already uses for
+		// target/chain, and prove a payload one byte over it is refused.
+		payload := bytes.Repeat([]byte("x"), 2048)
+		bomb := gzipBytes(t, payload)
+		_, err := parseWith(bytes.NewReader(bomb), FormatVersion, transforms, 1024)
 		if !errors.Is(err, ErrCorruptBackup) {
 			t.Errorf("err = %v, want ErrCorruptBackup", err)
 		}
